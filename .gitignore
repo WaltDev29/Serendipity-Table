@@ -1,0 +1,68 @@
+*.md
+*.pdf
+web_design/
+
+# Node / Frontend
+node_modules/
+dist/
+.vite/
+coverage/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.eslintcache
+
+# Java / Gradle / Backend
+.gradle/
+build/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+out/
+bin/
+*.class
+.classpath
+.project
+.settings/
+*.iml
+
+# Python / AI Engine
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.pkl
+*.joblib
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Secrets / Env (템플릿은 커밋 허용)
+*.env
+.env.*
+!*.env.example
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# Docker local data
+pgdata/
+redis-data/

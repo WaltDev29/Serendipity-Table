@@ -1,0 +1,111 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: serendipity-postgres
+    restart: unless-stopped
+    env_file:
+      - ../.env/postgres.env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../../services/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - serendipity-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serendipity_user -d serendipity_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: serendipity-redis
+    restart: unless-stopped
+    env_file:
+      - ../.env/redis.env
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - serendipity-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ai-engine:
+    build:
+      context: ../../services/ai-engine
+      dockerfile: Dockerfile
+    container_name: serendipity-ai-engine
+    restart: unless-stopped
+    env_file:
+      - ../.env/ai-engine.env
+    ports:
+      - "${AI_ENGINE_PORT:-8000}:8000"
+    volumes:
+      - ../../services/ai-engine:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - serendipity-net
+
+  backend:
+    build:
+      context: ../../services/backend
+      dockerfile: Dockerfile
+    container_name: serendipity-backend
+    restart: unless-stopped
+    env_file:
+      - ../.env/backend.env
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-engine:
+        condition: service_started
+    networks:
+      - serendipity-net
+
+  frontend:
+    build:
+      context: ../../services/frontend
+      dockerfile: Dockerfile
+    container_name: serendipity-frontend
+    restart: unless-stopped
+    env_file:
+      - ../.env/frontend.env
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ../../services/frontend:/app
+      - /app/node_modules
+    networks:
+      - serendipity-net
+
+  nginx:
+    build:
+      context: ../../services/nginx
+      dockerfile: Dockerfile
+    container_name: serendipity-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - serendipity-net
+
+networks:
+  serendipity-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

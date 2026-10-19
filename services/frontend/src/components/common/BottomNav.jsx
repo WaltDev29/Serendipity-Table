@@ -6,8 +6,8 @@ export default function BottomNav() {
   const location = useLocation();
   const { userState } = useApp();
 
-  // 대화 중인 채팅방 내부(/chat)에서는 하단 바 숨김 (실제 메신저 앱 표준 UX)
-  if (location.pathname === '/chat') {
+  // 대화 중인 채팅방 내부(/chat) 또는 관리자 콘솔(/admin)에서는 하단 바 숨김
+  if (location.pathname === '/chat' || location.pathname.startsWith('/admin')) {
     return null;
   }
 

@@ -8,7 +8,13 @@ export default function DemoSwitcher() {
   const { userState, setUserState } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
+  // 관리자 콘솔(/admin)에서는 숨김 (AdminLayout 자체 헤더/사이드바에 전환 버튼 내장)
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
+
   const demoPresets = [
+    { label: '⚙️ 운영자 콘솔 (A-01~09)', path: '/admin/dashboard', state: 'CONFIRMED', desc: '와이드 데스크톱 관리자 백오피스' },
     { label: 'P-01 홈 (미신청 상태)', path: '/', state: 'NONE', desc: '초기 홈 화면 및 회차 오픈 안내' },
     { label: 'P-01 홈 (신청 완료 배너)', path: '/', state: 'WAITING', desc: '상단 D-2 신청완료 퀵배너 표시' },
     { label: 'P-02~03 설문 작성 (1~2단계)', path: '/apply', state: 'NONE', desc: '인적사항 & 취향 성향 칩' },

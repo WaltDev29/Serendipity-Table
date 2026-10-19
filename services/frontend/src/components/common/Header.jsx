@@ -1,9 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 
 export default function Header() {
+  const location = useLocation();
   const { isNotiDrawerOpen, setIsNotiDrawerOpen, setIsEtiquetteOpen, notifications } = useApp();
+
+  // 관리자 콘솔(/admin) 경로에서는 모바일 사용자 헤더 숨김
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

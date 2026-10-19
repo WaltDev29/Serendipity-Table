@@ -7,9 +7,103 @@
     <title>우연한 식탁 - Serendipity Table</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Pretendard:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#ffffff",
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#bceddc",
+              "inverse-primary": "#ffb4a8",
+              "surface-tint": "#b4281a",
+              "secondary-fixed": "#ffddb6",
+              "on-secondary-fixed-variant": "#643f00",
+              "on-background": "#1a1b1e",
+              "primary-fixed-dim": "#ffb4a8",
+              "on-secondary-fixed": "#2a1800",
+              "outline-variant": "#e2beb9",
+              "surface-container-high": "#e9e7eb",
+              "surface-container-lowest": "#ffffff",
+              "tertiary-fixed-dim": "#a0d1c0",
+              "on-surface": "#1a1b1e",
+              "primary": "#b02518",
+              "on-secondary": "#ffffff",
+              "on-primary-fixed": "#410000",
+              "on-secondary-container": "#6f4600",
+              "on-error": "#ffffff",
+              "on-error-container": "#93000a",
+              "surface-dim": "#dbd9dd",
+              "surface-container-highest": "#e3e2e6",
+              "surface": "#faf9fd",
+              "tertiary": "#366457",
+              "on-tertiary-container": "#f4fff9",
+              "error": "#ba1a1a",
+              "surface-variant": "#e3e2e6",
+              "secondary-container": "#feb246",
+              "inverse-on-surface": "#f2f0f4",
+              "primary-container": "#d33e2e",
+              "on-primary-container": "#fffbff",
+              "background": "#faf9fd",
+              "on-tertiary-fixed": "#002019",
+              "tertiary-container": "#4f7d6f",
+              "inverse-surface": "#2f3033",
+              "surface-container-low": "#f4f3f7",
+              "on-surface-variant": "#5a413c",
+              "on-tertiary": "#ffffff",
+              "secondary": "#845400",
+              "surface-container": "#efedf1",
+              "on-tertiary-fixed-variant": "#204f42",
+              "primary-fixed": "#ffdad4",
+              "secondary-fixed-dim": "#ffb95a",
+              "outline": "#8e706b",
+              "on-primary-fixed-variant": "#910904",
+              "surface-bright": "#faf9fd"
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+            spacing: {
+              "space-md": "1rem",
+              "space-lg": "1.5rem",
+              "gutter-lg": "1.5rem",
+              "gutter": "1rem",
+              "margin": "1.25rem",
+              "gutter-md": "1.25rem",
+              "space-xs": "0.25rem",
+              "space-xl": "2.25rem",
+              "margin-lg": "3rem",
+              "margin-md": "2rem",
+              "space-sm": "0.5rem"
+            },
+            fontFamily: {
+              "headline-sm": ["Epilogue", "sans-serif"],
+              "body-lg": ["Plus Jakarta Sans", "Pretendard", "sans-serif"],
+              "label-sm": ["Plus Jakarta Sans", "Pretendard", "sans-serif"],
+              "headline-xl": ["Epilogue", "sans-serif"],
+              "headline-lg": ["Epilogue", "sans-serif"],
+              "label-md": ["Plus Jakarta Sans", "Pretendard", "sans-serif"],
+              "body-md": ["Plus Jakarta Sans", "Pretendard", "sans-serif"],
+              "label-lg": ["Plus Jakarta Sans", "Pretendard", "sans-serif"],
+              "headline-md": ["Epilogue", "sans-serif"],
+              "body-sm": ["Plus Jakarta Sans", "Pretendard", "sans-serif"],
+              "headline-xl-mobile": ["Epilogue", "sans-serif"],
+              "headline-lg-mobile": ["Epilogue", "sans-serif"]
+            }
+          }
+        }
+      }
+    </script>
   </head>
-  <body>
+  <body class="bg-surface font-body-md text-body-md text-on-surface antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

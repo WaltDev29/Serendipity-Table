@@ -33,6 +33,11 @@ import ChatListPage from './pages/ChatListPage';
 import FeedbackPage from './pages/FeedbackPage';
 import FallbackPage from './pages/FallbackPage';
 import MyPageAndCS from './pages/MyPageAndCS';
+import SignupPage from './pages/SignupPage';
+import LoginPage from './pages/LoginPage';
+import PastTablesPage from './pages/PastTablesPage';
+import BlockedUsersPage from './pages/BlockedUsersPage';
+import CustomerServicePage from './pages/CustomerServicePage';
 
 export default function App() {
   return (
@@ -100,6 +105,15 @@ export default function App() {
                 {/* P-11 ~ P-12: 마이페이지 프로필 & 1:1 고객센터 실시간 문의 */}
                 <Route path="/mypage" element={<div className="pt-14"><MyPageAndCS /></div>} />
                 <Route path="/my" element={<div className="pt-14"><MyPageAndCS /></div>} />
+
+                {/* 신규 추가: 회원가입 및 로그인 */}
+                <Route path="/signup" element={<div className="pt-14"><SignupPage /></div>} />
+                <Route path="/login" element={<div className="pt-14"><LoginPage /></div>} />
+
+                {/* 신규 추가: 지난 식탁 다이어리 & 안심 차단 관리 & 고객센터 */}
+                <Route path="/past-tables" element={<div className="pt-14"><PastTablesPage /></div>} />
+                <Route path="/blocked-users" element={<div className="pt-14"><BlockedUsersPage /></div>} />
+                <Route path="/cs" element={<div className="pt-14"><CustomerServicePage /></div>} />
 
                 {/* Fallback Redirect */}
                 <Route path="*" element={<Navigate to="/" replace />} />

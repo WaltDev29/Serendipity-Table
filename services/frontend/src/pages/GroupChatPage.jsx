@@ -4,13 +4,26 @@ import { useApp } from '../context/AppContext';
 
 export default function GroupChatPage() {
   const navigate = useNavigate();
-  const { matchResult, currentUser, chatMessages, sendChatMessage, checkInStatus, doCheckIn, isReadOnlyMode, setIsReadOnlyMode } = useApp();
+  const { matchResult, currentUser, chatMessages, sendChatMessage, isReadOnlyMode, setIsReadOnlyMode } = useApp();
   
   const [inputText, setInputText] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedGameVote, setSelectedGameVote] = useState(null); // 'A' or 'B'
   const [gameVotes, setGameVotes] = useState({ A: 2, B: 1 });
   const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
+
+  // 신고 모달 상태
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTargetNickname, setReportTargetNickname] = useState('민트초코');
+  const [reportReason, setReportReason] = useState('과도한 음주 또는 불쾌한 언행');
+  const [reportDetail, setReportDetail] = useState('');
+
+  const chatMembers = [
+    { id: 'm-me', nickname: currentUser.nickname, isMe: true, job: currentUser.job, ageGroup: `${currentUser.age}세`, mannerTemp: currentUser.mannerTemp, initial: '나', avatarBg: 'bg-primary-fixed text-primary' },
+    { id: 'm-1', nickname: '민트초코', isMe: false, job: '마케터', ageGroup: '20대 중반', mannerTemp: 37.2, initial: '민', avatarBg: 'bg-secondary-fixed text-secondary' },
+    { id: 'm-2', nickname: '러너', isMe: false, job: '개발자', ageGroup: '20대 후반', mannerTemp: 38.0, initial: '러', avatarBg: 'bg-tertiary-fixed text-tertiary' },
+    { id: 'm-3', nickname: '책방지기', isMe: false, job: '건축가', ageGroup: '30대 초반', mannerTemp: 36.5, initial: '책', avatarBg: 'bg-surface-container-high text-on-surface-variant' },
+  ];
 
   const messagesEndRef = useRef(null);
 
@@ -45,27 +58,29 @@ export default function GroupChatPage() {
           {/* Central Mobile Chat Container (Max 480px) */}
           <div className="w-full max-w-[480px] mx-auto bg-surface-container-lowest shadow-xl rounded-2xl overflow-hidden flex flex-col relative transition-all duration-300">
             
-            {/* Top Chat Header */}
-            <div className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-space-md py-space-sm shadow-sm flex items-center justify-between">
-              <div className="flex items-center gap-space-sm min-w-0">
+            {/* Top Chat Header: 좌측 상단 메뉴 버튼 배치 */}
+            <div className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-space-md py-space-sm shadow-sm flex items-center justify-between border-b border-surface-container">
+              {/* Left Side: 메뉴 버튼 & 식탁 타이틀 */}
+              <div className="flex items-center gap-2 min-w-0">
                 <button
                   type="button"
-                  onClick={() => navigate('/match/result')}
-                  className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors"
-                  title="뒤로가기"
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="w-9 h-9 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high flex items-center justify-center transition-colors shrink-0"
+                  title="대화방 메뉴 열기"
                 >
-                  <span className="material-symbols-outlined text-xl">arrow_back_ios_new</span>
+                  <span className="material-symbols-outlined text-xl">menu</span>
                 </button>
                 <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-space-xs">
-                    <h2 className="font-headline-sm text-headline-sm text-on-surface truncate">{matchResult.tableName}</h2>
-                    <span className="px-space-xs py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm shrink-0">4명</span>
+                  <div className="flex items-center gap-1.5">
+                    <h2 className="font-headline-sm text-sm font-bold text-on-surface truncate">{matchResult.tableName}</h2>
+                    <span className="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[10px] font-bold shrink-0">4명</span>
                   </div>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant truncate">{matchResult.venue.name} · 19:30</p>
+                  <p className="font-body-sm text-[11px] text-on-surface-variant truncate">{matchResult.venue.name} · 19:30</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-space-xs shrink-0">
+              {/* Right Side: 식당 정보 버튼 & 닫기(채팅 목록 이동) */}
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsVenueModalOpen(true)}
@@ -76,17 +91,16 @@ export default function GroupChatPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  className="w-9 h-9 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center hover:bg-surface-container-high transition-colors relative"
-                  title="멤버 및 도착 현황 서랍 열기"
+                  onClick={() => navigate('/chats')}
+                  className="w-9 h-9 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center hover:bg-surface-container-high transition-colors"
+                  title="채팅 목록으로 이동"
                 >
-                  <span className="material-symbols-outlined text-xl">menu</span>
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary"></span>
+                  <span className="material-symbols-outlined text-lg">close</span>
                 </button>
               </div>
             </div>
 
-            {/* Pinned Notices Area */}
+            {/* Pinned Notices Area (도착 체크인 기능 삭제) */}
             <div className="flex flex-col bg-surface-container-low">
               {/* ADMIN_NOTICE */}
               <div className="bg-primary px-space-md py-2.5 flex items-start gap-space-xs text-on-primary shadow-sm">
@@ -96,23 +110,18 @@ export default function GroupChatPage() {
                 </div>
               </div>
               
-              {/* Collapsible Pin Notice */}
-              <div className="px-space-md py-space-xs bg-surface-container-high flex items-center justify-between text-on-surface-variant text-label-sm font-label-sm">
-                <div className="flex items-center gap-space-xs min-w-0">
+              {/* Pin Notice (도착 체크인 버튼 제거) */}
+              <div className="px-space-md py-2 bg-surface-container-high flex items-center justify-between text-on-surface-variant text-xs">
+                <div className="flex items-center gap-1.5 min-w-0">
                   <span className="material-symbols-outlined text-secondary text-base">push_pin</span>
-                  <span className="truncate text-on-surface font-medium">📍 오늘 저녁 7:30 연남 브리즈 다이닝</span>
+                  <span className="truncate text-on-surface font-medium">📍 오늘 저녁 7:30 {matchResult.venue.name}</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    doCheckIn();
-                    setIsDrawerOpen(true);
-                  }}
-                  className={`px-space-xs py-1 rounded font-label-sm text-label-sm flex items-center gap-0.5 hover:opacity-90 shrink-0 transition-opacity ${
-                    checkInStatus ? 'bg-tertiary-fixed text-on-tertiary-fixed font-bold' : 'bg-tertiary text-on-tertiary'
-                  }`}
+                  onClick={() => setIsVenueModalOpen(true)}
+                  className="px-2 py-0.5 rounded-md bg-surface-container hover:bg-surface-container-highest text-on-surface text-[11px] font-semibold flex items-center gap-0.5 shrink-0 transition-colors"
                 >
-                  <span>{checkInStatus ? '도착 완료 ✓' : '도착 체크인'}</span>
+                  <span>식당 안내</span>
                   <span className="material-symbols-outlined text-xs">chevron_right</span>
                 </button>
               </div>
@@ -194,14 +203,7 @@ export default function GroupChatPage() {
                 }
 
                 if (msg.type === 'CHECKIN_NOTICE' || msg.type === 'ARRIVAL_CHECKIN') {
-                  return (
-                    <div key={msg.id} className="flex justify-center my-space-xs">
-                      <div className="px-space-md py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container font-label-md text-label-md flex items-center gap-1.5 shadow-sm">
-                        <span className="material-symbols-outlined text-base">notifications_active</span>
-                        <span>{typeof msg.content === 'string' ? msg.content : msg.content?.text}</span>
-                      </div>
-                    </div>
-                  );
+                  return null;
                 }
 
                 if (msg.type === 'ADMIN_NOTICE') {
@@ -378,155 +380,161 @@ export default function GroupChatPage() {
 
           </div>
 
-          {/* Slide-Out Drawer / Desktop Companion Panel */}
+          {/* Drawer Backdrop on mobile */}
+          {isDrawerOpen && (
+            <div
+              onClick={() => setIsDrawerOpen(false)}
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+            />
+          )}
+
+          {/* Slide-Out Drawer / Desktop Companion Panel (대화방 메뉴) */}
           <div
-            className={`w-full lg:w-80 bg-surface-container-lowest rounded-2xl shadow-xl p-space-md flex flex-col gap-space-md transition-all duration-300 ${
-              isDrawerOpen ? 'block' : 'hidden lg:flex'
+            className={`fixed inset-y-0 left-0 z-50 w-[320px] max-w-[85vw] bg-surface-container-lowest shadow-2xl p-space-md flex flex-col gap-space-md transition-transform duration-300 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:shadow-xl lg:rounded-2xl lg:translate-x-0 ${
+              isDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:flex'
             }`}
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-space-xs border-b border-surface-container">
               <div className="flex flex-col">
-                <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">식탁 멤버 실시간 도착 현황</h3>
-                <span className="font-body-sm text-body-sm text-secondary font-medium">{matchResult.venue.name} (총 4명)</span>
+                <h3 className="font-headline-sm text-sm font-bold text-on-surface flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-base">forum</span>
+                  <span>대화방 메뉴</span>
+                </h3>
+                <span className="font-body-sm text-[11px] text-on-surface-variant">{matchResult.tableName}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="lg:hidden w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant"
+                className="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors"
+                title="닫기"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
               </button>
             </div>
 
-            {/* Real-time Summary Progress */}
-            <div className="p-space-sm rounded-xl bg-surface-container-low flex flex-col gap-1">
-              <div className="flex items-center justify-between font-label-sm text-label-sm">
-                <span className="text-on-surface font-semibold">도착 완료 인원</span>
-                <span className="text-tertiary font-bold">{checkInStatus ? '3 / 4명 도착' : '2 / 4명 도착'}</span>
+            {/* Section 1: Member List (멤버 목록) */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-bold text-on-surface">참여 멤버 (4명)</span>
+                <span className="text-[11px] text-tertiary font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                  전원 참여 중
+                </span>
               </div>
-              <div className="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden">
-                <div
-                  className="h-full bg-tertiary rounded-full transition-all duration-500"
-                  style={{ width: checkInStatus ? '75%' : '50%' }}
-                ></div>
+
+              <div className="space-y-2">
+                {chatMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${member.avatarBg}`}>
+                        {member.initial}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-on-surface truncate">
+                            {member.nickname} {member.isMe && '(나)'}
+                          </span>
+                          <span className="text-[10px] text-secondary font-semibold">
+                            {member.mannerTemp}°C
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-on-surface-variant truncate">
+                          {member.job} · {member.ageGroup}
+                        </span>
+                      </div>
+                    </div>
+
+                    {!member.isMe && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReportTargetNickname(member.nickname);
+                          setIsReportModalOpen(true);
+                        }}
+                        className="px-2 py-1 rounded-lg bg-surface-container hover:bg-error-container hover:text-error text-[10px] text-on-surface-variant font-medium shrink-0 transition-colors flex items-center gap-0.5"
+                        title={`${member.nickname} 신고하기`}
+                      >
+                        <span className="material-symbols-outlined text-[12px]">report</span>
+                        <span>신고</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Self Check-in CTA Button */}
-            {!checkInStatus ? (
+            {/* Section 2: 신고하기 및 안심 보호 */}
+            <div className="p-3.5 rounded-xl bg-error-container/20 border border-error/20 flex flex-col gap-2">
+              <div className="flex items-center gap-1.5 text-error font-bold text-xs">
+                <span className="material-symbols-outlined text-[17px]">gavel</span>
+                <span>에티켓 및 안심 보호</span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                쾌적한 식탁 문화를 위해 무례한 행동이나 불쾌한 언행은 즉시 신고해주세요.
+              </p>
+
               <button
                 type="button"
-                onClick={doCheckIn}
-                className="w-full py-3 rounded-xl bg-tertiary text-on-tertiary font-label-md text-label-md flex items-center justify-center gap-1.5 shadow-sm hover:brightness-105 active:scale-95 transition-all"
+                onClick={() => {
+                  setReportTargetNickname('민트초코');
+                  setIsReportModalOpen(true);
+                }}
+                className="w-full py-2.5 rounded-xl bg-error text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs hover:bg-error/90 active:scale-[0.99] transition-all"
               >
-                <span className="material-symbols-outlined text-lg">check_circle</span>
-                <span>식당 도착 셀프 체크인하기</span>
+                <span className="material-symbols-outlined text-[15px]">campaign</span>
+                <span>비매너 참가자 신고하기</span>
               </button>
-            ) : (
-              <div className="p-space-xs rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center gap-1 font-label-sm text-label-sm font-bold">
-                <span className="material-symbols-outlined text-sm">verified</span>
-                <span>나의 도착 체크인이 완료되었습니다 ✓</span>
-              </div>
-            )}
 
-            {/* Member Arrival List */}
-            <div className="flex flex-col gap-space-sm divide-y divide-surface-container">
-              {/* 1) 나 */}
-              <div className="pt-space-xs flex flex-col gap-space-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-space-xs">
-                    <div className="w-8 h-8 rounded-full bg-primary-fixed text-primary font-bold text-xs flex items-center justify-center">
-                      나
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-md text-label-md text-on-surface font-bold">나 (주최 참여)</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">디자이너 · 20대 후반</span>
-                    </div>
-                  </div>
-                  {checkInStatus ? (
-                    <span className="px-2 py-0.5 rounded-full bg-tertiary text-on-tertiary font-label-sm text-label-sm font-semibold flex items-center gap-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> 도착 완료 19:22
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
-                      이동 중...
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* 2) 민트초코 */}
-              <div className="pt-space-xs flex flex-col gap-space-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-space-xs">
-                    <div className="w-8 h-8 rounded-full bg-secondary-fixed text-secondary font-bold text-xs flex items-center justify-center">
-                      민트
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-md text-label-md text-on-surface font-bold">민트초코</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">마케터 · 20대 중반</span>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-tertiary text-on-tertiary font-label-sm text-label-sm font-semibold flex items-center gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> 도착 완료 19:24
-                  </span>
-                </div>
-              </div>
-
-              {/* 3) 러너 */}
-              <div className="pt-space-xs flex flex-col gap-space-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-space-xs">
-                    <div className="w-8 h-8 rounded-full bg-tertiary-fixed text-tertiary font-bold text-xs flex items-center justify-center">
-                      러너
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-md text-label-md text-on-surface font-bold">러너</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">개발자 · 20대 후반</span>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
-                    이동 중 (도보 3분)
-                  </span>
-                </div>
-              </div>
-
-              {/* 4) 책방지기 */}
-              <div className="pt-space-xs flex flex-col gap-space-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-space-xs">
-                    <div className="w-8 h-8 rounded-full bg-surface-container-high text-on-surface font-bold text-xs flex items-center justify-center">
-                      책방
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-md text-label-md text-on-surface font-bold">책방지기</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">건축가 · 30대 초반</span>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-tertiary text-on-tertiary font-label-sm text-label-sm font-semibold flex items-center gap-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> 도착 완료 19:28
-                  </span>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/blocked-users')}
+                className="w-full py-2 rounded-xl bg-surface-container-lowest text-on-surface text-xs font-semibold flex items-center justify-center gap-1 hover:bg-surface-container transition-colors border border-surface-container"
+              >
+                <span className="material-symbols-outlined text-[15px] text-secondary">shield</span>
+                <span>차단 관리 목록 가기</span>
+              </button>
             </div>
 
-            {/* Quick Links */}
-            <div className="pt-space-xs flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm">
+            {/* Section 3: 바로가기 메뉴 */}
+            <div className="space-y-1 pt-2 border-t border-surface-container text-xs">
+              <button
+                type="button"
+                onClick={() => setIsVenueModalOpen(true)}
+                className="w-full p-2.5 rounded-xl hover:bg-surface-container-low flex items-center justify-between text-on-surface font-medium transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[17px] text-secondary">store</span>
+                  <span>배정 식당 정보 및 지도</span>
+                </span>
+                <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => navigate('/feedback')}
-                className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                className="w-full p-2.5 rounded-xl hover:bg-surface-container-low flex items-center justify-between text-on-surface font-medium transition-colors"
               >
-                <span>모임 후기 남기기</span>
-                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                <span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[17px] text-primary">rate_review</span>
+                  <span>모임 후기 남기기</span>
+                </span>
+                <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => navigate('/mypage')}
-                className="hover:text-on-surface"
+                onClick={() => navigate('/cs')}
+                className="w-full p-2.5 rounded-xl hover:bg-surface-container-low flex items-center justify-between text-on-surface font-medium transition-colors"
               >
-                고객센터 문의
+                <span className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[17px] text-tertiary">support_agent</span>
+                  <span>1:1 고객센터 문의</span>
+                </span>
+                <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
               </button>
             </div>
           </div>
@@ -563,6 +571,93 @@ export default function GroupChatPage() {
             >
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal (비매너 참가자 신고하기) */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-surface-container relative">
+            <button
+              onClick={() => setIsReportModalOpen(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface"
+            >
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+
+            <div className="flex items-center gap-2 text-error mb-2">
+              <span className="material-symbols-outlined text-2xl">report_problem</span>
+              <h3 className="font-headline-sm text-base font-bold text-on-surface">비매너 참가자 신고</h3>
+            </div>
+
+            <p className="text-xs text-on-surface-variant mb-4 leading-relaxed">
+              신고 내용은 운영팀에서 24시간 이내에 확인하며, 신고자의 정보는 상대방에게 절대 공개되지 않습니다.
+            </p>
+
+            {/* Target Member Select */}
+            <div className="mb-3">
+              <label className="block text-xs font-bold text-on-surface mb-1">신고 대상 멤버</label>
+              <select
+                value={reportTargetNickname}
+                onChange={(e) => setReportTargetNickname(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl bg-surface-container-low text-xs border border-outline-variant/30 focus:outline-none"
+              >
+                {chatMembers.filter(m => !m.isMe).map(m => (
+                  <option key={m.id} value={m.nickname}>{m.nickname} ({m.job})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reason Select */}
+            <div className="mb-3">
+              <label className="block text-xs font-bold text-on-surface mb-1">신고 사유</label>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl bg-surface-container-low text-xs border border-outline-variant/30 focus:outline-none"
+              >
+                <option value="과도한 음주 또는 불쾌한 언행">과도한 음주 또는 불쾌한 언행</option>
+                <option value="노쇼 및 무단 지각">노쇼 및 무단 지각</option>
+                <option value="원치 않는 연락처/SNS 요구">원치 않는 연락처/SNS 요구</option>
+                <option value="식사비 정산 불이행">식사비 정산 불이행</option>
+                <option value="영업/홍보/상업적 목적">영업/홍보/상업적 목적</option>
+                <option value="기타 에티켓 위반">기타 에티켓 위반</option>
+              </select>
+            </div>
+
+            {/* Detail Note */}
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-on-surface mb-1">상세 내용 (선택)</label>
+              <textarea
+                rows={3}
+                value={reportDetail}
+                onChange={(e) => setReportDetail(e.target.value)}
+                placeholder="상황을 구체적으로 적어주시면 신속한 조치에 도움이 됩니다."
+                className="w-full p-2.5 rounded-xl bg-surface-container-low text-xs border border-outline-variant/30 focus:outline-none resize-none"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setIsReportModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-xs font-bold text-on-surface transition-colors"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  alert(`[신고 완료] ${reportTargetNickname}님에 대한 신고가 접수되었습니다.\n운영팀에서 검토 후 즉시 조치하겠습니다.`);
+                  setIsReportModalOpen(false);
+                  setReportDetail('');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-error text-white text-xs font-bold shadow-sm hover:bg-error/90 transition-colors"
+              >
+                신고 접수
+              </button>
+            </div>
           </div>
         </div>
       )}

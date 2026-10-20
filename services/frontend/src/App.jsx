@@ -9,6 +9,7 @@ import BottomNav from './components/common/BottomNav';
 import NotificationDrawer from './components/common/NotificationDrawer';
 import EtiquetteModal from './components/common/EtiquetteModal';
 import DemoSwitcher from './components/common/DemoSwitcher';
+import SplashScreen from './components/common/SplashScreen';
 
 // Admin Layout & Pages
 import AdminLayout from './components/admin/AdminLayout';
@@ -40,10 +41,13 @@ import BlockedUsersPage from './pages/BlockedUsersPage';
 import CustomerServicePage from './pages/CustomerServicePage';
 
 export default function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
   return (
     <AppProvider>
       <AdminProvider>
         <BrowserRouter>
+          {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
           <div className="min-h-screen bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col selection:bg-primary-fixed selection:text-primary">
             {/* Universal Sticky Header (Hidden on /admin) */}
             <Header />

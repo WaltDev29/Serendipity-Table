@@ -53,20 +53,6 @@ export default function Header() {
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
             )}
           </button>
-
-          {/* Login / Signup or Profile link */}
-          <Link
-            to="/login"
-            className="ml-1 px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-sm text-[11px] font-semibold transition-colors"
-          >
-            로그인
-          </Link>
-          <Link
-            to="/signup"
-            className="px-2.5 py-1 rounded-full bg-primary text-on-primary font-label-sm text-[11px] font-semibold transition-colors shadow-xs"
-          >
-            회원가입
-          </Link>
         </div>
       </div>
     </header>

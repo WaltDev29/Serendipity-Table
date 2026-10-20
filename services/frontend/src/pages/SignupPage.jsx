@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { signupApi } from '../api/auth';
+import { formatPhoneNumber } from '../utils/formatters';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export default function SignupPage() {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : name === 'phone' ? formatPhoneNumber(value) : value
     }));
   };
 
@@ -51,6 +52,10 @@ export default function SignupPage() {
     }
     if (!formData.agreeTerms || !formData.agreePrivacy) {
       setErrorMsg('필수 약관에 동의해주세요.');
+      return;
+    }
+
+    if (!window.confirm('입력하신 정보로 회원가입을 진행하시겠습니까?')) {
       return;
     }
 
@@ -275,10 +280,11 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              className="w-full h-12 mt-2 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-1"
+              disabled={isLoading}
+              className="w-full h-12 mt-2 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-1 disabled:opacity-60"
             >
-              <span>가입 완료하고 내 취향 설정하기</span>
-              <span className="material-symbols-outlined text-base">arrow_forward</span>
+              <span>{isLoading ? '가입 처리 중...' : '회원가입'}</span>
+              <span className="material-symbols-outlined text-base">person_add</span>
             </button>
           </form>
         </div>

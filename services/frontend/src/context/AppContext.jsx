@@ -10,6 +10,7 @@ export const AppProvider = ({ children }) => {
   // 사용자 상태: 'NONE' (미신청), 'WAITING' (매칭대기), 'CONFIRMED' (매칭완료), 'ATTENDED' (체크인완료), 'FEEDBACK_DONE' (피드백완료)
   const [userState, setUserState] = useState('NONE');
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthInitialized, setIsAuthInitialized] = useState(false);
   const [applicationData, setApplicationData] = useState({
     name: '',
     phone: '',
@@ -209,22 +210,10 @@ export const AppProvider = ({ children }) => {
         }
       }
 
-      // 토큰이 없거나 관리자 계정인 경우 김서연(일반 유저)으로 로그인
-      if (!token || profile?.phone === '01000000000') {
-        try {
-          const loginData = await loginApi('01084923310', 'password123!');
-          if (loginData?.accessToken) {
-            token = loginData.accessToken;
-            localStorage.setItem('token', token);
-          }
-        } catch (e) {
-          console.warn('Default user login failed:', e);
-        }
-      }
-
       if (token) {
         await refreshAppData();
       }
+      setIsAuthInitialized(true);
     };
 
     initAuth();
@@ -294,6 +283,7 @@ export const AppProvider = ({ children }) => {
   return (
     <AppContext.Provider
       value={{
+        isAuthInitialized,
         userState,
         setUserState,
         currentUser,

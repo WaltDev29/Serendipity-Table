@@ -1,6 +1,7 @@
 *.md
 *.pdf
 web_design/
+basic_assets/
 
 # Node / Frontend
 node_modules/

@@ -23,7 +23,7 @@ export default function MyPageAndCS() {
 
           <div className="flex flex-col gap-space-md w-full">
             
-            {/* 1. USER PROFILE CARD (수정 버튼 단일화: 상단 연필 아이콘 제거, 하단 버튼만 유지) */}
+            {/* 1. USER PROFILE CARD */}
             <div className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm flex flex-col gap-space-md relative overflow-hidden border border-surface-container">
               <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-primary-fixed/30 blur-2xl pointer-events-none"></div>
               <div className="flex items-start justify-between relative z-10">
@@ -31,7 +31,7 @@ export default function MyPageAndCS() {
                   <div className="relative">
                     <img
                       className="w-16 h-16 rounded-full object-cover shadow-sm ring-4 ring-surface-container-low"
-                      src={currentUser.avatar}
+                      src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'}
                       alt="프로필"
                     />
                     <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shadow-sm">
@@ -40,11 +40,11 @@ export default function MyPageAndCS() {
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-space-xs">
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">{currentUser.nickname}</h2>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">({currentUser.name})</span>
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">{currentUser?.nickname || '회원'}</h2>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant">({currentUser?.name || '본인'})</span>
                     </div>
                     <p className="font-label-sm text-label-sm text-on-surface-variant mt-0.5">
-                      {currentUser.age}세 · {currentUser.job} · {currentUser.mbti}
+                      {currentUser?.age || (currentUser?.birthYear ? 2026 - currentUser.birthYear : 28)}세 · {currentUser?.job || '직장인'} · {currentUser?.mbti || 'ENFP'}
                     </p>
                   </div>
                 </div>
@@ -65,14 +65,16 @@ export default function MyPageAndCS() {
                   </span>
                   <div className="flex flex-col">
                     <span className="font-label-sm text-label-sm text-on-surface-variant">테이블 매너</span>
-                    <span className="font-label-md text-label-md text-secondary font-bold">{currentUser.mannerTemp}°C 온화함</span>
+                    <span className="font-label-md text-label-md text-secondary font-bold">
+                      {currentUser?.mannerTemp ? Number(currentUser.mannerTemp).toFixed(1) : '36.5'}°C 온화함
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Interest Tags */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {currentUser.interests.map((tag, idx) => (
+                {(currentUser?.interests && currentUser.interests.length > 0 ? currentUser.interests : ['맛집·카페 탐방', '전시·공연', '깊은 대화']).map((tag, idx) => (
                   <span key={idx} className="px-space-sm py-1 rounded-full bg-surface-container-low text-on-surface font-label-sm text-label-sm">
                     #{tag}
                   </span>
@@ -82,7 +84,7 @@ export default function MyPageAndCS() {
                 </span>
               </div>
 
-              {/* Edit Profile & Tastes Action Button (단일 수정 버튼) */}
+              {/* Edit Profile & Tastes Action Button */}
               <div className="pt-2 border-t border-surface-container">
                 <button
                   type="button"
@@ -95,40 +97,58 @@ export default function MyPageAndCS() {
               </div>
             </div>
 
-            {/* 2. RESERVED TABLE CARD (요구사항: 예약된 식탁은 사용자 정보 바로 다음에 배치!) */}
-            <div
-              onClick={() => navigate('/matching')}
-              className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm border border-primary/20 flex flex-col gap-2.5 cursor-pointer hover:shadow-md transition-all relative overflow-hidden"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
-                  <span className="material-symbols-outlined text-[18px]">restaurant</span>
-                  <span>예약된 식탁</span>
+            {/* 2. RESERVED TABLE CARD (예약된 활성 식탁이 있을 때만 상세 표시) */}
+            {matchResult ? (
+              <div
+                onClick={() => navigate('/match/result')}
+                className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm border border-primary/20 flex flex-col gap-2.5 cursor-pointer hover:shadow-md transition-all relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-primary font-bold text-xs">
+                    <span className="material-symbols-outlined text-[18px]">restaurant</span>
+                    <span>예약된 식탁</span>
+                  </div>
+                  <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed text-primary font-bold text-xs">
+                    매칭 완료
+                  </span>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed text-primary font-bold text-xs">
-                  D-DAY 2
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <div>
-                  <h3 className="font-headline-sm text-base font-bold text-on-surface">
-                    {matchResult.tableName}
-                  </h3>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    {matchResult.venue.name} · {matchResult.dateTime}
-                  </p>
+                <div className="flex items-center justify-between pt-1">
+                  <div>
+                    <h3 className="font-headline-sm text-base font-bold text-on-surface">
+                      {matchResult.tableName}
+                    </h3>
+                    <p className="text-xs text-on-surface-variant mt-0.5">
+                      {matchResult.venue?.name} · {matchResult.eventDate}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined text-outline">chevron_right</span>
                 </div>
-                <span className="material-symbols-outlined text-outline">chevron_right</span>
-              </div>
 
-              <div className="p-2.5 rounded-xl bg-surface-container-low text-xs text-on-surface-variant flex items-center justify-between">
-                <span>4인 배정 완료 · 익명 멤버 프로필</span>
-                <span className="text-primary font-bold">확인하기 →</span>
+                <div className="p-2.5 rounded-xl bg-surface-container-low text-xs text-on-surface-variant flex items-center justify-between">
+                  <span>4인 배정 완료 · 익명 멤버 프로필</span>
+                  <span className="text-primary font-bold">확인하기 →</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                onClick={() => navigate('/apply')}
+                className="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm border border-surface-container flex items-center justify-between cursor-pointer hover:bg-surface-container-low transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary-fixed text-primary flex items-center justify-center">
+                    <span className="material-symbols-outlined text-xl">restaurant</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-label-md text-sm font-bold text-on-surface">현재 예약된 식탁이 없어요</span>
+                    <span className="text-xs text-on-surface-variant">목요일 밤 따뜻한 식탁에 참여해보세요</span>
+                  </div>
+                </div>
+                <span className="px-3 py-1.5 rounded-full bg-primary text-on-primary text-xs font-bold">신청하기</span>
+              </div>
+            )}
 
-            {/* 3. MY TICKET CARD (요구사항: 유효기간 없음 반영) */}
+            {/* 3. MY TICKET CARD */}
             <div className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm flex flex-col gap-space-md border border-surface-container relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-space-xs text-primary font-label-lg text-label-lg">
@@ -141,8 +161,10 @@ export default function MyPageAndCS() {
               </div>
               <div className="flex items-baseline justify-between">
                 <div className="flex items-baseline gap-space-xs">
-                  <span className="font-headline-xl text-headline-xl text-on-surface font-bold">{currentUser.tickets}</span>
-                  <span className="font-body-md text-body-md text-on-surface-variant">회 남음 / 총 3회권</span>
+                  <span className="font-headline-xl text-headline-xl text-on-surface font-bold">
+                    {currentUser?.ticketCount ?? currentUser?.tickets ?? 0}
+                  </span>
+                  <span className="font-body-md text-body-md text-on-surface-variant">회 남음</span>
                 </div>
                 <span className="font-label-sm text-xs text-tertiary font-bold">언제든 사용 가능</span>
               </div>

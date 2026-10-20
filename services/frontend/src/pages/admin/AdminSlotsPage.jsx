@@ -20,7 +20,10 @@ export default function AdminSlotsPage() {
   });
   const [targetPerRegion, setTargetPerRegion] = useState(48);
 
-  const activeEvent = events.find((e) => e.id === selectedEventId) || events[0];
+  const activeEvent = events.find((e) => e.id === selectedEventId) || events[0] || {
+    id: 'EVT-FALLBACK',
+    regions: []
+  };
 
   // 권역 슬롯 상태 토글 (OPEN <-> CLOSED)
   const toggleRegionStatus = (regionId) => {
@@ -176,12 +179,12 @@ export default function AdminSlotsPage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex gap-1 flex-wrap">
-                        {ev.regions.map((r) => (
+                        {(ev.regions || []).map((r) => (
                           <span
                             key={r.id}
                             className="px-1.5 py-0.5 rounded bg-surface-container text-[10px] text-on-surface"
                           >
-                            {r.name.split('/')[0]}
+                            {r.name ? r.name.split('/')[0] : (r.id || '권역')}
                           </span>
                         ))}
                       </div>
@@ -233,12 +236,12 @@ export default function AdminSlotsPage() {
             </p>
           </div>
           <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            총 {activeEvent.regions.length}개 권역 오픈
+            총 {(activeEvent.regions || []).length}개 권역 오픈
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {activeEvent.regions.map((reg) => {
+          {(activeEvent.regions || []).map((reg) => {
             const isClosed = reg.status === 'CLOSED';
             const pct = Math.min(100, Math.round((reg.current / reg.target) * 100));
             return (

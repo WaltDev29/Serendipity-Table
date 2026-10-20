@@ -12,7 +12,10 @@ export default function AdminDashboardPage() {
     applications
   } = useAdmin();
 
-  const currentEvent = events[0];
+  const currentEvent = events[0] || {
+    totalApplicants: 0,
+    regions: []
+  };
 
   // 빠른 참가자 명단 CSV 다운로드
   const handleQuickCsv = () => {

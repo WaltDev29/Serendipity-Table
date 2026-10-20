@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { updateProfileApi } from '../api/auth';
 
 export default function InformationInputPage() {
   const navigate = useNavigate();
@@ -79,20 +80,39 @@ export default function InformationInputPage() {
     }));
   };
 
-  const handleSaveAll = () => {
+  const handleSaveAll = async () => {
+    try {
+      await updateProfileApi({
+        name: applicationData.name,
+        nickname: applicationData.nickname || applicationData.name,
+        job: applicationData.job,
+        mbti: applicationData.mbti,
+        instagramId: applicationData.instagramId,
+        birthYear: applicationData.birthYear ? parseInt(applicationData.birthYear, 10) : undefined,
+        gender: applicationData.gender,
+        interests: applicationData.interests,
+        myTendencies: applicationData.myTendencies,
+        preferredTendencies: applicationData.preferredTendencies,
+        budgetRanges: applicationData.budgetRange ? [applicationData.budgetRange] : [],
+        foodRestrictions: (applicationData.foodRestrictions || []).join(', ')
+      });
+    } catch (e) {
+      console.warn('Profile update note:', e);
+    }
+
     // CurrentUser 동기화
     setCurrentUser((prev) => ({
       ...prev,
-      name: applicationData.name || prev.name,
-      phone: applicationData.phone || prev.phone,
-      instagramId: applicationData.instagramId || prev.instagramId,
-      birthYear: applicationData.birthYear || prev.birthYear,
-      gender: applicationData.gender || prev.gender,
-      job: applicationData.job || prev.job,
-      mbti: applicationData.mbti || prev.mbti,
-      interests: applicationData.interests || prev.interests,
-      myTendencies: applicationData.myTendencies || prev.myTendencies,
-      preferredTendencies: applicationData.preferredTendencies || prev.preferredTendencies,
+      name: applicationData.name || prev?.name,
+      phone: applicationData.phone || prev?.phone,
+      instagramId: applicationData.instagramId || prev?.instagramId,
+      birthYear: applicationData.birthYear || prev?.birthYear,
+      gender: applicationData.gender || prev?.gender,
+      job: applicationData.job || prev?.job,
+      mbti: applicationData.mbti || prev?.mbti,
+      interests: applicationData.interests || prev?.interests,
+      myTendencies: applicationData.myTendencies || prev?.myTendencies,
+      preferredTendencies: applicationData.preferredTendencies || prev?.preferredTendencies,
     }));
     setIsSavedModalOpen(true);
   };

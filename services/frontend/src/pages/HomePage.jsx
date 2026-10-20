@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { userState } = useApp();
+  const { userState, matchResult } = useApp();
 
   return (
     <div className="w-full flex justify-center py-4 sm:py-6 px-3 sm:px-4">
@@ -25,11 +25,11 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-label-md text-[13px] text-primary font-bold">신청 완료!</span>
                     <span className="font-body-sm text-[13px] text-on-surface truncate">
-                      목요일 매칭 발표까지 <span className="font-bold text-primary">D-2</span> 남았어요
+                      목요일 매칭 발표를 기다리고 있어요
                     </span>
                   </div>
                   <span className="font-label-sm text-[11px] text-on-surface-variant truncate">
-                    홍대/합정 권역 · 와인 & 타파스 테마 대기
+                    AI 매칭 알고리즘이 최적의 4인 식탁을 구성 중입니다
                   </span>
                 </div>
               </div>
@@ -55,11 +55,11 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-label-md text-[13px] text-secondary font-bold">매칭 확정!</span>
                     <span className="font-body-sm text-[13px] text-on-surface truncate">
-                      홍대/합정 <strong className="text-primary font-bold">연남 브리즈 다이닝</strong>
+                      {matchResult?.tableName ? `${matchResult.tableName} ` : ''}<strong className="text-primary font-bold">{matchResult?.venue?.name || '배정 식당'}</strong>
                     </span>
                   </div>
                   <span className="font-label-sm text-[11px] text-on-surface-variant truncate">
-                    10/22 (목) 19:30 · 4명 테이블 확정됨
+                    {matchResult?.eventDate || '목요일 19:30'} · 4명 테이블 확정됨
                   </span>
                 </div>
               </div>

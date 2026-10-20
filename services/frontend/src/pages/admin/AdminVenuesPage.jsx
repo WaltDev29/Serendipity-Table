@@ -150,7 +150,7 @@ export default function AdminVenuesPage() {
                     {venue.name}
                   </h3>
                   <span className="text-xs font-bold text-primary">
-                    1인 약 ₩{venue.avgBudget.toLocaleString()}
+                    1인 약 ₩{(venue.avgBudget || 25000).toLocaleString()}
                   </span>
                 </div>
 
@@ -174,7 +174,7 @@ export default function AdminVenuesPage() {
                 <div className="pt-2 flex items-center justify-between text-xs">
                   <span className="text-outline font-semibold">금주 배정된 테이블:</span>
                   <div className="flex gap-1">
-                    {venue.assignedTables.length > 0 ? (
+                    {(venue.assignedTables || []).length > 0 ? (
                       venue.assignedTables.map((t) => (
                         <span key={t} className="px-2 py-0.5 rounded-full bg-primary-fixed text-primary text-[11px] font-bold">
                           {t}

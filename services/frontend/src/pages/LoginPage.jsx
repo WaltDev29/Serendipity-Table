@@ -4,14 +4,15 @@ import { useApp } from '../context/AppContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setCurrentUser } = useApp();
+  const { login } = useApp();
 
   const [phone, setPhone] = useState('010-8492-3310');
-  const [password, setPassword] = useState('1234');
+  const [password, setPassword] = useState('password123!');
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!phone.trim()) {
       setErrorMsg('휴대폰 번호를 입력해주세요.');
@@ -22,13 +23,17 @@ export default function LoginPage() {
       return;
     }
 
-    // 간단한 로그인 처리
-    setCurrentUser((prev) => ({
-      ...prev,
-      phone
-    }));
-
-    navigate('/');
+    try {
+      setIsLoading(true);
+      setErrorMsg('');
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      await login(cleanPhone, password);
+      navigate('/');
+    } catch (err) {
+      setErrorMsg(err.message || '로그인에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

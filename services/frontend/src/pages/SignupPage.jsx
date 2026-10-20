@@ -1,24 +1,27 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { signupApi } from '../api/auth';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { setCurrentUser, setApplicationData } = useApp();
+  const { refreshAppData } = useApp();
 
   const [formData, setFormData] = useState({
     name: '',
+    nickname: '',
     phone: '',
     password: '',
     confirmPassword: '',
-    birthYear: '',
+    birthYear: '1995',
     gender: 'F',
-    job: '',
+    job: '직장인',
     agreeTerms: true,
     agreePrivacy: true
   });
 
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -28,7 +31,7 @@ export default function SignupPage() {
     }));
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       setErrorMsg('이름(실명)을 입력해주세요.');
@@ -51,28 +54,31 @@ export default function SignupPage() {
       return;
     }
 
-    // AppContext 상태 업데이트
-    setCurrentUser((prev) => ({
-      ...prev,
-      name: formData.name,
-      phone: formData.phone,
-      birthYear: formData.birthYear || '1995',
-      gender: formData.gender,
-      job: formData.job || '직장인'
-    }));
+    try {
+      setIsLoading(true);
+      setErrorMsg('');
+      const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+      const nickname = formData.nickname.trim() || formData.name;
 
-    setApplicationData((prev) => ({
-      ...prev,
-      name: formData.name,
-      phone: formData.phone,
-      birthYear: formData.birthYear || '1995',
-      gender: formData.gender,
-      job: formData.job || '직장인'
-    }));
+      await signupApi({
+        phone: cleanPhone,
+        password: formData.password,
+        name: formData.name,
+        nickname,
+        birthYear: parseInt(formData.birthYear, 10) || 1995,
+        gender: formData.gender,
+        job: formData.job || '직장인'
+      });
 
-    // 회원가입 직후 정보 입력 페이지로 이동 (사용자 요구사항 반영)
-    alert(`🎉 ${formData.name}님, 회원가입이 완료되었습니다!\n이어서 나만의 취향과 성향 정보를 입력해주세요.`);
-    navigate('/information-input');
+      await refreshAppData();
+
+      alert(`🎉 ${formData.name}님, 회원가입이 완료되었습니다!\n이어서 나만의 취향과 성향 정보를 입력해주세요.`);
+      navigate('/information-input');
+    } catch (err) {
+      setErrorMsg(err.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

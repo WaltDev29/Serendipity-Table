@@ -18,6 +18,11 @@ public class SlotController {
 
     private final SlotService slotService;
 
+    @GetMapping("/stats")
+    public ResponseEntity<ApiResponse<com.serendipity.domain.slot.dto.HomeStatsResponse>> getHomeStats() {
+        return ResponseEntity.ok(ApiResponse.ok(slotService.getHomeStats()));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<SlotResponse>>> getUpcomingSlots() {
         List<SlotResponse> slots = slotService.getUpcomingSlots();

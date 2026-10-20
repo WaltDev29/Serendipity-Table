@@ -14,9 +14,9 @@ export default function Header() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-surface-container-high/60 h-14 flex items-center justify-center px-4 shadow-[0_1px_6px_rgba(0,0,0,0.03)]">
-      {/* Centered App Top Bar (Logo, Brand Name, and Utility Icons gathered in Center) */}
-      <div className="flex items-center justify-center gap-2">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-surface-container-high/60 h-14 flex items-center px-4 shadow-[0_1px_6px_rgba(0,0,0,0.03)]">
+      <div className="w-full max-w-[480px] mx-auto flex items-center justify-between">
+        {/* Left-aligned Brand Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary shadow-xs">
             <span
@@ -31,8 +31,8 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Utility Buttons grouped in center alongside brand logo */}
-        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-surface-container-highest">
+        {/* Right-aligned Utility and Auth Buttons */}
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setIsEtiquetteOpen(true)}
@@ -53,6 +53,20 @@ export default function Header() {
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
             )}
           </button>
+
+          {/* Login / Signup or Profile link */}
+          <Link
+            to="/login"
+            className="ml-1 px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-sm text-[11px] font-semibold transition-colors"
+          >
+            로그인
+          </Link>
+          <Link
+            to="/signup"
+            className="px-2.5 py-1 rounded-full bg-primary text-on-primary font-label-sm text-[11px] font-semibold transition-colors shadow-xs"
+          >
+            회원가입
+          </Link>
         </div>
       </div>
     </header>

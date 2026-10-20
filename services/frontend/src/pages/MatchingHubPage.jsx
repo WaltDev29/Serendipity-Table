@@ -68,24 +68,6 @@ export default function MatchingHubPage() {
           </div>
         </div>
 
-        <div className="w-full flex flex-col gap-2 pt-2">
-          <button
-            type="button"
-            onClick={() => navigate('/information-input')}
-            className="w-full h-12 rounded-xl bg-primary text-white font-label-lg text-sm font-bold shadow-md hover:bg-primary-container active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-lg">edit_note</span>
-            <span>내 정보 & 취향 입력하기</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            className="w-full h-11 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-xs font-bold transition-colors"
-          >
-            이번 주 오픈 권역 둘러보기
-          </button>
-        </div>
       </div>
     </div>
   );

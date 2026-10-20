@@ -31,9 +31,9 @@ export default function MatchingWaitingPage() {
   }, []);
 
   const handleCancelApplication = () => {
-    if (confirm('참가 신청을 취소하시겠습니까? (행사 2일 전 정오 이전이므로 전액 취소 처리됩니다.)')) {
+    if (confirm('참가 신청을 취소하시겠습니까? (행사 2일 전 정오 이전이므로 사용하신 참가권이 다시 반환됩니다.)')) {
       setUserState('NONE');
-      alert('신청이 안전하게 취소되었습니다.');
+      alert('참가 신청이 취소되었으며, 참가권 1회가 보유 참가권으로 반환되었습니다.');
       navigate('/');
     }
   };
@@ -183,13 +183,13 @@ export default function MatchingWaitingPage() {
         {/* Cancel Button */}
         <div className="flex flex-col items-center gap-2 pt-2">
           <p className="text-[11px] text-on-surface-variant text-center">
-            행사 2일 전 정오(화요일 12:00) 이전까지는 수수료 없이 즉시 전액 취소 가능합니다.
+            행사 2일 전 정오(화요일 12:00) 이전까지 취소 시 참가권이 반환됩니다. (현금 환불 불가)
           </p>
           <button
             onClick={handleCancelApplication}
             className="text-xs text-outline hover:text-red-600 underline font-semibold transition-colors"
           >
-            신청 및 결제 취소하기
+            신청 취소
           </button>
         </div>
 

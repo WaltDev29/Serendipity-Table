@@ -23,10 +23,9 @@ export default function AdminLayout() {
   const [isNotiDropdownOpen, setIsNotiDropdownOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
 
-  // 실시간 긴급 운영 큐: 4인 미달 테이블 + 미처리(답변 대기) CS 문의
+  // 실시간 긴급 운영 큐: 4인 미달 테이블만 표시 (사용자 CS 문의 제외)
   const urgentTables = matchingTables.filter((t) => (t.members?.length || 0) < 4);
-  const urgentCs = csInquiries.filter((c) => c.status === 'PENDING' || !c.isResolved);
-  const totalUrgentCount = urgentTables.length + urgentCs.length;
+  const totalUrgentCount = urgentTables.length;
 
   const handleSendNotice = (e) => {
     e.preventDefault();
@@ -213,26 +212,15 @@ export default function AdminLayout() {
                         현재 긴급 처리 대기 중인 항목이 없습니다.
                       </div>
                     ) : (
-                      <>
-                        {urgentTables.map((t) => (
-                          <div key={t.id} className="py-2 text-xs">
-                            <p className="font-bold text-error flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[14px]">warning</span>
-                              {t.name || t.id} 4인 미달 (현재 {t.members?.length || 0}명)
-                            </p>
-                            <p className="text-on-surface-variant text-[11px] mt-0.5">대안 처리(이월/환불/추가배정) 조치 필요</p>
-                          </div>
-                        ))}
-                        {urgentCs.map((cs) => (
-                          <div key={cs.id} className="py-2 text-xs">
-                            <p className="font-bold text-on-surface flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[14px] text-tertiary">support_agent</span>
-                              {cs.userName || '회원'} CS 인입: {cs.category || '문의'}
-                            </p>
-                            <p className="text-on-surface-variant text-[11px] mt-0.5 truncate">{cs.message || cs.content || '답변 대기 중'}</p>
-                          </div>
-                        ))}
-                      </>
+                      urgentTables.map((t) => (
+                        <div key={t.id} className="py-2 text-xs">
+                          <p className="font-bold text-error flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">warning</span>
+                            {t.name || t.id} 4인 미달 (현재 {t.members?.length || 0}명)
+                          </p>
+                          <p className="text-on-surface-variant text-[11px] mt-0.5">대안 처리(이월/환불/추가배정) 조치 필요</p>
+                        </div>
+                      ))
                     )}
                   </div>
                   <button

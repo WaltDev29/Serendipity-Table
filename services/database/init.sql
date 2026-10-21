@@ -3,6 +3,9 @@
 -- 기준: PRD v1.1.0, 08_백엔드_개발_계획서.md
 -- ========================================================
 
+SET timezone = 'Asia/Seoul';
+ALTER DATABASE serendipity_db SET timezone TO 'Asia/Seoul';
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

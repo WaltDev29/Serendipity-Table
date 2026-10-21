@@ -163,6 +163,21 @@ export default function HomePage() {
 
 
 
+        {/* 신청 전(userState === 'NONE') 사용자 대상 모임 신청 CTA 버튼 */}
+        {userState === 'NONE' && (
+          <div className="w-full">
+            <button
+              type="button"
+              onClick={() => navigate('/information-input')}
+              className="w-full py-3.5 px-4 rounded-2xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">restaurant</span>
+              <span>이번 주 목요일 모임 신청하기</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+        )}
+
         {/* 3 Safe Promises Banner */}
         <section className="p-4 rounded-3xl bg-surface-container-low border border-surface-container flex flex-col gap-3">
           <h3 className="font-headline-sm text-sm font-bold text-on-surface flex items-center gap-1.5">

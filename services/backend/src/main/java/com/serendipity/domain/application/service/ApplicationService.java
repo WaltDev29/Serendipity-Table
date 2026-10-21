@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,7 +43,12 @@ public class ApplicationService {
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "해당 슬롯을 찾을 수 없습니다."));
 
         if (!"OPEN".equals(slot.getStatus())) {
-            throw new CustomException(ErrorCode.SLOT_CLOSED);
+            throw new CustomException(ErrorCode.SLOT_CLOSED, "해당 회차는 마감되어 더 이상 신청할 수 없습니다.");
+        }
+
+        // 모임 3일 전(월요일) 매칭 진행 뒤에는 해당 회차 신청 불가
+        if (slot.getMatchDeadline() != null && LocalDateTime.now().isAfter(slot.getMatchDeadline())) {
+            throw new CustomException(ErrorCode.SLOT_CLOSED, "해당 회차는 매칭이 마감(월요일 18:00)되어 신청할 수 없습니다.");
         }
 
         if (applicationRepository.existsByUserAndEventSlotAndStatusNot(user, slot, "CANCELLED")) {

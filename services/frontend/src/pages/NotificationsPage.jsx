@@ -4,16 +4,18 @@ import { useApp } from '../context/AppContext';
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
-  const { notifications, setNotifications } = useApp();
+  const { notifications = [], markAllNotificationsRead, markNotificationAsRead } = useApp();
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleMarkAllRead = () => {
+    if (markAllNotificationsRead) {
+      markAllNotificationsRead();
+    }
   };
 
   return (
     <div className="min-h-screen bg-background pb-20 font-body-md text-on-surface">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-surface-container-lowest/90 backdrop-blur-md border-b border-surface-container px-4 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-surface-container-lowest/90 backdrop-blur-md border-b border-surface-container px-4 h-14 flex items-center justify-between max-w-[480px] mx-auto w-full">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -26,7 +28,7 @@ export default function NotificationsPage() {
         </div>
         <button
           type="button"
-          onClick={markAllRead}
+          onClick={handleMarkAllRead}
           className="text-xs text-primary font-bold hover:underline"
         >
           모두 읽음
@@ -34,7 +36,7 @@ export default function NotificationsPage() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-[480px] mx-auto px-4 py-4 space-y-4">
         {/* Notification List */}
         {notifications.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-2">
@@ -47,7 +49,12 @@ export default function NotificationsPage() {
             {notifications.map((item) => (
               <div
                 key={item.id}
-                className={`p-4 rounded-2xl border transition-all ${
+                onClick={() => {
+                  if (!item.read && markNotificationAsRead) {
+                    markNotificationAsRead(item.id);
+                  }
+                }}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                   item.read
                     ? 'bg-surface-container-lowest border-surface-container hover:shadow-xs'
                     : 'bg-primary-fixed/20 border-primary/50 shadow-xs'
@@ -80,7 +87,11 @@ export default function NotificationsPage() {
                 {item.link && item.link !== '#' && item.link !== '/notifications' && (
                   <button
                     type="button"
-                    onClick={() => navigate(item.link)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (markNotificationAsRead) markNotificationAsRead(item.id);
+                      navigate(item.link);
+                    }}
                     className="inline-flex items-center gap-1 text-primary text-xs font-bold hover:underline pl-1"
                   >
                     <span>바로가기</span>

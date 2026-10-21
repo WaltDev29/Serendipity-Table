@@ -129,11 +129,17 @@ export default function AdminSlotsPage() {
     addAuditLog('CREATE_EVENT', '운영자 김관리', `신규 회차 ${newId} (${newTitle}) 등록 완료`);
   };
 
-  const filteredEvents = events.filter((ev) => {
-    if (filterStatus !== 'ALL' && ev.status !== filterStatus) return false;
-    if (searchTerm && !ev.title.includes(searchTerm) && !ev.id.includes(searchTerm)) return false;
-    return true;
-  });
+  const filteredEvents = events
+    .filter((ev) => {
+      if (filterStatus !== 'ALL' && ev.status !== filterStatus) return false;
+      if (searchTerm && !ev.title.includes(searchTerm) && !ev.id.includes(searchTerm)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.eventDate || '2099-12-31');
+      const dateB = new Date(b.eventDate || '2099-12-31');
+      return dateA - dateB;
+    });
 
   return (
     <div className="flex flex-col w-full space-y-space-lg">
@@ -199,7 +205,6 @@ export default function AdminSlotsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container">
               <tr>
-                <th className="py-3 px-4">회차 코드</th>
                 <th className="py-3 px-4">회차 명칭</th>
                 <th className="py-3 px-4">모임 일시</th>
                 <th className="py-3 px-4">신청 마감 일시</th>
@@ -220,7 +225,6 @@ export default function AdminSlotsPage() {
                       isSelected ? 'bg-primary/5 font-semibold' : ''
                     }`}
                   >
-                    <td className="py-3.5 px-4 font-mono font-bold text-primary">{ev.id}</td>
                     <td className="py-3.5 px-4 font-bold text-on-surface">{formatTitle(ev.title)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{formatEventDate(ev.eventDate)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{ev.deadline}</td>

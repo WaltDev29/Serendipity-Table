@@ -337,6 +337,41 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // 알림 읽음 처리 핸들러 (개별 알림 상세 보기 또는 클릭 시)
+  const markNotificationAsRead = (id) => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const updatedList = list.map((n) => (n.id === id ? { ...n, read: true } : n));
+          localStorage.setItem('global_notices', JSON.stringify(updatedList));
+        }
+      } catch (e) {
+        console.warn('Failed to update stored notice read status:', e);
+      }
+      return updated;
+    });
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const updatedList = list.map((n) => ({ ...n, read: true }));
+          localStorage.setItem('global_notices', JSON.stringify(updatedList));
+        }
+      } catch (e) {
+        console.warn('Failed to update stored notice read status:', e);
+      }
+      return updated;
+    });
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -367,7 +402,9 @@ export const AppProvider = ({ children }) => {
         isEtiquetteOpen,
         setIsEtiquetteOpen,
         isCsOpen,
-        setIsCsOpen
+        setIsCsOpen,
+        markNotificationAsRead,
+        markAllNotificationsRead
       }}
     >
       {children}

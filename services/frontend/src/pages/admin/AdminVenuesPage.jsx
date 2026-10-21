@@ -132,25 +132,20 @@ export default function AdminVenuesPage() {
                   </span>
                 </div>
 
-                <div className="absolute top-3 right-3">
-                  <button
-                    type="button"
-                    onClick={() => toggleVenueReservation(venue.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all shadow-md ${
-                      venue.isReserved
-                        ? 'bg-tertiary text-white'
-                        : venue.reservationPending
-                        ? 'bg-amber-500 text-white animate-pulse'
-                        : 'bg-surface-container-lowest/90 text-on-surface hover:bg-surface-container-lowest'
-                    }`}
-                  >
-                    {venue.isReserved
-                      ? '✓ 예약 확정 완료'
-                      : venue.reservationPending
-                      ? '⏳ 모의 예약 대기 중 (10s)'
-                      : '예약 미완료 (체크)'}
-                  </button>
-                </div>
+                {venue.isReserved && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold shadow-md bg-tertiary text-white">
+                      ✓ 예약 확정 완료
+                    </span>
+                  </div>
+                )}
+                {venue.reservationPending && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold shadow-md bg-amber-500 text-white animate-pulse">
+                      ⏳ 예약 진행 중
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Body Info */}

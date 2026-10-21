@@ -173,7 +173,6 @@ export default function AdminApplicationsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container">
               <tr>
-                <th className="py-3 px-3.5">신청번호</th>
                 <th className="py-3 px-3.5">실명 (인증)</th>
                 <th className="py-3 px-3.5">성별 / 나이</th>
                 <th className="py-3 px-3.5">연락처</th>
@@ -190,9 +189,6 @@ export default function AdminApplicationsPage() {
                 const isUnmasked = unmaskedSet.has(app.id);
                 return (
                   <tr key={app.id} className="hover:bg-surface-container-low/60 transition-colors">
-                    <td className="py-3 px-3.5 font-mono text-[11px] text-on-surface-variant">
-                      {app.id}
-                    </td>
                     <td className="py-3 px-3.5">
                       <div className="flex items-center gap-1 font-bold text-on-surface">
                         <span>{app.name}</span>

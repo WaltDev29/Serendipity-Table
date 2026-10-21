@@ -218,7 +218,6 @@ export default function AdminPaymentsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container">
               <tr>
-                <th className="py-3 px-4">주문/결제 번호</th>
                 <th className="py-3 px-4">회원명</th>
                 <th className="py-3 px-4">연락처</th>
                 <th className="py-3 px-4">상품 (참가권 유형)</th>
@@ -230,7 +229,7 @@ export default function AdminPaymentsPage() {
             <tbody className="divide-y divide-surface-container-low">
               {filteredList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-xs text-on-surface-variant">
+                  <td colSpan={6} className="py-8 text-center text-xs text-on-surface-variant">
                     조회된 결제 내역이 없습니다.
                   </td>
                 </tr>
@@ -250,9 +249,6 @@ export default function AdminPaymentsPage() {
                       className="hover:bg-surface-container-low/60 transition-colors cursor-context-menu select-none"
                       title="우클릭하여 환불 메뉴를 확인하세요"
                     >
-                      <td className="py-3.5 px-4 font-mono font-bold text-primary">
-                        {app.orderNo || app.id}
-                      </td>
                       <td className="py-3.5 px-4 font-bold text-on-surface">
                         {name}
                       </td>

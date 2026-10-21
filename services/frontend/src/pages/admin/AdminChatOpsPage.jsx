@@ -605,6 +605,8 @@ export default function AdminChatOpsPage() {
             </form>
           </div>
         </div>
+      )}
+
       {/* AI 질문 / 식당 안내 발송 범위(현재 채팅방 vs 전체 채팅방) 선택 모달 */}
       {sendScopeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">

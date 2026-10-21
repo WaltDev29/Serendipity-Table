@@ -163,3 +163,7 @@ export async function refundOrderApi(orderId, reason) {
   });
 }
 
+export async function getAdminFeedbackAnalyticsApi() {
+  return await apiFetch('/admin/analytics/feedback');
+}
+

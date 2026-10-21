@@ -139,10 +139,16 @@ export default function AdminVenuesPage() {
                     className={`px-3 py-1 rounded-full text-xs font-bold transition-all shadow-md ${
                       venue.isReserved
                         ? 'bg-tertiary text-white'
+                        : venue.reservationPending
+                        ? 'bg-amber-500 text-white animate-pulse'
                         : 'bg-surface-container-lowest/90 text-on-surface hover:bg-surface-container-lowest'
                     }`}
                   >
-                    {venue.isReserved ? '✓ 예약 확정 완료' : '예약 미완료 (체크)'}
+                    {venue.isReserved
+                      ? '✓ 예약 확정 완료'
+                      : venue.reservationPending
+                      ? '⏳ 모의 예약 대기 중 (10s)'
+                      : '예약 미완료 (체크)'}
                   </button>
                 </div>
               </div>
@@ -196,12 +202,12 @@ export default function AdminVenuesPage() {
             <div className="p-4 pt-2 border-t border-surface-container flex items-center justify-between text-xs">
               <span className="text-outline">캐치테이블/네이버 예약 제휴사</span>
               <a
-                href={`https://map.naver.com/v5/search/${encodeURIComponent(venue.name)}`}
+                href={venue.naverMapUrl || `https://map.naver.com/p/search/${encodeURIComponent(venue.name)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary font-bold hover:underline flex items-center gap-0.5"
               >
-                <span>지도 열기</span>
+                <span>네이버 지도 상세</span>
                 <span className="material-symbols-outlined text-[13px]">open_in_new</span>
               </a>
             </div>

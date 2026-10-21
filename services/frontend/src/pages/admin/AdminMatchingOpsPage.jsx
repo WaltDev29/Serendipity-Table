@@ -253,11 +253,24 @@ export default function AdminMatchingOpsPage() {
 
                 {/* Venue & Ratio Subheader */}
                 <div className="flex items-center justify-between mt-2 text-xs">
-                  <div className="flex items-center gap-1 text-on-surface-variant">
+                  <div className="flex items-center gap-1.5 text-on-surface-variant">
                     <span className="material-symbols-outlined text-[15px] text-primary">storefront</span>
-                    <span className="font-semibold text-on-surface truncate max-w-[150px]">
+                    <span className="font-semibold text-on-surface truncate max-w-[120px]">
                       {table.venue.name}
                     </span>
+                    {table.reservationStatus === 'RESERVED' ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-tertiary-fixed text-tertiary">
+                        예약 완료
+                      </span>
+                    ) : table.reservationStatus === 'PENDING' ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 animate-pulse">
+                        예약 대기 (10s)
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-container text-on-surface-variant">
+                        예약 미완료
+                      </span>
+                    )}
                   </div>
 
                   {/* Gender Indicator */}

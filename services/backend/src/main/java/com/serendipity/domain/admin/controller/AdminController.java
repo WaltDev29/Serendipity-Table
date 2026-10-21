@@ -199,4 +199,9 @@ public class AdminController {
         adminService.refundOrder(orderId, reason, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("주문 환불 처리가 완료되었습니다.", null));
     }
+
+    @GetMapping("/analytics/feedback")
+    public ResponseEntity<ApiResponse<AdminFeedbackResponse>> getFeedbackAnalytics() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getFeedbackAnalytics()));
+    }
 }

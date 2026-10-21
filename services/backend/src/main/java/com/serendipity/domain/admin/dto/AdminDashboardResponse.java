@@ -16,4 +16,6 @@ public class AdminDashboardResponse {
     private long totalVenues;
     private long pendingInquiries;
     private Long totalRevenue;
+    private long ticket1Count;
+    private long ticket3Count;
 }

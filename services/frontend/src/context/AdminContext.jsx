@@ -155,6 +155,7 @@ export function AdminProvider({ children }) {
               tableNo: `${t.region} #${t.tableNo || (idx + 1)}`,
               region: t.region,
               status: t.status || 'CONFIRMED',
+              reservationStatus: t.reservationStatus || 'PENDING',
               harmonyScore: t.harmonyScore || 95,
               maleCount,
               femaleCount,
@@ -226,6 +227,7 @@ export function AdminProvider({ children }) {
               phone: v.phone,
               rating: v.rating || 4.8,
               image: v.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80',
+              naverMapUrl: v.naverMapUrl || v.mapUrl,
               tables: '4인 프라이빗 룸 2개, 4인 테이블 3개',
               benefits: '웰컴 드링크 1잔 제공'
             }))
@@ -439,15 +441,53 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // 3) 매칭 최종 확정 및 알림톡 발송
+  // 3) 매칭 최종 확정 (화요일 확정) 및 권역 식당 모의 예약 신청 (10초 후 예약 완료 처리)
   const confirmFinalMatching = async () => {
+    // 1단계: 모임 확정 및 식당 모의 예약 신청 (예약 대기 상태)
     setMatchingTables((prev) =>
-      prev.map((t) => ({ ...t, status: 'CONFIRMED' }))
+      prev.map((t) => ({
+        ...t,
+        status: 'CONFIRMED',
+        reservationStatus: 'PENDING'
+      }))
+    );
+    setVenues((prev) =>
+      prev.map((v) => ({
+        ...v,
+        reservationPending: true,
+        isReserved: false
+      }))
     );
     setEvents((prev) =>
       prev.map((ev, i) => (i === 0 ? { ...ev, status: 'CONFIRMED' } : ev))
     );
-    addAuditLog('CONFIRM_MATCHING', '총괄관리자', '금주 테이블 최종 매칭 확정 및 알림톡 일괄 발송 완료');
+    addAuditLog(
+      'CONFIRM_MATCHING',
+      '총괄관리자',
+      '화요일 모임 확정 완료: 각 권역 식당 모의 예약 신청 (예약 대기 중...)'
+    );
+
+    // 2단계: 10초 뒤 예약 대기 -> 예약 완료 자동 처리
+    setTimeout(() => {
+      setMatchingTables((prev) =>
+        prev.map((t) => ({
+          ...t,
+          reservationStatus: 'RESERVED'
+        }))
+      );
+      setVenues((prev) =>
+        prev.map((v) => ({
+          ...v,
+          reservationPending: false,
+          isReserved: true
+        }))
+      );
+      addAuditLog(
+        'VENUE_RESERVED_AUTO',
+        '시스템(자동)',
+        '각 권역 제휴 식당 모의 예약 대기 완료 -> 예약 확정(RESERVED) 처리됨'
+      );
+    }, 10000);
   };
 
   // 4) 수동 환불 처리 (주문 ID 또는 신청서 ID 자동 판별)

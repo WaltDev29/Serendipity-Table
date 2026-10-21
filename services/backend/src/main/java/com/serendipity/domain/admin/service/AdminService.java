@@ -164,6 +164,10 @@ public class AdminService {
                     .imageUrl(table.getVenue().getImageUrl())
                     .build();
 
+            UUID chatRoomId = "CONFIRMED".equalsIgnoreCase(table.getStatus())
+                    ? chatRoomRepository.findByDiningTable(table).map(com.serendipity.domain.chat.entity.ChatRoom::getId).orElse(null)
+                    : null;
+
             return ActiveTableResponse.builder()
                     .tableId(table.getId())
                     .eventSlotId(table.getEventSlot().getId())
@@ -173,6 +177,7 @@ public class AdminService {
                     .eventTime(table.getEventSlot().getEventTime())
                     .harmonyScore(table.getHarmonyScore())
                     .status(table.getStatus())
+                    .chatRoomId(chatRoomId)
                     .reservationStatus(table.getReservationStatus())
                     .venue(venueInfo)
                     .members(memberInfos)

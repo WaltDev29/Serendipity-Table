@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { getMyProfileApi, loginApi, signupApi } from '../api/auth';
 import { getMyActiveTableApi, getMyPastTablesApi } from '../api/table';
 import { getMyApplicationsApi, applySlotApi, cancelApplicationApi } from '../api/application';
-import { getRoomMessagesApi, createStompChatClient, publishChatMessage } from '../api/chat';
+import { getRoomMessagesApi, createStompChatClient, publishChatMessage, sendChatMessageApi } from '../api/chat';
 import { getMyInquiriesApi } from '../api/cs';
 import { getMyNotificationsApi, markNotificationReadApi, markAllNotificationsReadApi } from '../api/notification';
 
@@ -52,22 +52,24 @@ export const AppProvider = ({ children }) => {
       tableName: `${table.region} 식탁 #${table.tableNo || 1}`,
       eventDate: `${table.eventDate} ${table.eventTime ? table.eventTime.substring(0, 5) : '19:30'}`,
       status: table.status,
+      reservationStatus: table.reservationStatus,
       chatRoomId: table.chatRoomId,
       harmonyScore: table.harmonyScore,
       venue: {
         id: table.venue?.id,
-        name: table.venue?.name || '추천 다이닝',
+        name: (table.reservationStatus === 'RESERVED' && table.venue?.name) ? table.venue.name : '예약 전',
         genre: 'DINING & BISTRO',
-        address: table.venue?.address || '서울 마포구 동교로 210, 2층',
-        subway: '인근 지하철역 도보 5분',
-        menu: table.venue?.representativeMenu || '시그니처 코스 & 와인 페어링',
+        address: table.reservationStatus === 'RESERVED' ? (table.venue?.address || '') : '',
+        subway: table.reservationStatus === 'RESERVED' ? '인근 지하철역 도보 5분' : '',
+        menu: table.reservationStatus === 'RESERVED' ? (table.venue?.representativeMenu || '시그니처 코스') : '',
         avgPrice: table.venue?.avgPrice ? `1인 약 ${table.venue.avgPrice.toLocaleString()}원` : '1인 약 25,000원 선',
         atmosphere: ['#따뜻한조명', '#조용한대화', '#와인페어링'],
         rating: '4.8 (210)',
         image: table.venue?.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
         kakaoMapUrl: table.venue?.mapUrl,
         naverMapUrl: table.venue?.naverMapUrl,
-        phone: table.venue?.phone
+        phone: table.venue?.phone,
+        isReserved: table.reservationStatus === 'RESERVED' && Boolean(table.venue?.id)
       },
       members: (table.members || []).map((m, idx) => {
         const isMe = m.userId === userId;
@@ -274,25 +276,46 @@ export const AppProvider = ({ children }) => {
     };
   }, [refreshAppData]);
 
-  // 메시지 전송 핸들러 (STOMP 웹소켓 발행)
-  const sendChatMessage = (text, type = 'TALK', payload = null) => {
+  // 메시지 전송 핸들러 (STOMP 웹소켓 발행 + HTTP API fallback)
+  const sendChatMessage = async (text, type = 'TALK', payload = null) => {
     if (!text && !payload) return;
     if (!matchResult?.chatRoomId) {
       console.warn('No active chat room ID');
       return;
     }
 
+    const messageData = {
+      roomId: matchResult.chatRoomId,
+      senderId: currentUser?.id,
+      senderNickname: currentUser?.nickname || '나',
+      senderRole: 'USER',
+      messageType: type,
+      content: text,
+      payload
+    };
+
+    let sentViaWs = false;
     if (stompClientRef.current && stompClientRef.current.connected) {
-      publishChatMessage(stompClientRef.current, {
-        roomId: matchResult.chatRoomId,
-        senderId: currentUser?.id,
-        senderRole: 'USER',
-        messageType: type,
-        content: text,
-        payload
-      });
-    } else {
-      console.warn('STOMP client not connected, message not sent');
+      try {
+        publishChatMessage(stompClientRef.current, messageData);
+        sentViaWs = true;
+      } catch (wsErr) {
+        console.warn('STOMP publish failed, falling back to HTTP:', wsErr);
+      }
+    }
+
+    if (!sentViaWs) {
+      try {
+        const savedMsg = await sendChatMessageApi(matchResult.chatRoomId, messageData);
+        if (savedMsg) {
+          setChatMessages((prev) => {
+            if (prev.some((m) => m.id === savedMsg.id)) return prev;
+            return [...prev, savedMsg];
+          });
+        }
+      } catch (httpErr) {
+        console.error('Failed to send chat message via HTTP:', httpErr);
+      }
     }
   };
 

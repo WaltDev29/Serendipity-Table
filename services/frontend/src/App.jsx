@@ -1,7 +1,7 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
-import { AdminProvider } from './context/AdminContext';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AppProvider, useApp } from './context/AppContext';
+import { AdminProvider, useAdmin } from './context/AdminContext';
 import { ModalProvider } from './context/ModalContext';
 
 // Common Components

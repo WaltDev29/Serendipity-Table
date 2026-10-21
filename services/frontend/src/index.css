@@ -61,9 +61,18 @@
   overflow-x: hidden;
 }
 
-/* 페이지들의 min-h-[calc(100vh-...)] / min-h-screen 이 폰 높이를 넘기지 않도록 보정 */
-.phone-scroll [class*='min-h-[calc(100vh'],
-.phone-scroll .min-h-screen {
+/* 폰 프레임 내부에서 세로 꽉 채우기 (채팅방, 로그인 등) 지원 */
+.phone-scroll > div {
+  min-height: 100%;
+}
+
+.phone-scroll:has(#group-chat-container) {
+  overflow: hidden;
+}
+
+#group-chat-container {
+  height: 100%;
+  min-height: 100%;
 }
 
 .phone-island {

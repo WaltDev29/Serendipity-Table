@@ -89,11 +89,12 @@ export default function GroupChatPage() {
     );
   }
 
+  const isVenueReserved = matchResult.venue?.isReserved === true;
   const rawDate = matchResult.eventDate ? matchResult.eventDate.split(' ')[0] : '목요일';
-  const chatRoomTitle = `${rawDate} ${matchResult.venue?.name || '식당'}`;
+  const chatRoomTitle = `${rawDate} ${isVenueReserved ? (matchResult.venue?.name || '식당') : '식당 예약 전'}`;
 
   return (
-    <div className="w-full h-full bg-surface-container-lowest flex flex-col relative overflow-hidden">
+    <div id="group-chat-container" className="w-full h-full bg-surface-container-lowest flex flex-col relative overflow-hidden flex-1">
       {/* Central Chat Container (Full width & height of phone screen) */}
       <div className="w-full h-full flex flex-col flex-1 min-h-0 relative">
         {/* Top Chat Header */}
@@ -115,7 +116,9 @@ export default function GroupChatPage() {
                   <h1 className="font-headline-sm text-sm font-bold text-on-surface truncate">{chatRoomTitle}</h1>
                   <span className="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[10px] font-bold shrink-0">4명</span>
                 </div>
-                <p className="font-body-sm text-[11px] text-on-surface-variant truncate">{matchResult.venue?.name} · {matchResult.eventDate}</p>
+                <p className="font-body-sm text-[11px] text-on-surface-variant truncate">
+                  {isVenueReserved ? `${matchResult.venue?.name} · ${matchResult.eventDate}` : `식당 예약 전 · ${matchResult.eventDate}`}
+                </p>
               </div>
             </div>
 
@@ -144,7 +147,9 @@ export default function GroupChatPage() {
             <div className="flex items-center gap-2 min-w-0">
               <span className="material-symbols-outlined text-primary text-base shrink-0">place</span>
               <span className="text-[11px] text-on-surface-variant truncate font-medium">
-                {matchResult.eventDate} @ {matchResult.venue?.name} (예약자명: 우연한 식탁)
+                {isVenueReserved
+                  ? `${matchResult.eventDate} @ ${matchResult.venue?.name} (예약자명: 우연한 식탁)`
+                  : `${matchResult.eventDate} @ 식당 예약 전 (예약 진행 중입니다)`}
               </span>
             </div>
             <button
@@ -152,7 +157,7 @@ export default function GroupChatPage() {
               onClick={() => setIsVenueModalOpen(true)}
               className="px-2 py-0.5 rounded-md bg-surface-container hover:bg-surface-container-highest text-on-surface text-[11px] font-semibold flex items-center gap-0.5 shrink-0 transition-colors ml-2"
             >
-              <span>식당 안내</span>
+              <span>{isVenueReserved ? '식당 안내' : '예약 현황'}</span>
               <span className="material-symbols-outlined text-xs">chevron_right</span>
             </button>
           </div>
@@ -429,23 +434,40 @@ export default function GroupChatPage() {
             >
               <span className="material-symbols-outlined">close</span>
             </button>
-            <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
-              {matchResult.venue.name}
-            </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">
-              {matchResult.venue.address}
-            </p>
-            <div className="rounded-xl overflow-hidden mb-4 h-36">
-              <img src={matchResult.venue.image} alt="식당" className="w-full h-full object-cover" />
-            </div>
-            <p className="text-xs text-primary font-semibold mb-4">
-              대표 메뉴: {matchResult.venue.menu}
-            </p>
+            {isVenueReserved ? (
+              <>
+                <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
+                  {matchResult.venue?.name}
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">
+                  {matchResult.venue?.address}
+                </p>
+                <div className="rounded-xl overflow-hidden mb-4 h-36">
+                  <img src={matchResult.venue?.image} alt="식당" className="w-full h-full object-cover" />
+                </div>
+                <p className="text-xs text-primary font-semibold mb-4">
+                  대표 메뉴: {matchResult.venue?.menu}
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center mx-auto mb-3">
+                  <span className="material-symbols-outlined text-2xl">pending</span>
+                </div>
+                <h3 className="font-headline-sm text-base font-bold text-on-surface mb-1.5">
+                  식당 예약 진행 중
+                </h3>
+                <p className="font-body-sm text-xs text-on-surface-variant mb-4 leading-relaxed">
+                  현재 운영팀에서 모임 권역에 최적화된 프라이빗 식당을 예약 조율 중입니다.<br />
+                  예약이 확정되면 식당 정보와 위치가 즉시 안내됩니다!
+                </p>
+              </div>
+            )}
             <button
               onClick={() => setIsVenueModalOpen(false)}
               className="w-full py-2.5 rounded-xl bg-primary text-on-primary font-semibold text-sm"
             >
-              닫기
+              확인
             </button>
           </div>
         </div>

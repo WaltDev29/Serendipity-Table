@@ -83,6 +83,11 @@ public class TableService {
                 .build()
         ).collect(Collectors.toList());
 
+        // 채팅방은 4단계 최종 확정(CONFIRMED) 시에만 사용자에게 노출
+        UUID visibleChatRoomId = "CONFIRMED".equalsIgnoreCase(table.getStatus())
+                ? chatRoom.map(ChatRoom::getId).orElse(null)
+                : null;
+
         return ActiveTableResponse.builder()
                 .tableId(table.getId())
                 .eventSlotId(table.getEventSlot().getId())
@@ -92,7 +97,8 @@ public class TableService {
                 .eventTime(table.getEventSlot().getEventTime())
                 .harmonyScore(table.getHarmonyScore())
                 .status(table.getStatus())
-                .chatRoomId(chatRoom.map(ChatRoom::getId).orElse(null))
+                .reservationStatus(table.getReservationStatus())
+                .chatRoomId(visibleChatRoomId)
                 .venue(venueInfo)
                 .members(memberInfos)
                 .build();

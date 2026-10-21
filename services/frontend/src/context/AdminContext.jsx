@@ -173,11 +173,14 @@ export function AdminProvider({ children }) {
           });
           setMatchingTables(formattedTables);
 
-          // Populate chatRooms from matching tables
-          const rooms = formattedTables.map((t, tIdx) => ({
+          // Populate chatRooms ONLY for tables that reached Step 4 (CONFIRMED)
+          const confirmedTables = formattedTables.filter(
+            (t) => t.status === 'CONFIRMED' && t.chatRoomId
+          );
+          const rooms = confirmedTables.map((t, tIdx) => ({
             id: t.chatRoomId || t.id || `room-${tIdx + 1}`,
             roomName: `${t.tableNo} 단체방`,
-            venueName: t.venue?.name || '배정 대기',
+            venueName: (t.reservationStatus === 'RESERVED' && t.venue?.name) ? t.venue.name : '예약 전',
             eventDate: t.eventDate || '2026-10-22',
             eventTime: t.eventTime || '19:30',
             memberCount: t.members?.length || 4,
@@ -198,7 +201,9 @@ export function AdminProvider({ children }) {
           }));
           setChatRooms(rooms);
           if (rooms.length > 0) {
-            setActiveChatRoomId((prev) => prev || rooms[0].id);
+            setActiveChatRoomId((prev) => (rooms.some(r => r.id === prev) ? prev : rooms[0].id));
+          } else {
+            setActiveChatRoomId(null);
           }
         }
       } catch (e) {

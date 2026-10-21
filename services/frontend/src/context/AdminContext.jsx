@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import {
   getAdminDashboardApi,
   getAdminSlotsApi,
+  getAdminApplicationsApi,
+  getAdminUsersApi,
   toggleRegionCloseApi,
   getAdminTablesApi,
   swapMembersApi,
@@ -24,8 +26,8 @@ export function AdminProvider({ children }) {
     {
       id: 'EVT-CURRENT',
       slotId: 1,
-      title: '금주 목요일 정기 모임',
-      eventDate: '2026-10-22 19:30:00',
+      title: '목요일 정기 모임',
+      eventDate: '2026-10-22',
       deadline: '2026-10-20 18:00:00',
       totalApplicants: 0,
       targetCapacity: 192,
@@ -86,8 +88,8 @@ export function AdminProvider({ children }) {
           const formattedEvents = slots.map((s) => ({
             id: `EVT-${s.id}`,
             slotId: s.id,
-            title: `${s.eventDate} ${s.dayOfWeek || ''} 정기 모임`,
-            eventDate: `${s.eventDate} ${s.eventTime || '19:30:00'}`,
+            title: `${s.dayOfWeek ? s.dayOfWeek + ' ' : ''}정기 모임`,
+            eventDate: s.eventDate ? s.eventDate.split(' ')[0] : '',
             deadline: `${s.deadlineDate || s.eventDate} 18:00:00`,
             totalApplicants: s.totalApplicants || 0,
             targetCapacity: s.targetCapacity || 192,
@@ -153,6 +155,32 @@ export function AdminProvider({ children }) {
             };
           });
           setMatchingTables(formattedTables);
+
+          // Populate chatRooms from matching tables
+          const rooms = formattedTables.map((t, tIdx) => ({
+            id: t.chatRoomId || t.id || `room-${tIdx + 1}`,
+            roomName: `${t.tableNo} 단체방`,
+            venueName: t.venue?.name || '배정 대기',
+            memberCount: t.members?.length || 4,
+            unreadCount: 0,
+            lastMessage: '우연한 식탁에 오신 것을 환영합니다! 서로를 존중하는 따뜻한 식탁을 만들어가요.',
+            lastMessageTime: '최근',
+            messages: [
+              {
+                id: `sys-${tIdx}`,
+                type: 'SYSTEM',
+                sender: '식탁 지킴이',
+                text: '우연한 식탁에 오신 것을 환영합니다! 서로를 존중하는 따뜻한 식탁을 만들어가요.',
+                time: '19:00',
+                isAdmin: true
+              }
+            ],
+            members: t.members
+          }));
+          setChatRooms(rooms);
+          if (rooms.length > 0) {
+            setActiveChatRoomId((prev) => prev || rooms[0].id);
+          }
         }
       } catch (e) {
         console.warn('Admin tables fetch error:', e);
@@ -184,26 +212,82 @@ export function AdminProvider({ children }) {
         console.warn('Admin venues fetch error:', e);
       }
 
-      // 5) 블랙리스트 및 사용자 목록
+      // 4-1) 참가 신청자 마스터 목록
       try {
-        const bl = await getAdminBlacklistApi();
-        if (Array.isArray(bl)) {
-          setBlacklist(bl);
-          setUsers(
-            bl.map((b) => ({
-              id: b.user?.id || b.id,
-              name: b.user?.name || '차단 회원',
-              phone: b.user?.phone || '-',
-              mannerTemp: b.user?.mannerTemp || 30.0,
-              strikeCount: 2,
-              status: 'BANNED',
-              banReason: b.reason,
-              bannedAt: b.createdAt ? new Date(b.createdAt).toLocaleString() : '-'
+        const appList = await getAdminApplicationsApi();
+        if (Array.isArray(appList)) {
+          setApplications(
+            appList.map((a) => ({
+              id: a.id,
+              userId: a.userId,
+              name: a.name,
+              gender: a.gender,
+              age: a.age,
+              phone: a.phone || '-',
+              instagramId: a.instagramId ? `@${a.instagramId.replace(/^@/, '')}` : '-',
+              job: a.job || '직장인',
+              mbti: a.mbti || 'ENFP',
+              region: a.region || '홍대/합정',
+              regions: a.regions || [a.region || '홍대/합정'],
+              ticketType: a.ticketType || '1_TICKET',
+              paymentStatus: a.paymentStatus || 'PAID',
+              matchingStatus: a.matchStatus || 'WAITING',
+              assignedTable: a.assignedTable || '미배정',
+              interests: a.interests || [],
+              myTendencies: a.myTendencies || [],
+              preferredTendencies: a.preferredTendencies || [],
+              budget: (a.budgetRanges && a.budgetRanges.length > 0) ? a.budgetRanges[0] : '20,000~30,000원',
+              budgetRanges: a.budgetRanges || [],
+              foodRestrictions: Array.isArray(a.foodRestrictions)
+                ? a.foodRestrictions
+                : (a.foodRestrictions && a.foodRestrictions !== '없음' && a.foodRestrictions !== 'null')
+                ? [a.foodRestrictions]
+                : [],
+              createdAt: a.createdAt ? new Date(a.createdAt).toLocaleString() : '-'
             }))
           );
         }
       } catch (e) {
-        console.warn('Admin blacklist fetch error:', e);
+        console.warn('Admin applications fetch error:', e);
+      }
+
+      // 5) 전체 회원 및 블랙리스트 목록
+      try {
+        const allUsers = await getAdminUsersApi();
+        if (Array.isArray(allUsers)) {
+          setUsers(
+            allUsers.map((u) => ({
+              id: u.id,
+              name: u.name,
+              nickname: u.nickname || u.name,
+              phone: u.phone || '-',
+              mannerTemp: u.mannerTemp || 36.5,
+              strikeCount: u.strikeCount || 0,
+              status: u.status === 'BANNED' ? 'BANNED' : (u.strikeCount > 0 ? 'WARNING' : 'CLEAN'),
+              rawStatus: u.status,
+              banReason: u.banReason,
+              bannedAt: u.bannedAt ? new Date(u.bannedAt).toLocaleString() : '-',
+              gender: u.gender === 'F' ? '여' : '남',
+              birthYear: u.birthYear || (2026 - (u.age || 28)),
+              age: u.age || 28,
+              job: u.job || '직장인',
+              instagram: u.instagramId ? `@${u.instagramId.replace(/^@/, '')}` : '-',
+              instagramId: u.instagramId || '-',
+              mbti: u.mbti || 'ENFP',
+              attendanceCount: u.attendanceCount !== undefined ? u.attendanceCount : 0,
+              remainingTickets: u.remainingTickets !== undefined ? u.remainingTickets : 0,
+              totalSpend: u.totalSpend !== undefined ? u.totalSpend : 0,
+              role: u.role
+            }))
+          );
+        }
+
+        const bl = await getAdminBlacklistApi();
+        if (Array.isArray(bl)) {
+          setBlacklist(bl);
+        }
+      } catch (e) {
+        console.warn('Admin users/blacklist fetch error:', e);
       }
 
       // 6) CS 1:1 고객 문의 목록
@@ -350,6 +434,28 @@ export function AdminProvider({ children }) {
     }
   };
 
+  // 7-1) 회원 블랙리스트 해제
+  const unbanUser = async (userId) => {
+    try {
+      await removeFromBlacklistApi(userId);
+      await refreshAdminData();
+      addAuditLog('BLACKLIST_REMOVE', '총괄관리자', `회원 ${userId} 블랙리스트 해제 완료`);
+    } catch (e) {
+      alert('블랙리스트 해제 실패: ' + e.message);
+    }
+  };
+
+  // 7-2) 주의 사유 추가 (3회 시 자동 차단)
+  const addStrikeUser = async (userId, reason) => {
+    try {
+      await addStrikeApi(userId, reason || '운영 수칙 위반');
+      await refreshAdminData();
+      addAuditLog('USER_STRIKE', '총괄관리자', `회원 ${userId} 주의 부여 (사유: ${reason})`);
+    } catch (e) {
+      alert('주의 부여 실패: ' + e.message);
+    }
+  };
+
   // 8) 인원 미달 테이블 대안 일괄 처리 (이월권 발급 vs 전액 환불)
   const resolveUnderQuorum = (tableId, actionType) => {
     setMatchingTables((prev) =>
@@ -453,6 +559,8 @@ export function AdminProvider({ children }) {
         sendEmergencyNotice,
         kickMember,
         banUser,
+        unbanUser,
+        addStrikeUser,
         resolveUnderQuorum,
         downloadCsv,
         toggleVenueReservation,

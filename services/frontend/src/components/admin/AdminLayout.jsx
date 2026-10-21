@@ -34,37 +34,19 @@ export default function AdminLayout() {
 
   const navGroups = [
     {
-      group: '대시보드',
+      group: '',
       items: [
-        { to: '/admin/dashboard', icon: 'dashboard', label: 'A-01 운영 대시보드' }
-      ]
-    },
-    {
-      group: '운영 관리',
-      items: [
-        { to: '/admin/slots', icon: 'calendar_month', label: 'A-02 회차 & 슬롯 관리' },
-        { to: '/admin/applications', icon: 'receipt_long', label: 'A-03 참가 신청 & 결제' },
-        { to: '/admin/matching', icon: 'smart_toy', label: 'A-04 AI 매칭 & 개입' },
-        { to: '/admin/venues', icon: 'storefront', label: 'A-05 식당 POOL & 배정' }
-      ]
-    },
-    {
-      group: '관제 & 고객',
-      items: [
-        { to: '/admin/chat-ops', icon: 'forum', label: 'A-06 채팅 관제 & 공지' },
-        { to: '/admin/users', icon: 'shield_person', label: 'A-07 회원 & 블랙리스트' }
-      ]
-    },
-    {
-      group: '통계 & 정산',
-      items: [
-        { to: '/admin/analytics', icon: 'query_stats', label: 'A-08 피드백 & 정산 통계' }
-      ]
-    },
-    {
-      group: '예외 & 데이터',
-      items: [
-        { to: '/admin/exceptions', icon: 'download', label: 'A-09 예외 큐 & CSV 내보내기' }
+        { to: '/admin/dashboard', icon: 'dashboard', label: '운영 대시보드' },
+        { to: '/admin/slots', icon: 'calendar_month', label: '회차 & 슬롯 관리' },
+        { to: '/admin/applications', icon: 'how_to_reg', label: '참가 신청' },
+        { to: '/admin/payments', icon: 'payments', label: '결제 내역' },
+        { to: '/admin/matching', icon: 'smart_toy', label: 'AI 매칭 & 개입' },
+        { to: '/admin/venues', icon: 'storefront', label: '식당 POOL & 배정' },
+        { to: '/admin/chat-ops', icon: 'forum', label: '채팅 관제 & 공지' },
+        { to: '/admin/users', icon: 'groups', label: '회원목록' },
+        { to: '/admin/cs', icon: 'support_agent', label: '고객센터' },
+        { to: '/admin/analytics', icon: 'query_stats', label: '피드백 & 정산 통계' },
+        { to: '/admin/exceptions', icon: 'download', label: '예외 큐 & CSV 내보내기' }
       ]
     }
   ];
@@ -101,11 +83,13 @@ export default function AdminLayout() {
 
           {/* Navigation Menu List */}
           <div className="flex-1 overflow-y-auto px-space-sm py-space-sm space-y-space-md">
-            {navGroups.map((group) => (
-              <div key={group.group} className="space-y-space-xxs">
-                <div className="px-space-sm py-space-xxs font-label-sm text-label-sm uppercase tracking-wider text-outline-variant font-semibold">
-                  {group.group}
-                </div>
+            {navGroups.map((group, gIdx) => (
+              <div key={group.group || `g-${gIdx}`} className="space-y-space-xxs">
+                {group.group && (
+                  <div className="px-space-sm py-space-xxs font-label-sm text-label-sm uppercase tracking-wider text-outline-variant font-semibold">
+                    {group.group}
+                  </div>
+                )}
                 <nav className="space-y-space-xxs">
                   {group.items.map((item) => (
                     <NavLink

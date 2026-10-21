@@ -36,6 +36,16 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getSlots()));
     }
 
+    @GetMapping("/applications")
+    public ResponseEntity<ApiResponse<List<AdminApplicationResponse>>> getApplications(@RequestParam(required = false) Long slotId) {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getApplications(slotId)));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<ApiResponse<List<AdminUserResponse>>> getUsers() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getUsers()));
+    }
+
     @PatchMapping("/slots/{slotId}/regions/{region}/toggle-close")
     public ResponseEntity<ApiResponse<Void>> toggleRegionClosed(
             @PathVariable Long slotId,
@@ -92,6 +102,15 @@ public class AdminController {
             @AuthenticationPrincipal UserPrincipal principal) {
         adminService.removeFromBlacklist(userId, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("블랙리스트에서 해제되었습니다.", null));
+    }
+
+    @PostMapping("/users/{userId}/strike")
+    public ResponseEntity<ApiResponse<Void>> addStrike(
+            @PathVariable UUID userId,
+            @RequestParam(defaultValue = "운영 수칙 위반") String reason,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.addStrike(userId, reason, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("주의 1회가 부여되었습니다.", null));
     }
 
     @GetMapping("/cs/inquiries")

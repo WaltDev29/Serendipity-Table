@@ -8,6 +8,15 @@ export async function getAdminSlotsApi() {
   return await apiFetch('/admin/slots');
 }
 
+export async function getAdminApplicationsApi(slotId) {
+  const query = slotId ? `?slotId=${slotId}` : '';
+  return await apiFetch(`/admin/applications${query}`);
+}
+
+export async function getAdminUsersApi() {
+  return await apiFetch('/admin/users');
+}
+
 export async function toggleRegionCloseApi(slotId, region, isClosed) {
   return await apiFetch(`/admin/slots/${slotId}/regions/${encodeURIComponent(region)}/toggle-close?isClosed=${isClosed}`, {
     method: 'PATCH'
@@ -56,6 +65,12 @@ export async function addToBlacklistApi(userId, reason) {
 export async function removeFromBlacklistApi(userId) {
   return await apiFetch(`/admin/blacklist/${userId}`, {
     method: 'DELETE'
+  });
+}
+
+export async function addStrikeApi(userId, reason) {
+  return await apiFetch(`/admin/users/${userId}/strike?reason=${encodeURIComponent(reason)}`, {
+    method: 'POST'
   });
 }
 

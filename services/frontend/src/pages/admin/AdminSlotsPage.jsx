@@ -11,7 +11,7 @@ export default function AdminSlotsPage() {
   // 신규 회차 생성 모달 상태
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newEventDate, setNewEventDate] = useState('2026-11-05');
-  const [newTitle, setNewTitle] = useState('2026년 11월 1주차 목요일 정기 모임');
+  const [newTitle, setNewTitle] = useState('목요일 정기 모임');
   const [newRegions, setNewRegions] = useState({
     hongdae: true,
     jamsil: true,
@@ -19,6 +19,16 @@ export default function AdminSlotsPage() {
     euljiro: true
   });
   const [targetPerRegion, setTargetPerRegion] = useState(48);
+
+  const formatTitle = (title) => {
+    if (!title) return '목요일 정기 모임';
+    return title.replace(/^\d{4}[-./]\d{1,2}[-./]\d{1,2}\s*/, '').replace(/^\d{4}년\s*(\d{1,2}월\s*)?(\d{1,2}주차\s*)?/, '').trim() || '목요일 정기 모임';
+  };
+
+  const formatEventDate = (dt) => {
+    if (!dt) return '-';
+    return dt.split(' ')[0];
+  };
 
   const activeEvent = events.find((e) => e.id === selectedEventId) || events[0] || {
     id: 'EVT-FALLBACK',
@@ -171,8 +181,8 @@ export default function AdminSlotsPage() {
                     }`}
                   >
                     <td className="py-3.5 px-4 font-mono font-bold text-primary">{ev.id}</td>
-                    <td className="py-3.5 px-4 font-bold text-on-surface">{ev.title}</td>
-                    <td className="py-3.5 px-4 text-on-surface-variant">{ev.eventDate}</td>
+                    <td className="py-3.5 px-4 font-bold text-on-surface">{formatTitle(ev.title)}</td>
+                    <td className="py-3.5 px-4 text-on-surface-variant">{formatEventDate(ev.eventDate)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{ev.deadline}</td>
                     <td className="py-3.5 px-4 font-bold">
                       {ev.totalApplicants} / {ev.targetCapacity}명
@@ -229,7 +239,7 @@ export default function AdminSlotsPage() {
           <div>
             <h2 className="font-title-md text-sm font-bold text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
-              <span>[{activeEvent.title}] 세부 권역 슬롯 제어</span>
+              <span>[{formatTitle(activeEvent.title)}] 세부 권역 슬롯 제어</span>
             </h2>
             <p className="text-xs text-on-surface-variant mt-0.5">
               각 권역의 조기 마감 토글 및 실시간 모객 달성 현황입니다.

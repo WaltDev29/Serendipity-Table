@@ -23,6 +23,8 @@ import AdminChatOpsPage from './pages/admin/AdminChatOpsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
 import AdminExceptionsPage from './pages/admin/AdminExceptionsPage';
+import AdminCustomerServicePage from './pages/admin/AdminCustomerServicePage';
+import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
 
 // User Pages
 import HomePage from './pages/HomePage';
@@ -65,10 +67,12 @@ export default function App() {
                   <Route path="dashboard" element={<AdminDashboardPage />} />
                   <Route path="slots" element={<AdminSlotsPage />} />
                   <Route path="applications" element={<AdminApplicationsPage />} />
+                  <Route path="payments" element={<AdminPaymentsPage />} />
                   <Route path="matching" element={<AdminMatchingOpsPage />} />
                   <Route path="venues" element={<AdminVenuesPage />} />
                   <Route path="chat-ops" element={<AdminChatOpsPage />} />
                   <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="cs" element={<AdminCustomerServicePage />} />
                   <Route path="analytics" element={<AdminAnalyticsPage />} />
                   <Route path="exceptions" element={<AdminExceptionsPage />} />
                 </Route>

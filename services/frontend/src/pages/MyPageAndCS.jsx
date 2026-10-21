@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useModal } from '../context/ModalContext';
 import { getUpcomingSlotsApi } from '../api/slot';
 import { checkoutOrderApi, applySlotApi } from '../api/application';
 
 export default function MyPageAndCS() {
   const navigate = useNavigate();
-  const { currentUser, matchResult, refreshAppData, setUserState } = useApp();
+  const { currentUser, matchResult, refreshAppData, setUserState, logout } = useApp();
+  const { showAlert, showConfirm } = useModal();
 
   // 모달 상태
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
@@ -55,22 +57,24 @@ export default function MyPageAndCS() {
         ticketType: buyTicketType,
         ticketCount: isThree ? 3 : 1,
         amount: isThree ? 15000 : 8000,
-        paymentMethod: 'CARD'
+        paymentMethod: 'CARD',
+        itemName: isThree ? '우연한 식탁 3회 참가권' : '우연한 식탁 1회 참가권'
       });
       await refreshAppData();
-      alert(`참가권이 성공적으로 구매되었습니다! (보유: +${isThree ? 3 : 1}회)`);
+      await showAlert(`참가권이 성공적으로 구매되었습니다! (보유: +${isThree ? 3 : 1}회)`, '구매 완료');
       setIsBuyModalOpen(false);
     } catch (err) {
-      alert('참가권 구매 실패: ' + (err.message || '오류가 발생했습니다.'));
+      await showAlert('참가권 구매 실패: ' + (err.message || '오류가 발생했습니다.'), '오류');
     } finally {
       setIsBuying(false);
     }
   };
 
   // 신청하기 클릭 핸들러 (참가권 검증 후 모달 오픈)
-  const handleOpenApplyModal = () => {
+  const handleOpenApplyModal = async () => {
     if (ticketCount <= 0) {
-      if (confirm('보유하신 참가권이 없습니다. 참가권 구매 페이지(모달)로 이동하시겠습니까?')) {
+      const wantBuy = await showConfirm('보유하신 참가권이 없습니다. 참가권 구매 창으로 이동하시겠습니까?', '참가권 필요');
+      if (wantBuy) {
         setIsBuyModalOpen(true);
       }
       return;
@@ -81,15 +85,16 @@ export default function MyPageAndCS() {
   // 실제 모임 참가 신청 처리
   const handleSubmitApply = async () => {
     if (!selectedSlotId) {
-      alert('신청하실 날짜(회차)를 선택해주세요.');
+      await showAlert('신청하실 날짜(회차)를 선택해주세요.', '입력 필요');
       return;
     }
     if (!selectedRegion) {
-      alert('참여하실 권역을 선택해주세요.');
+      await showAlert('참여하실 권역을 선택해주세요.', '입력 필요');
       return;
     }
 
-    if (!confirm('보유 참가권 1회를 사용하여 식탁 모임에 신청하시겠습니까?')) {
+    const ok = await showConfirm('보유 참가권 1회를 사용하여 식탁 모임에 신청하시겠습니까?', '모임 신청');
+    if (!ok) {
       return;
     }
 
@@ -98,11 +103,11 @@ export default function MyPageAndCS() {
       await applySlotApi(selectedSlotId, [selectedRegion]);
       await refreshAppData();
       setUserState('WAITING');
-      alert('참가 신청이 성공적으로 완료되었습니다! 매칭 발표를 기다려주세요.');
+      await showAlert('참가 신청이 성공적으로 완료되었습니다! 매칭 발표를 기다려주세요.', '신청 완료');
       setIsApplyModalOpen(false);
       navigate('/');
     } catch (err) {
-      alert('신청 처리 실패: ' + (err.message || '오류가 발생했습니다.'));
+      await showAlert('신청 처리 실패: ' + (err.message || '오류가 발생했습니다.'), '오류');
     } finally {
       setIsApplying(false);
     }
@@ -138,8 +143,9 @@ export default function MyPageAndCS() {
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-space-xs">
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">{currentUser?.nickname || '회원'}</h2>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">({currentUser?.name || '본인'})</span>
+                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold">
+                        {currentUser?.nickname || currentUser?.name || '회원'}
+                      </h2>
                     </div>
                     <p className="font-label-sm text-label-sm text-on-surface-variant mt-0.5">
                       {currentUser?.age || (currentUser?.birthYear ? 2026 - currentUser.birthYear : 28)}세 · {currentUser?.job || '직장인'} · {currentUser?.mbti || 'ENFP'}
@@ -163,9 +169,6 @@ export default function MyPageAndCS() {
                     #{tag}
                   </span>
                 ))}
-                <span className="px-space-sm py-1 rounded-full bg-surface-container-low text-on-surface font-label-sm text-label-sm">
-                  #목요일소셜
-                </span>
               </div>
 
               {/* Edit Profile & Tastes Action Button */}
@@ -320,6 +323,24 @@ export default function MyPageAndCS() {
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-outline">chevron_right</span>
+              </button>
+            </div>
+
+            {/* 6. LOGOUT BUTTON */}
+            <div className="pt-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await showConfirm('로그아웃 하시겠습니까?', '로그아웃');
+                  if (ok) {
+                    logout();
+                    navigate('/login');
+                  }
+                }}
+                className="w-full py-3.5 rounded-2xl bg-surface-container-low hover:bg-error-container/30 text-on-surface-variant hover:text-error transition-all flex items-center justify-center gap-2 text-xs font-semibold border border-outline-variant/30"
+              >
+                <span className="material-symbols-outlined text-[18px]">logout</span>
+                <span>로그아웃</span>
               </button>
             </div>
 

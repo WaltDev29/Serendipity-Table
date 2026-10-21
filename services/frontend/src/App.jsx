@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { AdminProvider } from './context/AdminContext';
+import { ModalProvider } from './context/ModalContext';
 
 // Common Components
 import Header from './components/common/Header';
@@ -46,11 +47,12 @@ export default function App() {
   return (
     <AppProvider>
       <AdminProvider>
-        <BrowserRouter>
-          {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-          <div className="min-h-screen bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col selection:bg-primary-fixed selection:text-primary">
-            {/* Universal Sticky Header (Hidden on /admin) */}
-            <Header />
+        <ModalProvider>
+          <BrowserRouter>
+            {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+            <div className="min-h-screen bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col selection:bg-primary-fixed selection:text-primary">
+              {/* Universal Sticky Header (Hidden on /admin) */}
+              <Header />
 
             {/* Main View Router */}
             <main className="w-full flex-1">
@@ -110,9 +112,9 @@ export default function App() {
                 <Route path="/mypage" element={<div className="pt-14"><MyPageAndCS /></div>} />
                 <Route path="/my" element={<div className="pt-14"><MyPageAndCS /></div>} />
 
-                {/* 신규 추가: 회원가입 및 로그인 */}
-                <Route path="/signup" element={<div className="pt-14"><SignupPage /></div>} />
-                <Route path="/login" element={<div className="pt-14"><LoginPage /></div>} />
+                {/* 신규 추가: 회원가입 및 로그인 (자체 풀스크린 레이아웃) */}
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
                 {/* 신규 추가: 지난 식탁 다이어리 & 안심 차단 관리 & 고객센터 */}
                 <Route path="/past-tables" element={<div className="pt-14"><PastTablesPage /></div>} />
@@ -135,6 +137,7 @@ export default function App() {
             <DemoSwitcher />
           </div>
         </BrowserRouter>
+        </ModalProvider>
       </AdminProvider>
     </AppProvider>
   );

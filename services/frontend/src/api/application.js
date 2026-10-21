@@ -20,10 +20,12 @@ export async function cancelApplicationApi(applicationId) {
   });
 }
 
-export async function checkoutOrderApi({ eventSlotId, ticketType, ticketCount, amount, paymentMethod }) {
+export async function checkoutOrderApi({ eventSlotId, ticketType, ticketCount, amount, paymentMethod, itemName }) {
+  const defaultItemName = itemName || (ticketType === '3_TICKETS' ? '우연한 식탁 3회 참가권' : '우연한 식탁 1회 참가권');
   return await apiFetch('/orders/checkout', {
     method: 'POST',
     body: JSON.stringify({
+      itemName: defaultItemName,
       eventSlotId,
       ticketType,
       ticketCount: ticketCount || 1,

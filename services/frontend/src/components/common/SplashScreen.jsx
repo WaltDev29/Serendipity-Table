@@ -58,19 +58,14 @@ export default function SplashScreen({ onFinish }) {
           </div>
         </div>
 
-        {/* Center Splash Image */}
-        <div className="flex flex-col items-center justify-center w-full my-auto">
-          <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/80 transition-transform duration-700 ease-out scale-100 hover:scale-105">
+        {/* Center Splash Image (Enlarged, No Text Overlay) */}
+        <div className="flex flex-col items-center justify-center w-full my-auto px-4">
+          <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/90 transition-transform duration-700 ease-out scale-100">
             <img
               src="/splash.jpg"
               alt="우연한 식탁"
               className="w-full h-full object-cover object-center"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute bottom-4 left-4 right-4 text-center text-white drop-shadow-md">
-              <span className="font-bold text-lg tracking-tight">우연한 식탁</span>
-              <p className="text-xs text-white/85 mt-0.5">따뜻한 식탁에서 피어나는 우연한 인연</p>
-            </div>
           </div>
         </div>
 

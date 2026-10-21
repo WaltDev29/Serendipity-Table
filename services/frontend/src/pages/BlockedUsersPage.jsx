@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyBlocksApi, unblockUserApi } from '../api/auth';
+import { useModal } from '../context/ModalContext';
 
 export default function BlockedUsersPage() {
   const navigate = useNavigate();
+  const { showAlert, showConfirm } = useModal();
 
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,13 +34,17 @@ export default function BlockedUsersPage() {
   }, []);
 
   const handleUnblock = async (id, name) => {
-    if (window.confirm(`${name}님의 차단을 해제하시겠습니까?\n해제 시 향후 목요일 모임에서 같은 테이블로 매칭될 수 있습니다.`)) {
+    const ok = await showConfirm(
+      `${name}님의 차단을 해제하시겠습니까?\n해제 시 향후 목요일 모임에서 같은 테이블로 매칭될 수 있습니다.`,
+      '차단 해제 확인'
+    );
+    if (ok) {
       try {
         await unblockUserApi(id);
-        alert('차단이 해제되었습니다.');
+        await showAlert('차단이 해제되었습니다.', '해제 완료');
         await loadBlocks();
       } catch (err) {
-        alert('차단 해제 실패: ' + err.message);
+        await showAlert('차단 해제 실패: ' + err.message, '오류');
       }
     }
   };

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useModal } from '../context/ModalContext';
 
 export default function MatchingWaitingPage() {
   const navigate = useNavigate();
   const { applicationData, setUserState } = useApp();
+  const { showAlert, showConfirm } = useModal();
 
   // D-1 실시간 카운트다운 타이머 시뮬레이션
   const [timeLeft, setTimeLeft] = useState({
@@ -30,10 +32,14 @@ export default function MatchingWaitingPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleCancelApplication = () => {
-    if (confirm('참가 신청을 취소하시겠습니까? (행사 2일 전 정오 이전이므로 사용하신 참가권이 다시 반환됩니다.)')) {
+  const handleCancelApplication = async () => {
+    const ok = await showConfirm(
+      '참가 신청을 취소하시겠습니까?\n(행사 2일 전 정오 이전이므로 사용하신 참가권이 다시 반환됩니다.)',
+      '신청 취소 확인'
+    );
+    if (ok) {
       setUserState('NONE');
-      alert('참가 신청이 취소되었으며, 참가권 1회가 보유 참가권으로 반환되었습니다.');
+      await showAlert('참가 신청이 취소되었으며, 참가권 1회가 보유 참가권으로 반환되었습니다.', '취소 완료');
       navigate('/');
     }
   };

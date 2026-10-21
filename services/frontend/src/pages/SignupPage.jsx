@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useModal } from '../context/ModalContext';
 import { signupApi } from '../api/auth';
 import { formatPhoneNumber } from '../utils/formatters';
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const { refreshAppData } = useApp();
+  const { showAlert, showConfirm } = useModal();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -55,7 +57,8 @@ export default function SignupPage() {
       return;
     }
 
-    if (!window.confirm('입력하신 정보로 회원가입을 진행하시겠습니까?')) {
+    const confirmed = await showConfirm('입력하신 정보로 회원가입을 진행하시겠습니까?', '회원가입 확인');
+    if (!confirmed) {
       return;
     }
 
@@ -77,7 +80,7 @@ export default function SignupPage() {
 
       await refreshAppData();
 
-      alert(`🎉 ${formData.name}님, 회원가입이 완료되었습니다!\n이어서 나만의 취향과 성향 정보를 입력해주세요.`);
+      await showAlert(`🎉 ${formData.name}님, 회원가입이 완료되었습니다!\n이어서 나만의 취향과 성향 정보를 입력해주세요.`, '가입 완료');
       navigate('/information-input');
     } catch (err) {
       setErrorMsg(err.message || '회원가입에 실패했습니다.');

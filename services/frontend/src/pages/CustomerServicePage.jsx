@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createInquiryApi } from '../api/cs';
+import { useModal } from '../context/ModalContext';
 
 export default function CustomerServicePage() {
   const navigate = useNavigate();
+  const { showAlert } = useModal();
 
   const [openedFaq, setOpenedFaq] = useState(null);
   const [inquiryText, setInquiryText] = useState('');
@@ -39,10 +41,10 @@ export default function CustomerServicePage() {
     setIsSubmitted(true);
     try {
       await createInquiryApi(category, `[${category}] 고객 문의`, inquiryText);
-      alert('문의가 백엔드 CS 시스템에 정상 접수되었습니다.\n운영자가 확인 후 신속히 답변을 전달해 드립니다.');
+      await showAlert('문의가 백엔드 CS 시스템에 정상 접수되었습니다.\n운영자가 확인 후 신속히 답변을 전달해 드립니다.', '문의 접수');
       setInquiryText('');
     } catch (err) {
-      alert('문의 접수 실패: ' + err.message);
+      await showAlert('문의 접수 실패: ' + err.message, '오류');
     } finally {
       setIsSubmitted(false);
     }

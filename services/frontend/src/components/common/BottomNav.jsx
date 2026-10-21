@@ -6,8 +6,13 @@ export default function BottomNav() {
   const location = useLocation();
   const { userState } = useApp();
 
-  // 대화 중인 채팅방 내부(/chat) 또는 관리자 콘솔(/admin)에서는 하단 바 숨김
-  if (location.pathname === '/chat' || location.pathname.startsWith('/admin')) {
+  // 대화 중인 채팅방 내부(/chat), 로그인(/login), 회원가입(/signup), 관리자 콘솔(/admin)에서는 하단 바 숨김
+  if (
+    location.pathname === '/chat' ||
+    location.pathname === '/login' ||
+    location.pathname === '/signup' ||
+    location.pathname.startsWith('/admin')
+  ) {
     return null;
   }
 

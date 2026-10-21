@@ -1,6 +1,7 @@
 package com.serendipity.domain.matching.scheduler;
 
 import com.serendipity.domain.matching.service.MatchingLifecycleService;
+import com.serendipity.domain.slot.service.SlotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,6 +13,16 @@ import org.springframework.stereotype.Component;
 public class MatchingScheduler {
 
     private final MatchingLifecycleService lifecycleService;
+    private final SlotService slotService;
+
+    /**
+     * 월요일 오전 (09:00): 그 다음주 목요일(D+10) 정기 회차 자동 생성
+     */
+    @Scheduled(cron = "0 0 9 * * MON", zone = "Asia/Seoul")
+    public void scheduleMondaySlotCreation() {
+        log.info("[스케줄러] 월요일 09:00 차주 목요일 회차 자동 생성 실행");
+        slotService.createNextWeekThursdaySlotOnMonday();
+    }
 
     /**
      * 월요일 정오 (12:00): AI 1차 매칭 엔진 가동

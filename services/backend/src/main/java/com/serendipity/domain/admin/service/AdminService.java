@@ -394,7 +394,7 @@ public class AdminService {
 
     @Transactional
     public SlotResponse createSlot(LocalDate eventDate, Integer targetPerRegion, String operatorName) {
-        int cap = (targetPerRegion != null && targetPerRegion > 0) ? targetPerRegion : 48;
+        int cap = (targetPerRegion != null && targetPerRegion > 0) ? targetPerRegion : 0;
         EventSlot slot = slotService.createEventSlotWithDefaultRegions(eventDate, cap);
 
         adminAuditLogRepository.save(AdminAuditLog.builder()

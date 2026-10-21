@@ -372,21 +372,22 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. 테스트 회차 등록 (매주 목요일 19:30)
+-- 현재 주 목요일(CURRENT_DATE + 1 day) 및 다음주 목요일(CURRENT_DATE + 8 days) 등록
 INSERT INTO event_slots (id, event_date, event_time, match_deadline, status)
 VALUES
-(1, CURRENT_DATE + INTERVAL '2 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '1 day', 'OPEN'),
-(2, CURRENT_DATE + INTERVAL '9 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '8 days', 'OPEN')
+(3, CURRENT_DATE + INTERVAL '1 day', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '12 hours', 'OPEN'),
+(4, CURRENT_DATE + INTERVAL '8 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '5 days', 'OPEN')
 ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('event_slots_id_seq', (SELECT COALESCE(MAX(id), 1) FROM event_slots));
 
--- 4. 4대 권역 슬롯 등록
+-- 4. 4대 권역 슬롯 등록 (정원 제한 없이 신청 접수)
 INSERT INTO region_slots (event_slot_id, region, target_capacity, current_count, is_closed)
 VALUES
-(1, '홍대/합정', 48, 42, FALSE),
-(1, '강남/신논현', 48, 48, TRUE),
-(1, '을지로/종로', 48, 36, FALSE),
-(1, '잠실/송파', 48, 20, FALSE)
+(3, '홍대/합정', 0, 42, FALSE),
+(3, '강남/신논현', 0, 48, TRUE),
+(3, '을지로/종로', 0, 36, FALSE),
+(3, '잠실/송파', 0, 20, FALSE)
 ON CONFLICT (event_slot_id, region) DO UPDATE SET
     current_count = EXCLUDED.current_count,
     is_closed = EXCLUDED.is_closed;

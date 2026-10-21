@@ -170,7 +170,7 @@ export default function AdminSlotsPage() {
             회차 및 슬롯 관리 (Slot Operations)
           </h1>
           <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
-            매주 목요일 정기 회차를 발행하고 권역별 목표 정원 및 조기 마감을 제어합니다.
+            매주 목요일 정기 회차를 발행하고 권역별 신청 현황 및 조기 마감을 제어합니다.
           </p>
         </div>
 
@@ -247,7 +247,7 @@ export default function AdminSlotsPage() {
                 <th className="py-3 px-4">회차 명칭</th>
                 <th className="py-3 px-4">모임 일시</th>
                 <th className="py-3 px-4">신청 마감 일시</th>
-                <th className="py-3 px-4">누적 신청 / 목표</th>
+                <th className="py-3 px-4">신청 인원</th>
                 <th className="py-3 px-4">오픈 권역</th>
                 <th className="py-3 px-4">진행 상태</th>
                 <th className="py-3 px-4 text-center">슬롯 선택</th>
@@ -267,8 +267,8 @@ export default function AdminSlotsPage() {
                     <td className="py-3.5 px-4 font-bold text-on-surface">{formatTitle(ev.title)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{formatEventDate(ev.eventDate)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{ev.deadline}</td>
-                    <td className="py-3.5 px-4 font-bold">
-                      {ev.totalApplicants} / {ev.targetCapacity}명
+                    <td className="py-3.5 px-4 font-bold text-primary">
+                      {ev.totalApplicants}명
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex gap-1 flex-wrap">
@@ -493,19 +493,6 @@ export default function AdminSlotsPage() {
                     </label>
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  권역당 목표 정원 (기본 48명 = 4인 12개 테이블)
-                </label>
-                <input
-                  type="number"
-                  value={targetPerRegion}
-                  onChange={(e) => setTargetPerRegion(Number(e.target.value))}
-                  step={4}
-                  className="w-full h-10 px-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary"
-                />
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-surface-container">

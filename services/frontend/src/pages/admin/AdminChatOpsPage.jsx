@@ -61,33 +61,65 @@ export default function AdminChatOpsPage() {
     setAdminInput('');
   };
 
-  // AI 아이스브레이킹 추천 질문 전송
-  const handleSendIcebreak = () => {
+  // 공용 액션 발송 선택 모달 상태 (타입: 'ICEBREAK' | 'VENUE_GUIDE')
+  const [sendScopeModal, setSendScopeModal] = useState(null); // { type: 'ICEBREAK' | 'VENUE_GUIDE', title: string, content: string }
+
+  // AI 질문 발송 트리거
+  const handleTriggerIcebreak = () => {
     const prompts = [
       '💡 [AI 추천 스몰토크] 최근 1년 동안 내 삶에 가장 신선한 자극을 주었던 경험이나 취미는 무엇인가요?',
       '💡 [AI 추천 스몰토크] 내가 생각하는 가장 완벽한 주말 휴식 루틴을 한 줄로 소개해주세요!',
       '💡 [AI 추천 스몰토크] 오늘 식탁에서 꼭 한 번 나눠보고 싶은 재미있는 대화 주제가 있나요?'
     ];
     const picked = prompts[Math.floor(Math.random() * prompts.length)];
+    setSendScopeModal({
+      type: 'ICEBREAK',
+      title: 'AI 아이스브레이킹 질문 전송',
+      content: picked
+    });
+  };
+
+  // 식당 안내 발송 트리거
+  const handleTriggerVenueGuide = () => {
+    const guideText = `[식당 안내] 배정된 제휴 식당: ${activeRoom.venueName || '예약 식당'}\n매장 2층 안쪽 '우연한 식탁' 전용 룸으로 오시면 자리 안내를 도와드립니다.`;
+    setSendScopeModal({
+      type: 'VENUE_GUIDE',
+      title: '식당 안내 발송',
+      content: guideText
+    });
+  };
+
+  // 모달에서 발송 범위(현재 채팅방 vs 전체 채팅방) 선택 실행
+  const executeSendScope = (targetScope) => {
+    if (!sendScopeModal) return;
+    const { type, content } = sendScopeModal;
 
     setChatRooms((prev) =>
-      prev.map((room) =>
-        room.id === activeRoom.id
-          ? {
-              ...room,
-              messages: [
-                ...room.messages,
-                {
-                  id: `ice-${Date.now()}`,
-                  type: 'ICEBREAKING_PROMPT',
-                  text: picked,
-                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }
-              ]
-            }
-          : room
-      )
+      prev.map((room) => {
+        if (targetScope === 'CURRENT' && room.id !== activeRoom.id) {
+          return room;
+        }
+
+        const newMsg = {
+          id: `${type.toLowerCase()}-${Date.now()}-${room.id}`,
+          type: type === 'ICEBREAK' ? 'ICEBREAKING_PROMPT' : 'NOTICE',
+          sender: type === 'ICEBREAK' ? 'AI 매칭 어시스턴트' : '운영팀 공지',
+          text: content,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isAdmin: true
+        };
+
+        return {
+          ...room,
+          lastMessage: content,
+          lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          messages: [...room.messages, newMsg]
+        };
+      })
     );
+
+    alert(`${targetScope === 'CURRENT' ? '현재 채팅방' : '전체 채팅방'}에 성공적으로 전송되었습니다.`);
+    setSendScopeModal(null);
   };
 
   // 모임 채팅 전체 공지 모달 상태
@@ -368,33 +400,26 @@ export default function AdminChatOpsPage() {
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={handleSendIcebreak}
+                  onClick={handleTriggerIcebreak}
                   className="w-full py-2.5 px-3 rounded-xl bg-secondary-fixed text-secondary font-bold text-xs hover:bg-secondary-fixed-dim transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[16px]">psychology</span>
-                    <span>AI 질문 즉시 투입</span>
+                    <span>AI 질문 발송</span>
                   </div>
                   <span className="material-symbols-outlined text-[14px]">send</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    sendEmergencyNotice(
-                      activeRoom.roomName,
-                      '식당 룸 위치 안내',
-                      '매장 2층 안쪽 우연한 식탁 전용 룸으로 오시면 자리 안내를 도와드립니다.',
-                      true
-                    )
-                  }
+                  onClick={handleTriggerVenueGuide}
                   className="w-full py-2.5 px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-xs transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-primary">campaign</span>
-                    <span>룸 위치 핀 공지 띄우기</span>
+                    <span className="material-symbols-outlined text-[16px] text-primary">storefront</span>
+                    <span>식당 안내 발송</span>
                   </div>
-                  <span className="material-symbols-outlined text-[14px]">push_pin</span>
+                  <span className="material-symbols-outlined text-[14px]">send</span>
                 </button>
               </div>
             </div>
@@ -402,27 +427,22 @@ export default function AdminChatOpsPage() {
             {/* Participants Status & Kick Action */}
             <div className="space-y-2 pt-3 border-t border-surface-container">
               <span className="font-bold text-xs text-on-surface block">
-                참가자 명단 및 현장 도착 상태
+                참가자 명단
               </span>
               <div className="space-y-1.5">
                 {[
-                  { name: '김서연', age: 29, status: '도착 완료 (19:24)', isArrived: true },
-                  { name: '이도현', age: 31, status: '이동 중 (예상 19:28)', isArrived: false },
-                  { name: '박지민', age: 28, status: '도착 완료 (19:20)', isArrived: true },
-                  { name: '최원우', age: 30, status: '도착 완료 (19:25)', isArrived: true }
+                  { name: '김서연', age: 29 },
+                  { name: '이도현', age: 31 },
+                  { name: '박지민', age: 28 },
+                  { name: '최원우', age: 30 }
                 ].map((member) => (
                   <div
                     key={member.name}
-                    className="p-2 rounded-xl bg-surface-container-low flex items-center justify-between text-xs"
+                    className="p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between text-xs"
                   >
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-bold text-on-surface">{member.name}</span>
-                        <span className="text-[10px] text-outline">({member.age}세)</span>
-                      </div>
-                      <span className={`text-[10px] font-semibold ${member.isArrived ? 'text-tertiary' : 'text-on-surface-variant'}`}>
-                        {member.status}
-                      </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-on-surface">{member.name}</span>
+                      <span className="text-[10px] text-outline font-mono">({member.age}세)</span>
                     </div>
 
                     <button
@@ -583,6 +603,55 @@ export default function AdminChatOpsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      {/* AI 질문 / 식당 안내 발송 범위(현재 채팅방 vs 전체 채팅방) 선택 모달 */}
+      {sendScopeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-surface-container flex flex-col gap-3">
+            <div className="flex items-center justify-between pb-2 border-b border-surface-container">
+              <h3 className="font-title-md text-sm font-bold text-on-surface flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-[18px]">
+                  {sendScopeModal.type === 'ICEBREAK' ? 'psychology' : 'storefront'}
+                </span>
+                <span>{sendScopeModal.title}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSendScopeModal(null)}
+                className="w-6 h-6 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface-container-low text-xs text-on-surface leading-relaxed border border-surface-container">
+              <span className="text-[10px] text-outline font-bold block mb-1">전송 메시지 내용 미리보기</span>
+              <p className="whitespace-pre-wrap">{sendScopeModal.content}</p>
+            </div>
+
+            <p className="text-xs text-on-surface-variant font-medium">
+              해당 메시지를 발송할 대상을 선택해 주세요.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-container">
+              <button
+                type="button"
+                onClick={() => executeSendScope('CURRENT')}
+                className="h-10 rounded-xl bg-secondary-fixed text-secondary hover:bg-secondary-fixed-dim text-xs font-bold transition-colors flex items-center justify-center gap-1 shadow-xs"
+              >
+                <span className="material-symbols-outlined text-[15px]">forum</span>
+                <span>현재 채팅방</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => executeSendScope('ALL')}
+                className="h-10 rounded-xl bg-primary text-white hover:bg-primary-container text-xs font-bold transition-colors flex items-center justify-center gap-1 shadow-md"
+              >
+                <span className="material-symbols-outlined text-[15px]">campaign</span>
+                <span>전체 채팅방</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

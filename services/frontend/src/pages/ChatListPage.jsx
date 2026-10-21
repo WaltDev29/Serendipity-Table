@@ -21,9 +21,11 @@ export default function ChatListPage() {
   const chatRooms = [];
 
   if (matchResult) {
+    const rawDate = matchResult.eventDate ? matchResult.eventDate.split(' ')[0] : '목요일';
+    const roomTitle = `${rawDate} ${matchResult.venue?.name || '식당'}`;
     chatRooms.push({
       id: matchResult.chatRoomId || 'active-1',
-      title: matchResult.tableName,
+      title: roomTitle,
       isActive: true,
       statusText: '진행 중',
       venue: matchResult.venue?.name || '배정 식당',

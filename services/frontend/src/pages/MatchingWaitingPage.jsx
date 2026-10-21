@@ -50,21 +50,69 @@ export default function MatchingWaitingPage() {
         status: 'CONFIRMED',
         chatRoomId: 'instant-room-1',
         harmonyScore: 96,
-        venue: {
-          id: 'venue-1',
-          name: region.includes('잠실') ? '송리단 테라스 다이닝' : region.includes('강남') ? '루프탑 모던 비스트로' : '연남 슬로우 비스트로',
-          genre: 'DINING & BISTRO',
-          address: region.includes('잠실') ? '서울 송파구 백제고분로45길 12' : region.includes('강남') ? '서울 강남구 테헤란로 152' : '서울 마포구 동교로 210, 2층',
-          subway: '인근 지하철역 도보 5분',
-          menu: '시그니처 스테이크 & 내추럴 와인 페어링',
-          avgPrice: '1인 약 25,000원 선',
-          atmosphere: ['#따뜻한조명', '#조용한대화', '#와인페어링'],
-          rating: '4.8 (210)',
-          image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
-          kakaoMapUrl: 'https://map.kakao.com',
-          naverMapUrl: 'https://map.naver.com',
-          phone: '02-333-1234'
-        },
+        venue: region.includes('잠실')
+          ? {
+              id: 'v-jamsil-1',
+              name: '갓잇 송리단길점',
+              genre: 'MEXICAN & FAJITA',
+              address: '서울 송파구 오금로16길 20',
+              subway: '송파나루역 도보 5분',
+              menu: '멕시칸 타코 & 파히타 세트',
+              avgPrice: '1인 약 26,000원 선',
+              atmosphere: ['#이국적인', '#타코맛집', '#편안한분위기'],
+              rating: '4.8 (340)',
+              image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80',
+              kakaoMapUrl: 'https://map.kakao.com',
+              naverMapUrl: 'https://map.naver.com/p/entry/place/1246280409',
+              phone: '02-423-9451'
+            }
+          : region.includes('강남')
+          ? {
+              id: 'v-gangnam-1',
+              name: '어거스트 힐 강남점',
+              genre: 'STEAK & PASTA',
+              address: '서울 강남구 강남대로106길 25',
+              subway: '신논현역 도보 4분',
+              menu: '채끝 스테이크 & 트러플 파스타',
+              avgPrice: '1인 약 32,000원 선',
+              atmosphere: ['#고급스러운', '#분위기좋은', '#와인페어링'],
+              rating: '4.7 (280)',
+              image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+              kakaoMapUrl: 'https://map.kakao.com',
+              naverMapUrl: 'https://map.naver.com/p/entry/place/661051254',
+              phone: '02-568-8003'
+            }
+          : region.includes('을지로') || region.includes('종로')
+          ? {
+              id: 'v-euljiro-1',
+              name: '을지다락',
+              genre: 'DINING & BISTRO',
+              address: '서울 중구 수표로10길 19',
+              subway: '을지로3가역 도보 3분',
+              menu: '다락 오므라이스 & 매콤크림파스타',
+              avgPrice: '1인 약 23,000원 선',
+              atmosphere: ['#감성가득', '#조용한대화', '#시그니처메뉴'],
+              rating: '4.8 (410)',
+              image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80',
+              kakaoMapUrl: 'https://map.kakao.com',
+              naverMapUrl: 'https://map.naver.com/p/entry/place/1444910504',
+              phone: '070-8844-4484'
+            }
+          : {
+              id: 'v-hongdae-1',
+              name: '연남토마 본점',
+              genre: 'FUSION DINING',
+              address: '서울 마포구 월드컵북로6길 61',
+              subway: '홍대입구역 2번 출구 도보 7분',
+              menu: '명란 오일 파스타 & 가츠덮밥',
+              avgPrice: '1인 약 22,000원 선',
+              atmosphere: ['#정갈한식탁', '#따뜻한조명', '#이야기나누기좋은'],
+              rating: '4.9 (520)',
+              image: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=800&q=80',
+              kakaoMapUrl: 'https://map.kakao.com',
+              naverMapUrl: 'https://map.naver.com/p/entry/place/1229825670',
+              phone: '02-332-8064'
+            },
         members: [
           {
             id: currentUser?.id || 'me',

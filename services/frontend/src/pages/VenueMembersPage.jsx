@@ -192,64 +192,58 @@ export default function VenueMembersPage() {
               </span>
             </div>
 
-            {/* 2x2 Member Grid */}
-            <div className="grid grid-cols-2 gap-space-sm">
+            {/* 1-Column Member List (1열로 정렬) */}
+            <div className="flex flex-col gap-space-sm">
               {(matchResult?.members || []).map((m, idx) => {
                 const isHost = m.role === 'HOST' || idx === 0;
                 const bgColors = ['bg-primary-fixed text-primary', 'bg-secondary-fixed text-secondary', 'bg-tertiary-fixed text-tertiary', 'bg-surface-container-high text-on-surface-variant'];
                 const icons = ['sentiment_satisfied', 'palette', 'directions_run', 'auto_stories'];
 
                 return (
-                  <div key={m.id || idx} className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between overflow-hidden">
+                  <div key={m.id || idx} className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex items-center justify-between overflow-hidden">
                     {isHost && (
                       <div className="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-[10px] px-2 py-0.5 rounded-bl-lg">
                         호스트/예약확인
                       </div>
                     )}
-                    <div>
-                      <div className="flex items-center gap-space-sm mb-space-sm">
-                        <div className={`relative w-11 h-11 rounded-full ${bgColors[idx % 4]} flex items-center justify-center font-bold`}>
-                          <span className="material-symbols-outlined text-2xl">{icons[idx % 4]}</span>
-                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
-                          </span>
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className="font-label-lg text-label-lg text-on-surface font-bold truncate">
-                              {m.nickname || m.name}
-                            </span>
-                            {m.isMe && (
-                              <span className="text-[10px] text-primary bg-primary-fixed/50 px-1 py-0.2 rounded font-semibold">ME</span>
-                            )}
-                          </div>
-                          <span className="font-label-sm text-label-sm text-on-surface-variant">
-                            {m.ageGroup || `${m.age} · ${m.gender}`}
-                          </span>
-                        </div>
+                    <div className="flex items-center gap-space-md min-w-0 flex-1">
+                      <div className={`relative w-12 h-12 rounded-full ${bgColors[idx % 4]} flex items-center justify-center font-bold shrink-0`}>
+                        <span className="material-symbols-outlined text-2xl">{icons[idx % 4]}</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
+                        </span>
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-medium">{m.job}</span>
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">{m.mbti}</span>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-label-lg text-label-lg text-on-surface font-bold truncate">
+                            {m.nickname || m.name}
+                          </span>
+                          {m.isMe && (
+                            <span className="text-[10px] text-primary bg-primary-fixed/50 px-1 py-0.2 rounded font-semibold">ME</span>
+                          )}
+                          <span className="font-label-sm text-label-sm text-on-surface-variant">
+                            · {m.ageGroup || `${m.age} · ${m.gender}`}
+                          </span>
                         </div>
-                        <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                          매너온도 {m.mannerTemp ? Number(m.mannerTemp).toFixed(1) : '36.5'}℃
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-surface-container text-on-surface font-medium">{m.job}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-md bg-surface-container text-primary font-medium">{m.mbti}</span>
+                          <span className="text-xs text-on-surface-variant font-medium">매너온도 {m.mannerTemp ? Number(m.mannerTemp).toFixed(1) : '36.5'}℃</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
-                      <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5">
+                    <div className="flex flex-col items-end shrink-0 pl-2">
+                      <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5 font-semibold">
                         <span className="material-symbols-outlined text-xs">verified_user</span> 인증 완료
                       </span>
-                      <span className="font-label-sm text-[11px]">{m.status || '대화 선호'}</span>
+                      <span className="font-label-sm text-[11px] text-on-surface-variant mt-0.5">{m.status || '대화 선호'}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Privacy notice */}
+            {/* Privacy notice (현재 작성되어 있는 주의사항) */}
             <div className="p-space-sm rounded-xl bg-surface-container-high/60 flex items-start gap-space-xs mt-space-xs">
               <span className="material-symbols-outlined text-base text-on-surface-variant shrink-0 mt-0.5">lock</span>
               <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
@@ -258,39 +252,16 @@ export default function VenueMembersPage() {
             </div>
           </div>
 
-          {/* Dining Manners Mini Guide */}
-          <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
-            <div className="flex items-center gap-space-xs text-secondary font-label-md text-label-md">
-              <span className="material-symbols-outlined text-base">lightbulb</span>
-              <span>우연한 식탁 에티켓 3가지</span>
-            </div>
-            <div className="space-y-1.5 font-body-sm text-body-sm text-on-surface-variant">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
-                <span>약속 시간 10분 전 식당 도착해 예약명('우연한 식탁') 확인하기</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
-                <span>식사비는 식사 후 채팅방 내 정산 기능으로 1/N 현장 정산</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"></span>
-                <span>서로의 취향을 존중하는 다정한 경청 나누기</span>
-              </div>
-            </div>
-          </div>
-
         </div>
 
         {/* Sticky Bottom Action Bar */}
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl shadow-[0_-4px_16px_rgba(0,0,0,0.06)] py-space-sm px-margin">
           <div className="max-w-[460px] mx-auto flex flex-col gap-space-xs">
-            <div className="flex items-center justify-between px-1">
-              <span className="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+            <div className="flex items-center justify-center py-1 text-center">
+              <span className="font-label-sm text-xs text-on-surface-variant flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-primary-container"></span>
-                대화방 4명 전원 입장 가능
+                대화방 4명 전원 입장 가능 당일 노쇼 방지 알림 발송됨
               </span>
-              <span className="font-label-sm text-label-sm text-primary font-medium">당일 노쇼 방지 알림 발송됨</span>
             </div>
             <button
               id="enterChatBtn"

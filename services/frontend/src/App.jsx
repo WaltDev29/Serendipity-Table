@@ -29,6 +29,7 @@ import AdminCustomerServicePage from './pages/admin/AdminCustomerServicePage';
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
 import AdminFlowTestPage from './pages/admin/AdminFlowTestPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminReadmePage from './pages/admin/AdminReadmePage';
 
 // User Pages
 import HomePage from './pages/HomePage';
@@ -149,6 +150,7 @@ export default function App() {
                   <Route path="analytics/preferences" element={<AdminPreferencesPage />} />
                   <Route path="analytics/reviews" element={<AdminReviewsPage />} />
                   <Route path="exceptions" element={<AdminExceptionsPage />} />
+                  <Route path="readme" element={<AdminReadmePage />} />
                   <Route path="flow-test" element={<AdminFlowTestPage />} />
                 </Route>
 

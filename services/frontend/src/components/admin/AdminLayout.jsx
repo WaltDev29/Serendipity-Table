@@ -64,6 +64,7 @@ export default function AdminLayout() {
           ]
         },
         { to: '/admin/exceptions', icon: 'download', label: '예외 큐' },
+        { to: '/admin/readme', icon: 'menu_book', label: '시스템 명세 (README)' },
         { to: '/admin/flow-test', icon: 'science', label: '전체 흐름 테스트', isHighlight: true }
       ]
     }

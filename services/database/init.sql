@@ -319,7 +319,7 @@ INSERT INTO users (
 ) VALUES 
 (
     'a0000000-0000-0000-0000-000000000001', '01000000000', 
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a', -- admin123
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '총괄관리자', '운영팀장', 1990, 'M', '서비스 운영 총괄', 'serendipity_official', 'ENFJ',
     ARRAY['자기계발·공부', '스타트업'], ARRAY['이야기를 이끄는 편'], ARRAY['열정 있는 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_ADMIN', 45.0

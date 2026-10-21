@@ -126,8 +126,26 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
+        {/* Test Credentials Helper */}
+        <div className="mt-4 p-3 rounded-xl bg-surface-container-high/40 border border-neutral-700/50 text-[11px] text-neutral-400">
+          <div className="flex items-center justify-between text-neutral-300 font-semibold mb-1">
+            <span>테스트 관리자 계정</span>
+            <button
+              type="button"
+              onClick={() => {
+                setPhone('010-0000-0000');
+                setPassword('password123');
+              }}
+              className="text-primary hover:underline text-[11px]"
+            >
+              자동 입력
+            </button>
+          </div>
+          <p>번호: <span className="text-white font-mono">010-0000-0000</span> / 비밀번호: <span className="text-white font-mono">password123</span></p>
+        </div>
+
         {/* Footer info */}
-        <div className="mt-8 pt-4 border-t border-[#2d2f36] flex items-center justify-between text-xs text-neutral-500">
+        <div className="mt-6 pt-4 border-t border-[#2d2f36] flex items-center justify-between text-xs text-neutral-500">
           <span>권한: ROLE_ADMIN 전용</span>
           <a href="/" className="hover:text-neutral-300 flex items-center gap-1">
             <span>사용자 서비스 홈</span>

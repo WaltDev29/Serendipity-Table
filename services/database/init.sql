@@ -326,35 +326,35 @@ INSERT INTO users (
 ),
 (
     '10000000-0000-0000-0000-000000000001', '01084923310',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a', -- 1234
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '김서연', '서연', 1997, 'F', '브랜드 디자이너', 'seoyeon_k', 'ENFP',
     ARRAY['와인·위스키', '전시·미술관', '러닝·마라톤'], ARRAY['이야기를 이끄는 편', '웃음이 많은 편'],
     ARRAY['열정 있는 사람', '잘 들어주는 사람'], ARRAY['20,000~30,000원'], '오이', 'ROLE_USER', 36.8
 ),
 (
     '10000000-0000-0000-0000-000000000002', '01011112222',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '이도현', '민트초코', 1996, 'M', '그로스 마케터', 'mint_dohyun', 'ENTP',
     ARRAY['스타트업·창업', '재테크·투자'], ARRAY['논리적인 대화 선호'], ARRAY['유쾌하고 긍정적인 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_USER', 37.2
 ),
 (
     '10000000-0000-0000-0000-000000000003', '01033334444',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '박지민', '러너', 1995, 'F', '백엔드 엔지니어', 'jimin_run', 'ISTJ',
     ARRAY['러닝·마라톤', '반려동물'], ARRAY['조용히 경청하는 편'], ARRAY['예의 바르고 배려심 넘치는 사람'],
     ARRAY['20,000~30,000원'], '갑각류 알레르기', 'ROLE_USER', 38.0
 ),
 (
     '10000000-0000-0000-0000-000000000004', '01055556666',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '최원우', '책방지기', 1993, 'M', '공간 건축가', 'wonwoo_arch', 'INTP',
     ARRAY['독서·인문학', '전시·미술관'], ARRAY['생각을 깊게 나누는 편'], ARRAY['깊이 있는 대화를 좋아하는 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_USER', 36.5
 ),
 (
     '10000000-0000-0000-0000-000000000005', '01077778888',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '배강석', '강석', 1991, 'M', '프리랜서', 'gangseok_b', 'ESTP',
     ARRAY['영화·넷플릭스'], ARRAY['주도적인 편'], ARRAY['활동적인 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_USER', 31.2

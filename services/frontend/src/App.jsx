@@ -10,6 +10,7 @@ import BottomNav from './components/common/BottomNav';
 import NotificationDrawer from './components/common/NotificationDrawer';
 import EtiquetteModal from './components/common/EtiquetteModal';
 import SplashScreen from './components/common/SplashScreen';
+import PhoneFrame from './components/common/PhoneFrame';
 
 // Admin Layout & Pages
 import AdminLayout from './components/admin/AdminLayout';
@@ -87,6 +88,7 @@ export default function App() {
       <AdminProvider>
         <ModalProvider>
           <BrowserRouter>
+            <PhoneFrame>
             {showSplash && !window.location.pathname.startsWith('/admin') && (
               <SplashScreen onFinish={() => setShowSplash(false)} />
             )}
@@ -188,6 +190,7 @@ export default function App() {
             {/* Mobile Bottom Navigation Bar (Hidden on /admin) */}
             <BottomNav />
           </div>
+            </PhoneFrame>
         </BrowserRouter>
         </ModalProvider>
       </AdminProvider>

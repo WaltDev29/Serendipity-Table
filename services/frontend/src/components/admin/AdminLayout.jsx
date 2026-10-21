@@ -36,17 +36,17 @@ export default function AdminLayout() {
     {
       group: '',
       items: [
-        { to: '/admin/dashboard', icon: 'dashboard', label: '운영 대시보드' },
-        { to: '/admin/slots', icon: 'calendar_month', label: '회차 & 슬롯 관리' },
+        { to: '/admin/dashboard', icon: 'dashboard', label: '대시보드' },
+        { to: '/admin/users', icon: 'groups', label: '회원 목록' },
         { to: '/admin/applications', icon: 'how_to_reg', label: '참가 신청' },
         { to: '/admin/payments', icon: 'payments', label: '결제 내역' },
-        { to: '/admin/matching', icon: 'smart_toy', label: 'AI 매칭 & 개입' },
-        { to: '/admin/venues', icon: 'storefront', label: '식당 POOL & 배정' },
+        { to: '/admin/slots', icon: 'calendar_month', label: '회차 슬롯 관리' },
+        { to: '/admin/matching', icon: 'smart_toy', label: 'AI 매칭' },
+        { to: '/admin/venues', icon: 'storefront', label: '식당 Pool' },
         { to: '/admin/chat-ops', icon: 'forum', label: '모임 채팅 관리' },
-        { to: '/admin/users', icon: 'groups', label: '회원목록' },
         { to: '/admin/cs', icon: 'support_agent', label: '고객센터' },
-        { to: '/admin/analytics', icon: 'query_stats', label: '피드백 & 정산 통계' },
-        { to: '/admin/exceptions', icon: 'download', label: '예외 큐 & CSV 내보내기' }
+        { to: '/admin/analytics', icon: 'query_stats', label: '피드백' },
+        { to: '/admin/exceptions', icon: 'download', label: '예외 큐' }
       ]
     }
   ];

@@ -24,7 +24,8 @@ export default function AdminDashboardPage() {
   const totalAppsCount = applications.length > 0 ? applications.length : (dashboardStats?.currentApplications || 0);
   const totalUsersCount = dashboardStats?.totalUsers || 270;
   const activeTablesCount = matchingTables.length > 0 ? matchingTables.length : (dashboardStats?.activeTables || 0);
-  const pendingCsCount = csInquiries.filter((q) => q.status === 'OPEN').length || (dashboardStats?.pendingInquiries || 0);
+  // 해결되지 않은 문의 (처리 완료 상태가 아닌 문의: OPEN 또는 ANSWERED) 수 계산
+  const pendingCsCount = csInquiries.filter((q) => q.status !== 'RESOLVED').length;
 
   // 결제 완료액 계산 (백엔드 DB 실제 Order 금액 우선, 없을 시 계산)
   const ticket1Count = applications.filter((a) => a.ticketType === '1_TICKET').length || Math.round(totalAppsCount * 0.7);
@@ -190,19 +191,19 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Card 4: 긴급 CS 및 예외 큐 */}
+        {/* Card 4: 긴급 CS 및 예외 큐 -> 고객센터 미해결 문의 */}
         <div
-          onClick={() => navigate('/admin/exceptions')}
+          onClick={() => navigate('/admin/cs')}
           className="relative overflow-hidden rounded-2xl bg-surface-container-lowest p-space-lg shadow-sm hover:shadow-md transition-all cursor-pointer border border-surface-container group flex flex-col justify-between"
         >
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-error"></div>
           <div>
             <div className="flex items-center justify-between mb-space-xs">
               <span className="font-label-md text-xs text-on-surface-variant uppercase tracking-wider font-semibold">
-                고객 문의 & 예외 큐
+                미해결 고객 문의
               </span>
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-error-container text-error shadow-xs">
-                <span className="material-symbols-outlined text-[18px]">pending_actions</span>
+                <span className="material-symbols-outlined text-[18px]">support_agent</span>
               </span>
             </div>
             <div className="flex items-baseline gap-space-xs mt-space-xs">

@@ -43,7 +43,7 @@ public class AdminSimulationService {
     private final OrderRepository orderRepository;
 
     // 시뮬레이션 결제 1회권 기본 금액 (실제 PG 결제는 발생하지 않음)
-    private static final int SIMULATION_TICKET_PRICE = 19000;
+    private static final int SIMULATION_TICKET_PRICE = 8000;
     private static final String DEFAULT_REGION = "홍대/합정";
 
     /**

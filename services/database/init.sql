@@ -386,28 +386,25 @@ ON CONFLICT (event_slot_id, region) DO UPDATE SET
     current_count = EXCLUDED.current_count,
     is_closed = EXCLUDED.is_closed;
 
--- 5. 테스트 제휴 식당 등록 (권역별 3개씩, 네이버 지도 연동)
+-- 5. 테스트 제휴 식당 등록 (네이버 지도 연동)
 INSERT INTO venues (name, region, address, map_url, naver_map_url, representative_menu, avg_price, capacity_tables, phone, benefits, is_reserved, image_url)
 VALUES
--- 홍대/합정
-('윤서울', '홍대/합정', '서울 마포구 홍익로2길 31', 'https://map.naver.com/p/entry/place/1183350318', 'https://map.naver.com/p/entry/place/1183350318', '자가제면 면 요리 & 모던 한식 코스', 35000, 4, '02-336-3323', '웰컴 드링크 1잔 제공', true, 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80'),
-('오레노라멘 본점', '홍대/합정', '서울 마포구 독막로6길 14', 'https://map.naver.com/p/entry/place/1271463480', 'https://map.naver.com/p/entry/place/1271463480', '토리 파이탄 라멘 & 차슈', 12000, 4, '02-322-3539', '면/밥 무료 리필 서비스', false, 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80'),
-('멕시코식당', '홍대/합정', '서울 마포구 독막로2길 23', 'https://map.naver.com/p/entry/place/38583483', 'https://map.naver.com/p/entry/place/38583483', '치미창가 & 엔칠라다', 19000, 4, '02-336-3666', '나초칩 1바스켓 서비스', false, 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80'),
+-- 홍대/합정 (3곳)
 ('연남토마 본점', '홍대/합정', '서울 마포구 월드컵북로6길 61', 'https://map.naver.com/p/entry/place/1229825670', 'https://map.naver.com/p/entry/place/1229825670', '명란 오일 파스타 & 가츠덮밥', 22000, 4, '02-332-8064', '웰컴 에이드 1잔 제공', false, 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=600&q=80'),
+('오레노라멘 본점', '홍대/합정', '서울 마포구 독막로6길 14', 'https://map.naver.com/p/entry/place/814481697', 'https://map.naver.com/p/entry/place/814481697', '토리 파이탄 라멘 & 차슈', 12000, 4, '02-322-3539', '면/밥 무료 리필 서비스', false, 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80'),
+('멕시코식당', '홍대/합정', '서울 마포구 독막로2길 23', 'https://map.naver.com/p/entry/place/1700484018', 'https://map.naver.com/p/entry/place/1700484018', '치미창가 & 엔칠라다', 19000, 4, '02-336-3666', '나초칩 1바스켓 서비스', false, 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80'),
 
--- 강남/신논현 (3곳)
+-- 강남/신논현 (1곳)
 ('어거스트 힐 강남점', '강남/신논현', '서울 강남구 강남대로106길 25', 'https://map.naver.com/p/entry/place/661051254', 'https://map.naver.com/p/entry/place/661051254', '채끝 스테이크 & 트러플 파스타', 32000, 6, '02-568-8003', '웰컴 하우스 와인 1잔', false, 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80'),
-('바비레드 강남본점', '강남/신논현', '서울 강남구 봉은사로6길 39', 'https://map.naver.com/p/entry/place/31032394', 'https://map.naver.com/p/entry/place/31032394', '매운 소갈비 파스타 & 샐러드', 24000, 5, '02-562-1515', '리코타 치즈 샐러드 할인', true, 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=600&q=80'),
-('마녀주방 강남점', '강남/신논현', '서울 강남구 강남대로94길 9', 'https://map.naver.com/p/entry/place/37151042', 'https://map.naver.com/p/entry/place/37151042', '넓적다리 스테이크 & 링거 칵테일', 20000, 4, '070-4240-8525', '스페셜 핑거 쿠키 증정', false, 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=600&q=80'),
 
 -- 을지로/종로 (3곳)
 ('을지다락', '을지로/종로', '서울 중구 수표로10길 19', 'https://map.naver.com/p/entry/place/1444910504', 'https://map.naver.com/p/entry/place/1444910504', '다락 오므라이스 & 매콤크림파스타', 23000, 4, '070-8844-4484', '웰컴 스파클링 에이드 1잔', true, 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=600&q=80'),
-('녁 을지로점', '을지로/종로', '서울 중구 수표로 65', 'https://map.naver.com/p/entry/place/1955327857', 'https://map.naver.com/p/entry/place/1955327857', '갈비 리조또 & 수제 생면 파스타', 30000, 4, '070-4150-0504', '식전 브루스케타 서비스', false, 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80'),
+('녁 을지로점', '을지로/종로', '서울 중구 수표로 65', 'https://map.naver.com/p/entry/place/412011201', 'https://map.naver.com/p/entry/place/412011201', '갈비 리조또 & 수제 생면 파스타', 30000, 4, '070-4150-0504', '식전 브루스케타 서비스', false, 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80'),
 ('을지로보석', '을지로/종로', '서울 중구 마른내로 11-10 3층', 'https://map.naver.com/p/entry/place/1148721944', 'https://map.naver.com/p/entry/place/1148721944', '제철 한식 다이닝 코스', 27000, 5, '02-2274-1234', '내추럴 와인 시음 1잔', false, 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80'),
 
 -- 잠실/송파 (2곳)
-('엘리스리틀이태리 송리단길점', '잠실/송파', '서울 송파구 백제고분로41길 43-21', 'https://map.naver.com/p/entry/place/35051350', 'https://map.naver.com/p/entry/place/35051350', '화덕피자 & 트러플 리조또', 29000, 4, '02-421-2244', '웰컴 아란치니 서비스', true, 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80'),
-('갓잇 송리단길점', '잠실/송파', '서울 송파구 오금로16길 20', 'https://map.naver.com/p/entry/place/1879153549', 'https://map.naver.com/p/entry/place/1879153549', '멕시칸 타코 & 파히타 세트', 26000, 5, '02-423-9451', '또띠아 무제한 리필', false, 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80');
+('엘리스리틀이태리 송리단길점', '잠실/송파', '서울 송파구 백제고분로41길 43-21', 'https://map.naver.com/p/entry/place/37192433', 'https://map.naver.com/p/entry/place/37192433', '화덕피자 & 트러플 리조또', 29000, 4, '02-421-2244', '웰컴 아란치니 서비스', true, 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80'),
+('갓잇 송리단길점', '잠실/송파', '서울 송파구 오금로16길 20', 'https://map.naver.com/p/entry/place/1246280409', 'https://map.naver.com/p/entry/place/1246280409', '멕시칸 타코 & 파히타 세트', 26000, 5, '02-423-9451', '또띠아 무제한 리필', false, 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80');
 
 -- 6. 테스트 확정 테이블 등록 (홍대 1번 테이블)
 INSERT INTO dining_tables (id, event_slot_id, table_no, region, venue_id, harmony_score, male_count, female_count, status, reservation_status)

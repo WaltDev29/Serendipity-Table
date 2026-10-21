@@ -28,10 +28,10 @@ export default function AdminReviewsPage() {
     if (searchKeyword.trim()) {
       const q = searchKeyword.toLowerCase();
       const matchName = (item.userName || '').toLowerCase().includes(q);
-      const matchPhone = (item.phone || '').includes(q);
+      const matchPhone = (item.userPhone || item.phone || '').includes(q);
       const matchComment = (item.comment || '').toLowerCase().includes(q);
-      const matchVenue = (item.venueName || '').toLowerCase().includes(q);
-      return matchName || matchPhone || matchComment || matchVenue;
+      const matchTable = (item.tableName || item.venueName || '').toLowerCase().includes(q);
+      return matchName || matchPhone || matchComment || matchTable;
     }
     return true;
   });
@@ -160,7 +160,7 @@ export default function AdminReviewsPage() {
                 <th className="py-2.5 px-4">모임 날짜</th>
                 <th className="py-2.5 px-3">평점</th>
                 <th className="py-2.5 px-4">리뷰 내용</th>
-                <th className="py-2.5 px-4 text-right">식당/장소</th>
+                <th className="py-2.5 px-4 text-right">테이블/식당</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container">
@@ -183,69 +183,75 @@ export default function AdminReviewsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredReviews.map((item) => (
-                  <tr key={item.id} className="hover:bg-surface-container-low/60 transition-colors">
-                    {/* 회원 이름 */}
-                    <td className="py-3 px-4 font-bold text-on-surface">
-                      {item.userName}
-                    </td>
+                filteredReviews.map((item) => {
+                  const genderText = item.userGender || item.gender || '-';
+                  const ageText = item.userAge || item.age;
+                  const phoneText = item.userPhone || item.phone || '-';
 
-                    {/* 성별 */}
-                    <td className="py-3 px-3">
-                      <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold ${
-                          item.gender === 'M' || item.gender === '남성'
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'bg-rose-50 text-rose-700'
-                        }`}
-                      >
-                        {item.gender === 'M' ? '남성' : item.gender === 'F' ? '여성' : item.gender || '-'}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={item.id} className="hover:bg-surface-container-low/60 transition-colors">
+                      {/* 회원 이름 */}
+                      <td className="py-3 px-4 font-bold text-on-surface">
+                        {item.userName}
+                      </td>
 
-                    {/* 나이 */}
-                    <td className="py-3 px-3 font-medium text-on-surface-variant">
-                      {item.age ? `${item.age}세` : '-'}
-                    </td>
-
-                    {/* 전화번호 */}
-                    <td className="py-3 px-4 text-on-surface-variant font-mono">
-                      {item.phone || '-'}
-                    </td>
-
-                    {/* 모임 날짜 */}
-                    <td className="py-3 px-4 text-on-surface-variant whitespace-nowrap">
-                      {item.eventDate || '-'}
-                    </td>
-
-                    {/* 평점 */}
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-1 font-bold text-amber-500">
-                        <span className="text-[11px]">★ {item.rating || 5}</span>
-                      </div>
-                    </td>
-
-                    {/* 리뷰 내용 */}
-                    <td className="py-3 px-4 text-on-surface font-medium leading-relaxed max-w-[340px]">
-                      {item.comment ? (
-                        <p className="line-clamp-2">"{item.comment}"</p>
-                      ) : (
-                        <span className="text-outline-variant italic">별도 코멘트 없음</span>
-                      )}
-                    </td>
-
-                    {/* 식당/장소 */}
-                    <td className="py-3 px-4 text-right text-on-surface-variant whitespace-nowrap">
-                      {item.venueName ? (
-                        <span className="text-xs font-medium text-on-surface bg-surface-container px-2 py-0.5 rounded">
-                          {item.venueName}
+                      {/* 성별 */}
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold ${
+                            genderText.includes('남') || genderText === 'M'
+                              ? 'bg-blue-50 text-blue-700'
+                              : 'bg-rose-50 text-rose-700'
+                          }`}
+                        >
+                          {genderText.includes('남') || genderText === 'M' ? '남성' : '여성'}
                         </span>
-                      ) : (
-                        <span className="text-outline-variant">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+
+                      {/* 나이 */}
+                      <td className="py-3 px-3 font-medium text-on-surface-variant">
+                        {ageText ? `${ageText}세` : '-'}
+                      </td>
+
+                      {/* 전화번호 */}
+                      <td className="py-3 px-4 text-on-surface-variant font-mono">
+                        {phoneText}
+                      </td>
+
+                      {/* 모임 날짜 */}
+                      <td className="py-3 px-4 text-on-surface-variant whitespace-nowrap">
+                        {item.eventDate || '-'}
+                      </td>
+
+                      {/* 평점 */}
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-1 font-bold text-amber-500">
+                          <span className="text-[11px]">★ {item.rating || 5}</span>
+                        </div>
+                      </td>
+
+                      {/* 리뷰 내용 */}
+                      <td className="py-3 px-4 text-on-surface font-medium leading-relaxed max-w-[340px]">
+                        {item.comment ? (
+                          <p className="line-clamp-2">"{item.comment}"</p>
+                        ) : (
+                          <span className="text-outline-variant italic">별도 코멘트 없음</span>
+                        )}
+                      </td>
+
+                      {/* 테이블/식당 */}
+                      <td className="py-3 px-4 text-right text-on-surface-variant whitespace-nowrap">
+                        {item.tableName || item.venueName ? (
+                          <span className="text-xs font-medium text-on-surface bg-surface-container px-2 py-0.5 rounded">
+                            {item.tableName || item.venueName}
+                          </span>
+                        ) : (
+                          <span className="text-outline-variant">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

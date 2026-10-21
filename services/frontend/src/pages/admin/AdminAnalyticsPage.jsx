@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { getAdminFeedbackAnalyticsApi } from '../../api/admin';
 
 export default function AdminAnalyticsPage() {
@@ -139,13 +140,19 @@ export default function AdminAnalyticsPage() {
             <div>
               <h2 className="font-title-md text-sm font-bold text-on-surface flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-secondary text-[18px]">diversity_1</span>
-                <span>비공개 호감 & 회피 매트릭스 (Secret Chemistry)</span>
+                <span>비공개 호감 & 회피 매트릭스</span>
               </h2>
               <p className="text-[11px] text-on-surface-variant mt-0.5">
                 사후 피드백에서 지목된 결과가 AI 매칭 알고리즘의 네거티브/포지티브 제약으로 자동 주입됩니다.
               </p>
             </div>
-            <span className="text-[11px] text-outline font-semibold">자동 연동</span>
+            <Link
+              to="/admin/analytics/preferences"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
+            >
+              <span>전체 목록</span>
+              <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+            </Link>
           </div>
 
           <div className="space-y-2 text-xs">
@@ -194,9 +201,18 @@ export default function AdminAnalyticsPage() {
               <span className="material-symbols-outlined text-primary text-[18px]">rate_review</span>
               <span>실시간 사후 한줄 리뷰 피드</span>
             </h2>
-            <span className="text-[11px] text-tertiary font-bold">
-              {reviews.length > 0 ? `최신 ${reviews.length}건` : '리뷰 0건'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-tertiary font-bold">
+                {reviews.length > 0 ? `최신 ${reviews.length}건` : '리뷰 0건'}
+              </span>
+              <Link
+                to="/admin/analytics/reviews"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <span>전체 목록</span>
+                <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+              </Link>
+            </div>
           </div>
 
           <div className="space-y-2 text-xs">

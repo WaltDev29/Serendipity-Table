@@ -4,7 +4,7 @@ import { useAdmin } from '../../context/AdminContext';
 export default function AdminCustomerServicePage() {
   const { csInquiries, setCsInquiries, replyInquiry, resolveInquiry, deleteInquiry } = useAdmin();
 
-  // 상단 필터: 'ALL' (전체), 'OPEN' (미답변), 'RESOLVED' (완료 문의)
+  // 상단 필터: 'ALL' (전체), 'OPEN' (미답변), 'ANSWERED' (답변 완료), 'RESOLVED' (처리 완료)
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchKeyword, setSearchKeyword] = useState('');
 
@@ -51,20 +51,35 @@ export default function AdminCustomerServicePage() {
   });
 
   const chatRooms = Array.from(chatRoomsMap.values()).map((room) => {
-    // 해당 사용자의 모든 문의 중 미답변이 하나라도 있으면 'OPEN'
-    const hasUnanswered = room.inquiries.some((q) => q.status === 'OPEN');
+    // 룸 상태 판별:
+    // 1) 처리 완료(RESOLVED): 모든 문의가 해결 완료이거나 최신 문의가 RESOLVED인 경우
+    // 2) 미답변(OPEN): 답변이 등록되지 않은 문의가 있는 경우
+    // 3) 답변 완료(ANSWERED): 운영팀 답변은 달렸으나 최종 '처리 완료'는 안 된 상태
+    const hasUnanswered = room.inquiries.some((q) => q.status === 'OPEN' || (!q.reply && !q.answer && (!q.replies || q.replies.length === 0)));
+    const allResolved = room.inquiries.every((q) => q.status === 'RESOLVED');
     const latestInq = room.inquiries[0];
+
+    let roomStatus = 'OPEN';
+    if (allResolved || latestInq.status === 'RESOLVED') {
+      roomStatus = 'RESOLVED'; // 처리 완료
+    } else if (hasUnanswered) {
+      roomStatus = 'OPEN'; // 미답변
+    } else {
+      roomStatus = 'ANSWERED'; // 답변 완료
+    }
+
     return {
       ...room,
-      status: hasUnanswered ? 'OPEN' : 'RESOLVED',
+      status: roomStatus,
       lastMessage: latestInq.reply ? `[답변] ${latestInq.reply}` : latestInq.content,
       category: latestInq.category || '고객 문의'
     };
   });
 
-  // 상단 필터 적용 (전체 / 미답변 / 답변 완료)
+  // 상단 필터 적용: 전체('ALL'), 미답변('OPEN'), 답변 완료('ANSWERED'), 처리 완료('RESOLVED')
   const filteredRooms = chatRooms.filter((room) => {
     if (filterStatus === 'OPEN' && room.status !== 'OPEN') return false;
+    if (filterStatus === 'ANSWERED' && room.status !== 'ANSWERED') return false;
     if (filterStatus === 'RESOLVED' && room.status !== 'RESOLVED') return false;
 
     if (searchKeyword.trim()) {
@@ -158,6 +173,7 @@ export default function AdminCustomerServicePage() {
 
   const totalCount = chatRooms.length;
   const openCount = chatRooms.filter((r) => r.status === 'OPEN').length;
+  const answeredCount = chatRooms.filter((r) => r.status === 'ANSWERED').length;
   const resolvedCount = chatRooms.filter((r) => r.status === 'RESOLVED').length;
 
   return (
@@ -176,13 +192,16 @@ export default function AdminCustomerServicePage() {
 
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            전체 대화방 {totalCount}개
+            전체 {totalCount}개
           </span>
           <span className="px-3 py-1 rounded-full bg-error-container text-error text-xs font-bold">
             미답변 {openCount}개
           </span>
+          <span className="px-3 py-1 rounded-full bg-secondary-fixed text-secondary text-xs font-bold">
+            답변 완료 {answeredCount}개
+          </span>
           <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-xs font-bold">
-            답변 완료 {resolvedCount}개
+            처리 완료 {resolvedCount}개
           </span>
         </div>
       </div>
@@ -191,19 +210,20 @@ export default function AdminCustomerServicePage() {
       <div className="grid grid-cols-12 gap-4 h-[calc(100vh-14rem)] min-h-[580px]">
         {/* Left Column: Chat Room List (4 cols) */}
         <div className="col-span-12 md:col-span-4 lg:col-span-4 bg-surface-container-lowest rounded-2xl border border-surface-container shadow-sm flex flex-col overflow-hidden">
-          {/* Top Filter Buttons (전체, 미답변, 답변 완료) & Search */}
+          {/* Top Filter Buttons (전체, 미답변, 답변 완료, 처리 완료) & Search */}
           <div className="p-3 border-b border-surface-container space-y-2 bg-surface-container-low/40">
-            <div className="grid grid-cols-3 gap-1 bg-surface-container-low p-1 rounded-xl">
+            <div className="grid grid-cols-4 gap-1 bg-surface-container-low p-1 rounded-xl">
               {[
                 { id: 'ALL', label: `전체 (${totalCount})` },
                 { id: 'OPEN', label: `미답변 (${openCount})` },
-                { id: 'RESOLVED', label: `완료 문의 (${resolvedCount})` }
+                { id: 'ANSWERED', label: `답변 완료 (${answeredCount})` },
+                { id: 'RESOLVED', label: `처리 완료 (${resolvedCount})` }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterStatus(tab.id)}
-                  className={`py-1.5 rounded-lg text-xs font-bold transition-all text-center ${
+                  className={`py-1.5 px-1 rounded-lg text-[11px] font-bold transition-all text-center truncate ${
                     filterStatus === tab.id
                       ? 'bg-primary text-white shadow-xs'
                       : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
@@ -281,13 +301,15 @@ export default function AdminCustomerServicePage() {
                           {room.lastMessage}
                         </p>
                         <span
-                          className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold shrink-0 ${
+                          className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${
                             room.status === 'OPEN'
                               ? 'bg-error-container text-error'
+                              : room.status === 'ANSWERED'
+                              ? 'bg-secondary-fixed text-secondary'
                               : 'bg-tertiary-fixed text-tertiary'
                           }`}
                         >
-                          {room.status === 'OPEN' ? '미답변' : '완료 문의'}
+                          {room.status === 'OPEN' ? '미답변' : room.status === 'ANSWERED' ? '답변 완료' : '처리 완료'}
                         </span>
                       </div>
                     </div>
@@ -436,18 +458,20 @@ export default function AdminCustomerServicePage() {
           <button
             type="button"
             onClick={async () => {
-              const targetInq = contextMenu.room.inquiries.find((q) => q.status === 'OPEN') || contextMenu.room.inquiries[0];
               const room = contextMenu.room;
               setContextMenu(null);
-              if (!targetInq) return;
+              if (!room || room.inquiries.length === 0) return;
 
-              if (window.confirm(`'${room.userName}' 님의 문의를 '해결' 처리하시겠습니까?`)) {
-                await resolveInquiry(targetInq.id);
-                // 로컬 상태 즉시 반영하여 완료 문의로 전환
+              if (window.confirm(`'${room.userName}' 님의 문의를 '처리 완료'하시겠습니까?`)) {
+                // 해당 채팅방의 문의들에 대해 백엔드 해결 API 호출
+                for (const inq of room.inquiries) {
+                  await resolveInquiry(inq.id);
+                }
+                // 로컬 상태를 'RESOLVED'로 일괄 전환하여 즉시 [처리 완료] 탭으로 이동
                 setCsInquiries((prev) =>
                   prev.map((q) =>
                     room.inquiries.some((rq) => rq.id === q.id)
-                      ? { ...q, status: 'RESOLVED' }
+                      ? { ...q, status: 'RESOLVED', rawStatus: 'RESOLVED' }
                       : q
                   )
                 );

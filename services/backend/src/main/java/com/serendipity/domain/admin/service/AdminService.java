@@ -326,7 +326,7 @@ public class AdminService {
         CsInquiry inquiry = csInquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "문의를 찾을 수 없습니다."));
 
-        inquiry.markAsAnswered();
+        inquiry.markAsResolved();
         csInquiryRepository.save(inquiry);
 
         adminAuditLogRepository.save(AdminAuditLog.builder()

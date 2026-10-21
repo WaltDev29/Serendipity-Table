@@ -319,7 +319,8 @@ export function AdminProvider({ children }) {
               reply: q.replies && q.replies.length > 0 ? q.replies[q.replies.length - 1].replyContent : (q.answer || null),
               answer: q.replies && q.replies.length > 0 ? q.replies[q.replies.length - 1].replyContent : (q.answer || null),
               replies: q.replies || [],
-              status: q.status === 'ANSWERED' ? 'RESOLVED' : 'OPEN',
+              status: q.status === 'RESOLVED' ? 'RESOLVED' : (q.status === 'ANSWERED' ? 'ANSWERED' : 'OPEN'),
+              rawStatus: q.status,
               createdAt: q.createdAt,
               time: q.createdAt ? new Date(q.createdAt).toLocaleString() : '최근'
             }))

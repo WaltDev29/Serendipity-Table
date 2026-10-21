@@ -303,15 +303,18 @@ export function AdminProvider({ children }) {
           setCsInquiries(
             inqs.map((q) => ({
               id: q.id,
+              userId: q.userId,
               userName: q.userName || '문의 회원',
               userPhone: q.userPhone || '-',
               category: q.category || '기타',
-              subject: q.title,
-              title: q.title,
+              subject: q.title || q.category,
+              title: q.title || q.category,
               content: q.content,
-              reply: q.answer,
-              answer: q.answer,
+              reply: q.replies && q.replies.length > 0 ? q.replies[q.replies.length - 1].replyContent : (q.answer || null),
+              answer: q.replies && q.replies.length > 0 ? q.replies[q.replies.length - 1].replyContent : (q.answer || null),
+              replies: q.replies || [],
               status: q.status === 'ANSWERED' ? 'RESOLVED' : 'OPEN',
+              createdAt: q.createdAt,
               time: q.createdAt ? new Date(q.createdAt).toLocaleString() : '최근'
             }))
           );

@@ -54,6 +54,19 @@ export default function AdminApplicationsPage() {
     return true;
   });
 
+  const totalCount = applications.length;
+  const matchedCount = applications.filter((a) => a.matchingStatus === 'CONFIRMED' || a.status === 'MATCHED').length;
+  const waitingCount = applications.filter((a) => a.matchingStatus !== 'CONFIRMED' && a.status !== 'MATCHED' && a.status !== 'CANCELLED').length;
+
+  // 권역별 신청 수 카운트
+  const regionCounts = {
+    ALL: applications.length,
+    '홍대': applications.filter((a) => (a.region || '').includes('홍대')).length,
+    '잠실': applications.filter((a) => (a.region || '').includes('잠실')).length,
+    '강남': applications.filter((a) => (a.region || '').includes('강남')).length,
+    '을지로': applications.filter((a) => (a.region || '').includes('을지로')).length
+  };
+
   return (
     <div className="flex flex-col w-full space-y-space-lg">
       {/* Page Header */}
@@ -70,35 +83,64 @@ export default function AdminApplicationsPage() {
 
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            총 {applications.length}명 신청
+            총 {totalCount}명 신청
           </span>
           <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-xs font-bold">
-            배정 완료 {applications.filter((a) => a.matchingStatus === 'CONFIRMED').length}명
+            매칭 완료 {matchedCount}명
+          </span>
+          <span className="px-3 py-1 rounded-full bg-secondary-fixed text-secondary text-xs font-bold">
+            대기 신청 {waitingCount}명
           </span>
         </div>
       </div>
 
-      {/* 1. Multi-Filter Bar */}
-      <div className="bg-surface-container-lowest p-4 rounded-2xl border border-surface-container shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Region filter */}
-          <select
-            value={selectedRegion}
-            onChange={(e) => setSelectedRegion(e.target.value)}
-            className="h-9 px-3 rounded-xl bg-surface-container-low text-xs font-semibold text-on-surface border border-outline-variant/30 focus:outline-none"
-          >
-            <option value="ALL">전체 권역</option>
-            <option value="홍대">홍대/합정</option>
-            <option value="잠실">잠실/송파</option>
-            <option value="강남">강남/신논현</option>
-            <option value="을지로">을지로/종로</option>
-          </select>
+      {/* Summary KPI Cards (결제 내역 페이지와 동일 스타일) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs">
+          <span className="text-xs text-on-surface-variant font-medium">총 참가 신청 수</span>
+          <div className="text-xl font-bold text-primary mt-1">{totalCount}명</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs">
+          <span className="text-xs text-on-surface-variant font-medium">매칭 완료 수</span>
+          <div className="text-xl font-bold text-tertiary mt-1">{matchedCount}명</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs">
+          <span className="text-xs text-on-surface-variant font-medium">대기 신청 수</span>
+          <div className="text-xl font-bold text-secondary mt-1">{waitingCount}명</div>
+        </div>
+      </div>
 
-          {/* Gender filter */}
+      {/* 1. Multi-Filter Bar with Region Buttons & Selection Count */}
+      <div className="bg-surface-container-lowest p-4 rounded-2xl border border-surface-container shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Region Filter Buttons on Left */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[
+            { id: 'ALL', label: '전체' },
+            { id: '홍대', label: '홍대/합정' },
+            { id: '잠실', label: '잠실/송파' },
+            { id: '강남', label: '강남/신논현' },
+            { id: '을지로', label: '을지로/종로' }
+          ].map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => setSelectedRegion(r.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                selectedRegion === r.id
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+              }`}
+            >
+              <span>{r.label}</span>
+              <span className="ml-1 opacity-80 font-normal">({regionCounts[r.id] || 0})</span>
+            </button>
+          ))}
+
+          {/* Gender Filter Dropdown */}
           <select
             value={selectedGender}
             onChange={(e) => setSelectedGender(e.target.value)}
-            className="h-9 px-3 rounded-xl bg-surface-container-low text-xs font-semibold text-on-surface border border-outline-variant/30 focus:outline-none"
+            className="h-9 ml-1 px-3 rounded-xl bg-surface-container-low text-xs font-semibold text-on-surface border border-outline-variant/30 focus:outline-none"
           >
             <option value="ALL">전체 성별</option>
             <option value="F">여성</option>
@@ -106,7 +148,7 @@ export default function AdminApplicationsPage() {
           </select>
         </div>
 
-        {/* Search Input */}
+        {/* Search Input on Right */}
         <div className="relative w-full md:w-72">
           <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]">
             search

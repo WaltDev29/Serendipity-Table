@@ -225,7 +225,7 @@ export default function MyPageAndCS() {
               </div>
             </div>
 
-            {/* 2. RESERVED TABLE CARD (예약된 활성 식탁이 있을 때만 상세 표시) */}
+            {/* 2. RESERVED OR APPLIED TABLE CARD */}
             {matchResult ? (
               <div
                 onClick={() => navigate('/match/result')}
@@ -258,6 +258,48 @@ export default function MyPageAndCS() {
                   <span className="text-primary font-bold">확인하기 →</span>
                 </div>
               </div>
+            ) : myApplications.some((a) => a.status === 'APPLIED' || a.status === 'WAITING') ? (
+              (() => {
+                const activeApp = myApplications.find((a) => a.status === 'APPLIED' || a.status === 'WAITING');
+                const regionName = (activeApp?.preferredRegions && activeApp.preferredRegions.length > 0)
+                  ? activeApp.preferredRegions.join(', ')
+                  : (activeApp?.region || '홍대 / 합정');
+                const eventInfo = activeApp?.eventDate ? `${activeApp.eventDate} 19:30` : '이번 주 목요일 19:30';
+
+                return (
+                  <div
+                    onClick={() => navigate('/matching-waiting')}
+                    className="bg-surface-container-lowest rounded-2xl p-space-lg shadow-sm border border-secondary-fixed flex flex-col gap-2.5 cursor-pointer hover:shadow-md transition-all relative overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-secondary font-bold text-xs">
+                        <span className="material-symbols-outlined text-[18px]">event_available</span>
+                        <span>신청한 모임</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-secondary-fixed text-secondary font-bold text-xs">
+                        매칭 대기 중
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        <h3 className="font-headline-sm text-base font-bold text-on-surface">
+                          {regionName} 식탁 신청
+                        </h3>
+                        <p className="text-xs text-on-surface-variant mt-0.5">
+                          {eventInfo}
+                        </p>
+                      </div>
+                      <span className="material-symbols-outlined text-outline">chevron_right</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-surface-container-low text-xs text-on-surface-variant flex items-center justify-between">
+                      <span>AI 알고리즘이 4인 성향을 분석 중입니다</span>
+                      <span className="text-secondary font-bold">대기 현황 확인 →</span>
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               <div
                 onClick={handleOpenApplyModal}

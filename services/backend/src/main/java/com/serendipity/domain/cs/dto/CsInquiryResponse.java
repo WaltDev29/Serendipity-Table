@@ -16,6 +16,9 @@ import java.util.UUID;
 public class CsInquiryResponse {
 
     private UUID id;
+    private UUID userId;
+    private String userName;
+    private String userPhone;
     private String category;
     private String content;
     private String status;

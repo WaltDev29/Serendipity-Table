@@ -47,6 +47,7 @@ public class MatchingLifecycleService {
     private final UserBlockRepository userBlockRepository;
     private final NotificationService notificationService;
     private final AdminAuditLogRepository adminAuditLogRepository;
+    private final com.serendipity.domain.notification.repository.NotificationRepository notificationRepository;
     private final RestTemplate restTemplate;
 
     @Value("${serendipity.ai-engine-url:http://ai-engine:8000}")
@@ -685,6 +686,10 @@ public class MatchingLifecycleService {
             }
         }
 
+        // 5. 모든 사용자의 알림 내역 삭제 (테스트 흐름을 처음부터 재현하기 위함)
+        long deletedNotifications = notificationRepository.count();
+        notificationRepository.deleteAllInBatch();
+
         adminAuditLogRepository.save(AdminAuditLog.builder()
                 .actionType("MATCHING_RESET")
                 .operatorName("관리자")
@@ -699,6 +704,7 @@ public class MatchingLifecycleService {
         result.put("deletedMembers", deletedMembersCount);
         result.put("deletedChatRooms", deletedChatRoomsCount);
         result.put("resetApplications", resetAppsCount);
+        result.put("deletedNotifications", deletedNotifications);
         return result;
     }
 

@@ -19,7 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.serendipity.domain.application.entity.Order;
+import com.serendipity.domain.application.repository.OrderRepository;
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +40,11 @@ public class AdminSimulationService {
     private final EventSlotRepository eventSlotRepository;
     private final RegionSlotRepository regionSlotRepository;
     private final AdminAuditLogRepository adminAuditLogRepository;
+    private final OrderRepository orderRepository;
+
+    // 시뮬레이션 결제 1회권 기본 금액 (실제 PG 결제는 발생하지 않음)
+    private static final int SIMULATION_TICKET_PRICE = 19000;
+    private static final String DEFAULT_REGION = "홍대/합정";
 
     /**
      * 대상 사용자 목록 확인 (비어있으면 전체 일반 회원)
@@ -57,20 +67,8 @@ public class AdminSimulationService {
         int affectedCount = 0;
 
         for (User user : users) {
-            var ticketOpt = userTicketRepository.findFirstByUserAndRemainingCountGreaterThanOrderByCreatedAtAsc(user, 0);
-            if (ticketOpt.isPresent()) {
-                UserTicket t = ticketOpt.get();
-                t.restore(); // remainingCount + 1
-                userTicketRepository.save(t);
-            } else {
-                UserTicket newTicket = UserTicket.builder()
-                        .user(user)
-                        .ticketType("1_TICKET")
-                        .totalCount(1)
-                        .remainingCount(1)
-                        .build();
-                userTicketRepository.save(newTicket);
-            }
+            // 사용자가 1회권을 결제한 것과 동일하게 주문 내역 + 참가권을 함께 생성
+            createPaidTicket(user);
             affectedCount++;
         }
 
@@ -93,14 +91,19 @@ public class AdminSimulationService {
 
         for (User user : users) {
             var ticketOpt = userTicketRepository.findFirstByUserAndRemainingCountGreaterThanOrderByCreatedAtAsc(user, 0);
-            if (ticketOpt.isPresent()) {
-                UserTicket t = ticketOpt.get();
-                if (t.getRemainingCount() > 0) {
-                    t.deduct(); // remainingCount - 1
-                    userTicketRepository.save(t);
-                    affectedCount++;
-                }
+            if (ticketOpt.isEmpty()) {
+                continue;
             }
+            UserTicket t = ticketOpt.get();
+            t.deduct(); // remainingCount - 1
+            userTicketRepository.save(t);
+
+            // 회수한 참가권에 대응하는 최근 1회권 결제 내역을 삭제
+            orderRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                    .filter(o -> "1_TICKET".equalsIgnoreCase(o.getTicketType()) && "PAID".equals(o.getStatus()))
+                    .findFirst()
+                    .ifPresent(orderRepository::delete);
+            affectedCount++;
         }
 
         adminAuditLogRepository.save(AdminAuditLog.builder()
@@ -110,6 +113,43 @@ public class AdminSimulationService {
                 .build());
 
         return Map.of("action", "REVOKE_TICKET", "affectedUsers", affectedCount);
+    }
+
+    private void createPaidTicket(User user) {
+        String orderNo = "ORD-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+                + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        orderRepository.save(Order.builder()
+                .orderNo(orderNo)
+                .user(user)
+                .itemName("참가권 1회 (시뮬레이션)")
+                .ticketType("1_TICKET")
+                .amount(SIMULATION_TICKET_PRICE)
+                .paymentMethod("SIMULATION")
+                .status("PAID")
+                .pgTid("PG-SIM-" + UUID.randomUUID())
+                .build());
+        userTicketRepository.save(UserTicket.builder()
+                .user(user)
+                .ticketType("1_TICKET")
+                .totalCount(1)
+                .remainingCount(1)
+                .build());
+    }
+
+    /**
+     * 사용자의 권역 결정: 최근 신청 권역 우선, 없으면 해당 회차에서 마감되지 않은 첫 권역
+     */
+    private String resolveRegion(User user, EventSlot slot) {
+        return applicationRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .map(Application::getPreferredRegions)
+                .filter(r -> r != null && !r.isEmpty())
+                .map(r -> r.get(0))
+                .findFirst()
+                .orElseGet(() -> regionSlotRepository.findByIdEventSlotId(slot.getId()).stream()
+                        .filter(rs -> !Boolean.TRUE.equals(rs.getIsClosed()))
+                        .map(rs -> rs.getId().getRegion())
+                        .findFirst()
+                        .orElse(DEFAULT_REGION));
     }
 
     /**
@@ -148,15 +188,20 @@ public class AdminSimulationService {
             ticket.deduct();
             userTicketRepository.save(ticket);
 
-            String region = "홍대/합정";
+            String region = resolveRegion(user, nearestSlot);
 
-            Application app = Application.builder()
-                    .user(user)
-                    .eventSlot(nearestSlot)
-                    .ticket(ticket)
-                    .status("APPLIED")
-                    .preferredRegions(List.of(region))
-                    .build();
+            Application app = applicationRepository.findByUserAndEventSlot(user, nearestSlot)
+                    .map(existing -> {
+                        existing.reapply(List.of(region), ticket);
+                        return existing;
+                    })
+                    .orElseGet(() -> Application.builder()
+                            .user(user)
+                            .eventSlot(nearestSlot)
+                            .ticket(ticket)
+                            .status("APPLIED")
+                            .preferredRegions(List.of(region))
+                            .build());
 
             applicationRepository.save(app);
 

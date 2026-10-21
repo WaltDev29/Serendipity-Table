@@ -46,14 +46,23 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getUsers()));
     }
 
-    @PatchMapping("/slots/{slotId}/regions/{region}/toggle-close")
+    @PatchMapping("/slots/{slotId}/regions/toggle-close")
     public ResponseEntity<ApiResponse<Void>> toggleRegionClosed(
             @PathVariable Long slotId,
-            @PathVariable String region,
+            @RequestParam String region,
             @RequestParam boolean isClosed,
             @AuthenticationPrincipal UserPrincipal principal) {
         adminService.toggleRegionClosed(slotId, region, isClosed, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("권역 마감 상태가 변경되었습니다.", null));
+    }
+
+    @PostMapping("/slots")
+    public ResponseEntity<ApiResponse<SlotResponse>> createSlot(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate eventDate,
+            @RequestParam(required = false, defaultValue = "48") Integer targetCapacity,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        SlotResponse created = adminService.createSlot(eventDate, targetCapacity, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("신규 회차가 등록되었습니다.", created));
     }
 
     @PatchMapping("/slots/{slotId}/status")

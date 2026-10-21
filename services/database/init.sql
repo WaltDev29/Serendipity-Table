@@ -378,13 +378,15 @@ VALUES
 (2, CURRENT_DATE + INTERVAL '9 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '8 days', 'OPEN')
 ON CONFLICT (id) DO NOTHING;
 
+SELECT setval('event_slots_id_seq', (SELECT COALESCE(MAX(id), 1) FROM event_slots));
+
 -- 4. 4대 권역 슬롯 등록
 INSERT INTO region_slots (event_slot_id, region, target_capacity, current_count, is_closed)
 VALUES
 (1, '홍대/합정', 48, 42, FALSE),
 (1, '강남/신논현', 48, 48, TRUE),
 (1, '을지로/종로', 48, 36, FALSE),
-(1, '잠실', 48, 20, FALSE)
+(1, '잠실/송파', 48, 20, FALSE)
 ON CONFLICT (event_slot_id, region) DO UPDATE SET
     current_count = EXCLUDED.current_count,
     is_closed = EXCLUDED.is_closed;

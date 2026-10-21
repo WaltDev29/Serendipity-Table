@@ -28,6 +28,13 @@ export async function getAdminSlotsApi() {
   return await apiFetch('/admin/slots');
 }
 
+export async function createSlotApi(eventDate, targetCapacity) {
+  const query = `?eventDate=${encodeURIComponent(eventDate)}${targetCapacity ? `&targetCapacity=${targetCapacity}` : ''}`;
+  return await apiFetch(`/admin/slots${query}`, {
+    method: 'POST'
+  });
+}
+
 export async function getAdminApplicationsApi(slotId) {
   const query = slotId ? `?slotId=${slotId}` : '';
   return await apiFetch(`/admin/applications${query}`);
@@ -38,7 +45,7 @@ export async function getAdminUsersApi() {
 }
 
 export async function toggleRegionCloseApi(slotId, region, isClosed) {
-  return await apiFetch(`/admin/slots/${slotId}/regions/${encodeURIComponent(region)}/toggle-close?isClosed=${isClosed}`, {
+  return await apiFetch(`/admin/slots/${slotId}/regions/toggle-close?region=${encodeURIComponent(region)}&isClosed=${isClosed}`, {
     method: 'PATCH'
   });
 }

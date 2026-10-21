@@ -28,6 +28,7 @@ import com.serendipity.domain.user.repository.UserBlacklistRepository;
 import com.serendipity.domain.user.repository.UserRepository;
 import com.serendipity.domain.venue.entity.Venue;
 import com.serendipity.domain.venue.repository.VenueRepository;
+import java.time.LocalDate;
 import com.serendipity.global.exception.CustomException;
 import com.serendipity.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -108,16 +109,23 @@ public class AdminService {
 
     @Transactional
     public void toggleRegionClosed(Long slotId, String region, boolean isClosed, String operatorName) {
-        RegionSlotId id = new RegionSlotId(slotId, region);
-        RegionSlot slot = regionSlotRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "권역 슬롯을 찾을 수 없습니다."));
+        String targetKey = region.replaceAll("\\s+", "");
+        RegionSlot slot = regionSlotRepository.findById(new RegionSlotId(slotId, region))
+                .or(() -> regionSlotRepository.findByIdEventSlotId(slotId).stream()
+                        .filter(rs -> {
+                            String k = rs.getId().getRegion().replaceAll("\\s+", "");
+                            return k.equals(targetKey) || targetKey.startsWith(k) || k.startsWith(targetKey);
+                        })
+                        .findFirst())
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "권역 슬롯을 찾을 수 없습니다: " + region));
 
         slot.toggleClosed(isClosed);
+        regionSlotRepository.save(slot);
 
         adminAuditLogRepository.save(AdminAuditLog.builder()
                 .actionType("SLOT_TOGGLE_CLOSE")
                 .operatorName(operatorName)
-                .detail(String.format("슬롯 %d 권역 %s 마감 상태 변경 -> %s", slotId, region, isClosed))
+                .detail(String.format("슬롯 %d 권역 %s 마감 상태 변경 -> %s", slotId, slot.getId().getRegion(), isClosed))
                 .targetId(slotId.toString())
                 .build());
     }
@@ -382,6 +390,24 @@ public class AdminService {
                 .detail(String.format("슬롯 %d 상태 변경 -> %s", slotId, status))
                 .targetId(slotId.toString())
                 .build());
+    }
+
+    @Transactional
+    public SlotResponse createSlot(LocalDate eventDate, Integer targetPerRegion, String operatorName) {
+        int cap = (targetPerRegion != null && targetPerRegion > 0) ? targetPerRegion : 48;
+        EventSlot slot = slotService.createEventSlotWithDefaultRegions(eventDate, cap);
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("SLOT_CREATE")
+                .operatorName(operatorName)
+                .detail(String.format("신규 회차 생성 완료: #%d (%s)", slot.getId(), eventDate))
+                .targetId(slot.getId().toString())
+                .build());
+
+        return slotService.getAllSlots().stream()
+                .filter(s -> s.getId().equals(slot.getId()))
+                .findFirst()
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)

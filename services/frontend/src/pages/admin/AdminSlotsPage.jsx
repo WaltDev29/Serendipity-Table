@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAdmin } from '../../context/AdminContext';
-import { toggleRegionCloseApi, updateSlotStatusApi } from '../../api/admin';
+import { toggleRegionCloseApi, updateSlotStatusApi, createSlotApi } from '../../api/admin';
 
 export default function AdminSlotsPage() {
   const { events, setEvents, addAuditLog, refreshAdminData, matchingTables } = useAdmin();
@@ -97,42 +97,20 @@ export default function AdminSlotsPage() {
   };
 
   // 신규 회차 생성 제출
-  const handleCreateEvent = (e) => {
+  const handleCreateEvent = async (e) => {
     e.preventDefault();
-    const newId = `EVT-${newEventDate.replace(/-/g, '')}-THU`;
-    const selectedRegionKeys = Object.keys(newRegions).filter((k) => newRegions[k]);
-
-    const regionNames = {
-      hongdae: '홍대/합정',
-      jamsil: '잠실/송파',
-      gangnam: '강남/신논현',
-      euljiro: '을지로/종로'
-    };
-
-    const createdEvent = {
-      id: newId,
-      title: newTitle,
-      eventDate: `${newEventDate} 19:30:00`,
-      deadline: `${newEventDate} 18:00:00`, // 행사 이틀 전 화요일 등
-      totalApplicants: 0,
-      targetCapacity: selectedRegionKeys.length * targetPerRegion,
-      status: 'OPEN',
-      regions: selectedRegionKeys.map((key) => ({
-        id: key,
-        name: regionNames[key],
-        current: 0,
-        target: targetPerRegion,
-        status: 'OPEN',
-        maleRatio: 50,
-        femaleRatio: 50,
-        ageGroup: '20대 중후반~30대'
-      }))
-    };
-
-    setEvents((prev) => [createdEvent, ...prev]);
-    setIsCreateModalOpen(false);
-    setSelectedEventId(newId);
-    addAuditLog('CREATE_EVENT', '운영자 김관리', `신규 회차 ${newId} (${newTitle}) 등록 완료`);
+    try {
+      const res = await createSlotApi(newEventDate, targetPerRegion);
+      await refreshAdminData();
+      setIsCreateModalOpen(false);
+      if (res?.id) {
+        setSelectedEventId(`EVT-${res.id}`);
+      }
+      addAuditLog('CREATE_EVENT', '총괄관리자', `신규 회차 #${res?.id || ''} (${newEventDate}) DB 등록 완료`);
+    } catch (err) {
+      console.error('Create slot failed:', err);
+      alert('회차 등록 실패: ' + (err.message || '오류 발생'));
+    }
   };
 
   // 지난 모임 판단 기준: 모임 일자가 오늘보다 이전

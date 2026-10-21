@@ -41,24 +41,7 @@ export function AdminProvider({ children }) {
   const [orders, setOrders] = useState([]);
 
   // 1. 회차 및 슬롯 목록 (A-02)
-  const [events, setEvents] = useState([
-    {
-      id: 'EVT-CURRENT',
-      slotId: 1,
-      title: '목요일 정기 모임',
-      eventDate: '2026-10-22',
-      deadline: '2026-10-20 18:00:00',
-      totalApplicants: 0,
-      targetCapacity: 192,
-      status: 'OPEN',
-      regions: [
-        { id: 'HONGDAE', name: '홍대/합정', current: 0, target: 48, status: 'OPEN', maleRatio: 50, femaleRatio: 50, ageGroup: '20대 중후반' },
-        { id: 'GANGNAM', name: '강남/신논현', current: 0, target: 48, status: 'OPEN', maleRatio: 50, femaleRatio: 50, ageGroup: '20대 후반' },
-        { id: 'EULJIRO', name: '을지로/종로', current: 0, target: 48, status: 'OPEN', maleRatio: 50, femaleRatio: 50, ageGroup: '20대 중후반' },
-        { id: 'SEONGSU', name: '성수/건대', current: 0, target: 48, status: 'OPEN', maleRatio: 50, femaleRatio: 50, ageGroup: '20대 중반' }
-      ]
-    }
-  ]);
+  const [events, setEvents] = useState([]);
 
   // 2. 신청자 마스터 목록 (A-03)
   const [applications, setApplications] = useState([]);

@@ -507,18 +507,33 @@ export function AdminProvider({ children }) {
     }
   };
 
-  // 5) 긴급 공지 발송 (Admin Notice)
+  // 5) 긴급 공지 발송 (Admin Notice) - 사용자 앱 및 전체 알림함 연동
   const sendEmergencyNotice = (target, title, message, isPinned = true) => {
     const noticeObj = {
       id: `notice-${Date.now()}`,
       target,
-      title,
+      title: title || '📢 운영팀 긴급 공지',
+      desc: message,
       message,
-      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      type: 'NOTICE',
+      read: false,
+      time: '방금 전',
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }),
+      link: '/notifications'
     };
 
     if (isPinned) {
       setPinnedNotice(noticeObj);
+    }
+
+    try {
+      const stored = localStorage.getItem('global_notices');
+      const list = stored ? JSON.parse(stored) : [];
+      localStorage.setItem('global_notices', JSON.stringify([noticeObj, ...list]));
+      window.dispatchEvent(new Event('new_notice_broadcast'));
+    } catch (e) {
+      console.warn('Notice storage error:', e);
     }
 
     addAuditLog('EMERGENCY_BROADCAST', '총괄관리자', `긴급 공지 발송 [대상: ${target}] - ${title || message}`);

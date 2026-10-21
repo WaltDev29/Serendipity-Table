@@ -73,6 +73,18 @@ export default function NotificationDrawer() {
             </div>
           ))}
         </div>
+
+        {/* Modal Footer: '전체 알림 보기' 버튼 (버튼 모양 아님, 텍스트 링크 형태) */}
+        <div className="p-3 bg-surface-container-low border-t border-surface-container flex items-center justify-center">
+          <Link
+            to="/notifications"
+            onClick={() => setIsNotiDrawerOpen(false)}
+            className="text-[13px] font-semibold text-primary hover:underline flex items-center gap-1 py-1"
+          >
+            <span>전체 알림 보기</span>
+            <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+          </Link>
+        </div>
       </div>
     </>
   );

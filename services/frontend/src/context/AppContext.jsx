@@ -129,10 +129,21 @@ export const AppProvider = ({ children }) => {
         setMatchResult(formatted);
         setUserState('CONFIRMED');
 
-        // 알림 목록 설정
+        // 관리자 공지 및 모임 매칭 알림 목록 병합
+        let adminNotices = [];
+        try {
+          const stored = localStorage.getItem('global_notices');
+          if (stored) {
+            adminNotices = JSON.parse(stored);
+          }
+        } catch (e) {
+          console.warn('Failed to parse global notices:', e);
+        }
+
         setNotifications([
+          ...adminNotices,
           {
-            id: 1,
+            id: 'match-1',
             type: 'MATCH',
             title: `🎉 ${formatted.tableName} 매칭 완료!`,
             desc: `배정된 식당(${formatted.venue.name})과 4인의 익명 멤버 카드를 확인해보세요.`,
@@ -215,13 +226,42 @@ export const AppProvider = ({ children }) => {
 
       if (token && profile) {
         await refreshAppData();
+      } else {
+        // 비로그인 상태여도 기본 공지사항은 로드
+        try {
+          const stored = localStorage.getItem('global_notices');
+          if (stored) {
+            setNotifications(JSON.parse(stored));
+          }
+        } catch (e) {
+          console.warn('Failed to load guest notices:', e);
+        }
       }
       setIsAuthInitialized(true);
     };
 
     initAuth();
 
+    // 관리자 공지 발송 실시간 브로드캐스트 리스너
+    const handleNewNotice = () => {
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          const notices = JSON.parse(stored);
+          setNotifications((prev) => {
+            const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
+            return [...notices, ...nonNotices];
+          });
+        }
+      } catch (e) {
+        console.warn('Error reading new notice broadcast:', e);
+      }
+    };
+
+    window.addEventListener('new_notice_broadcast', handleNewNotice);
+
     return () => {
+      window.removeEventListener('new_notice_broadcast', handleNewNotice);
       if (stompClientRef.current) {
         stompClientRef.current.deactivate();
       }

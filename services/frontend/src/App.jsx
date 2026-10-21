@@ -44,6 +44,7 @@ import PastTablesPage from './pages/PastTablesPage';
 import BlockedUsersPage from './pages/BlockedUsersPage';
 import CustomerServicePage from './pages/CustomerServicePage';
 import InquiryChatPage from './pages/InquiryChatPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 // 비로그인 사용자 보호 라우트 가드
 function ProtectedRoute({ children }) {
@@ -168,6 +169,7 @@ export default function App() {
                 <Route path="/past-tables" element={<ProtectedRoute><div className="pt-14"><PastTablesPage /></div></ProtectedRoute>} />
                 <Route path="/blocked-users" element={<ProtectedRoute><div className="pt-14"><BlockedUsersPage /></div></ProtectedRoute>} />
                 <Route path="/cs" element={<ProtectedRoute><div className="pt-14"><CustomerServicePage /></div></ProtectedRoute>} />
+                <Route path="/notifications" element={<div className="pt-14"><NotificationsPage /></div>} />
 
                 {/* Fallback Redirect */}
                 <Route path="*" element={<Navigate to="/" replace />} />

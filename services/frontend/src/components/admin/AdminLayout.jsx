@@ -5,7 +5,16 @@ import { useAdmin } from '../../context/AdminContext';
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { pinnedNotice, setPinnedNotice, sendEmergencyNotice, auditLogs, adminUser, logoutAdmin } = useAdmin();
+  const {
+    pinnedNotice,
+    setPinnedNotice,
+    sendEmergencyNotice,
+    auditLogs,
+    adminUser,
+    logoutAdmin,
+    matchingTables = [],
+    csInquiries = []
+  } = useAdmin();
 
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [noticeTarget, setNoticeTarget] = useState('ALL'); // ALL, HONGDAE, ACTIVE
@@ -15,6 +24,11 @@ export default function AdminLayout() {
 
   const [isNotiDropdownOpen, setIsNotiDropdownOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+
+  // 실시간 긴급 운영 큐: 4인 미달 테이블 + 미처리(답변 대기) CS 문의
+  const urgentTables = matchingTables.filter((t) => (t.members?.length || 0) < 4);
+  const urgentCs = csInquiries.filter((c) => c.status === 'PENDING' || !c.isResolved);
+  const totalUrgentCount = urgentTables.length + urgentCs.length;
 
   // 공지 프리셋 템플릿
   const noticePresets = [
@@ -184,9 +198,11 @@ export default function AdminLayout() {
                 title="실시간 운영 알림"
               >
                 <span className="material-symbols-outlined text-[20px]">notifications</span>
-                <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-primary-container text-on-primary text-[10px] font-bold">
-                  3
-                </span>
+                {totalUrgentCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-primary-container text-on-primary text-[10px] font-bold">
+                    {totalUrgentCount}
+                  </span>
+                )}
               </button>
 
               {/* Notification Dropdown */}
@@ -194,30 +210,38 @@ export default function AdminLayout() {
                 <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-xl border border-surface-variant p-3 z-50 animate-fade-in">
                   <div className="flex items-center justify-between pb-2 border-b border-surface-container">
                     <span className="font-title-md text-xs font-bold text-on-surface">실시간 긴급 운영 큐</span>
-                    <span className="text-[11px] text-primary font-semibold">3건 미확인</span>
+                    <span className="text-[11px] text-primary font-semibold">
+                      {totalUrgentCount > 0 ? `${totalUrgentCount}건 미확인` : '대기 항목 없음'}
+                    </span>
                   </div>
                   <div className="divide-y divide-surface-container-low max-h-60 overflow-y-auto mt-1">
-                    <div className="py-2 text-xs">
-                      <p className="font-bold text-error flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">warning</span>
-                        을지로-04 테이블 4인 미달 (현재 2명)
-                      </p>
-                      <p className="text-on-surface-variant text-[11px] mt-0.5">화요일 18:00까지 대안 처리(이월/환불) 필요</p>
-                    </div>
-                    <div className="py-2 text-xs">
-                      <p className="font-bold text-on-surface flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px] text-tertiary">support_agent</span>
-                        정유진 회원 일정 변경 CS 인입
-                      </p>
-                      <p className="text-on-surface-variant text-[11px] mt-0.5">다음 주로 모임 이월 요청 (10분 전)</p>
-                    </div>
-                    <div className="py-2 text-xs">
-                      <p className="font-bold text-on-surface flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px] text-secondary">payments</span>
-                        강민수 회원 1회권 결제 완료
-                      </p>
-                      <p className="text-on-surface-variant text-[11px] mt-0.5">강남/신논현 1번 테이블 배정 대기</p>
-                    </div>
+                    {totalUrgentCount === 0 ? (
+                      <div className="py-6 text-center text-on-surface-variant text-xs">
+                        <span className="material-symbols-outlined text-2xl text-outline block mb-1">check_circle</span>
+                        현재 긴급 처리 대기 중인 항목이 없습니다.
+                      </div>
+                    ) : (
+                      <>
+                        {urgentTables.map((t) => (
+                          <div key={t.id} className="py-2 text-xs">
+                            <p className="font-bold text-error flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">warning</span>
+                              {t.name || t.id} 4인 미달 (현재 {t.members?.length || 0}명)
+                            </p>
+                            <p className="text-on-surface-variant text-[11px] mt-0.5">대안 처리(이월/환불/추가배정) 조치 필요</p>
+                          </div>
+                        ))}
+                        {urgentCs.map((cs) => (
+                          <div key={cs.id} className="py-2 text-xs">
+                            <p className="font-bold text-on-surface flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px] text-tertiary">support_agent</span>
+                              {cs.userName || '회원'} CS 인입: {cs.category || '문의'}
+                            </p>
+                            <p className="text-on-surface-variant text-[11px] mt-0.5 truncate">{cs.message || cs.content || '답변 대기 중'}</p>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"

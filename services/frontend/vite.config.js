@@ -14,7 +14,12 @@ export default defineConfig({
     watch: {
       usePolling: true
     },
-    allowedHosts: true,
+    allowedHosts: [
+      'serendipity-table.aikopo.net',
+      '.aikopo.net',
+      'localhost',
+      '127.0.0.1'
+    ],
     proxy: {
       '/api': {
         target: 'http://backend:8080',

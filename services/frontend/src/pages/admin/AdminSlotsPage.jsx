@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAdmin } from '../../context/AdminContext';
+import { toggleRegionCloseApi, updateSlotStatusApi, createSlotApi } from '../../api/admin';
 
 export default function AdminSlotsPage() {
-  const { events, setEvents, addAuditLog } = useAdmin();
+  const { events, setEvents, addAuditLog, refreshAdminData, matchingTables } = useAdmin();
 
-  const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
+  const [selectedEventId, setSelectedEventId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('ALL');
 
   // 신규 회차 생성 모달 상태
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -30,71 +33,133 @@ export default function AdminSlotsPage() {
     return dt.split(' ')[0];
   };
 
-  const activeEvent = events.find((e) => e.id === selectedEventId) || events[0] || {
+  // 현재 선택된 회차 슬롯 (선택된 ID가 유효하면 해당 슬롯, 아니면 첫 번째 슬롯)
+  // 기본 선택: 오늘 이후 첫 회차(없으면 마지막 회차) — 지난 회차가 앞에 쌓이는 것을 방지
+  const defaultEvent =
+    events.find((e) => e.eventDate && e.eventDate >= new Date().toLocaleDateString('sv-SE')) ||
+    events[events.length - 1];
+  const currentSelectedId = selectedEventId && events.some((e) => e.id === selectedEventId)
+    ? selectedEventId
+    : defaultEvent?.id || '';
+
+  const activeEvent = events.find((e) => e.id === currentSelectedId) || defaultEvent || {
     id: 'EVT-FALLBACK',
     regions: []
   };
 
-  // 권역 슬롯 상태 토글 (OPEN <-> CLOSED)
-  const toggleRegionStatus = (regionId) => {
-    setEvents((prev) =>
-      prev.map((ev) => {
-        if (ev.id !== activeEvent.id) return ev;
-        const updatedRegions = ev.regions.map((reg) =>
-          reg.id === regionId
-            ? { ...reg, status: reg.status === 'OPEN' ? 'CLOSED' : 'OPEN' }
-            : reg
+  // 회차 슬롯 자체 상태 토글 (OPEN <-> CLOSED)
+  const toggleSlotStatus = async (e, ev) => {
+    e.stopPropagation();
+    const nextStatus = ev.status === 'OPEN' ? 'CLOSED' : 'OPEN';
+    try {
+      if (ev.slotId) {
+        await updateSlotStatusApi(ev.slotId, nextStatus);
+        await refreshAdminData();
+      } else {
+        setEvents((prev) =>
+          prev.map((item) =>
+            item.id === ev.id ? { ...item, status: nextStatus } : item
+          )
         );
-        return { ...ev, regions: updatedRegions };
-      })
-    );
-    addAuditLog('SLOT_STATUS_TOGGLE', '운영자 김관리', `${activeEvent.id} ${regionId} 권역 오픈/마감 상태 토글`);
+      }
+      addAuditLog('SLOT_STATUS_UPDATE', '총괄관리자', `${ev.title || ev.id} 상태 변경 -> ${nextStatus}`);
+    } catch (err) {
+      console.error('Update slot status failed:', err);
+      alert('슬롯 상태 변경 실패: ' + (err.message || '오류 발생'));
+    }
+  };
+
+  // 권역 슬롯 상태 토글 (OPEN <-> CLOSED)
+  const toggleRegionStatus = async (regionId, regionName, currentStatus) => {
+    const nextClosed = currentStatus === 'OPEN';
+    try {
+      if (activeEvent.slotId) {
+        await toggleRegionCloseApi(activeEvent.slotId, regionName || regionId, nextClosed);
+        await refreshAdminData();
+      } else {
+        setEvents((prev) =>
+          prev.map((ev) => {
+            if (ev.id !== activeEvent.id) return ev;
+            const updatedRegions = ev.regions.map((reg) =>
+              reg.id === regionId
+                ? { ...reg, status: nextClosed ? 'CLOSED' : 'OPEN' }
+                : reg
+            );
+            return { ...ev, regions: updatedRegions };
+          })
+        );
+      }
+      addAuditLog('SLOT_STATUS_TOGGLE', '총괄관리자', `${activeEvent.id} ${regionName || regionId} 권역 ${nextClosed ? '마감' : '모집'}`);
+    } catch (e) {
+      console.error('Toggle region failed:', e);
+      alert('권역 마감 상태 변경 실패: ' + (e.message || '오류 발생'));
+    }
   };
 
   // 신규 회차 생성 제출
-  const handleCreateEvent = (e) => {
+  const handleCreateEvent = async (e) => {
     e.preventDefault();
-    const newId = `EVT-${newEventDate.replace(/-/g, '')}-THU`;
-    const selectedRegionKeys = Object.keys(newRegions).filter((k) => newRegions[k]);
-
-    const regionNames = {
-      hongdae: '홍대/합정',
-      jamsil: '잠실/송파',
-      gangnam: '강남/신논현',
-      euljiro: '을지로/종로'
-    };
-
-    const createdEvent = {
-      id: newId,
-      title: newTitle,
-      eventDate: `${newEventDate} 19:30:00`,
-      deadline: `${newEventDate} 18:00:00`, // 행사 이틀 전 화요일 등
-      totalApplicants: 0,
-      targetCapacity: selectedRegionKeys.length * targetPerRegion,
-      status: 'OPEN',
-      regions: selectedRegionKeys.map((key) => ({
-        id: key,
-        name: regionNames[key],
-        current: 0,
-        target: targetPerRegion,
-        status: 'OPEN',
-        maleRatio: 50,
-        femaleRatio: 50,
-        ageGroup: '20대 중후반~30대'
-      }))
-    };
-
-    setEvents((prev) => [createdEvent, ...prev]);
-    setIsCreateModalOpen(false);
-    setSelectedEventId(newId);
-    addAuditLog('CREATE_EVENT', '운영자 김관리', `신규 회차 ${newId} (${newTitle}) 등록 완료`);
+    try {
+      const res = await createSlotApi(newEventDate, targetPerRegion);
+      await refreshAdminData();
+      setIsCreateModalOpen(false);
+      if (res?.id) {
+        setSelectedEventId(`EVT-${res.id}`);
+      }
+      addAuditLog('CREATE_EVENT', '총괄관리자', `신규 회차 #${res?.id || ''} (${newEventDate}) DB 등록 완료`);
+    } catch (err) {
+      console.error('Create slot failed:', err);
+      alert('회차 등록 실패: ' + (err.message || '오류 발생'));
+    }
   };
 
-  const filteredEvents = events.filter((ev) => {
-    if (filterStatus !== 'ALL' && ev.status !== filterStatus) return false;
-    if (searchTerm && !ev.title.includes(searchTerm) && !ev.id.includes(searchTerm)) return false;
-    return true;
-  });
+  // 지난 모임 판단 기준: 모임 일자가 오늘보다 이전
+  const todayStr = new Date().toLocaleDateString('sv-SE');
+  const isPast = (ev) => !!ev.eventDate && ev.eventDate < todayStr;
+
+  const filteredEvents = events
+    .filter((ev) => {
+      if (filterStatus === 'PAST') {
+        if (!isPast(ev)) return false;
+      } else if (filterStatus !== 'ALL' && ev.status !== filterStatus) {
+        return false;
+      }
+      if (dateFilter && ev.eventDate !== dateFilter) return false;
+      if (searchTerm && !ev.title.includes(searchTerm) && !ev.id.includes(searchTerm)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.eventDate || '2099-12-31');
+      const dateB = new Date(b.eventDate || '2099-12-31');
+      return dateA - dateB;
+    });
+
+  // 선택된 회차가 바뀔 때 권역 필터가 존재하지 않는 값이면 전체로 복귀
+  const effectiveRegion = (activeEvent.regions || []).some((r) => r.name === regionFilter) ? regionFilter : 'ALL';
+  const selectedRegion = (activeEvent.regions || []).find((r) => r.name === effectiveRegion);
+
+  const visibleTables = useMemo(
+    () =>
+      (matchingTables || []).filter(
+        (t) =>
+          t.slotId === activeEvent.slotId &&
+          t.status !== 'CANCELLED' &&
+          (effectiveRegion === 'ALL' || t.region === effectiveRegion)
+      ),
+    [matchingTables, activeEvent.slotId, effectiveRegion]
+  );
+
+  const meetingStats = useMemo(() => {
+    const regions = (activeEvent.regions || []).filter((r) => effectiveRegion === 'ALL' || r.name === effectiveRegion);
+    const applicants = regions.reduce((sum, r) => sum + r.current, 0);
+    const matched = visibleTables.reduce((sum, t) => sum + t.members.length, 0);
+    return {
+      tables: visibleTables.length,
+      applicants,
+      matched,
+      waiting: Math.max(0, applicants - matched)
+    };
+  }, [activeEvent, visibleTables, effectiveRegion]);
 
   return (
     <div className="flex flex-col w-full space-y-space-lg">
@@ -105,7 +170,7 @@ export default function AdminSlotsPage() {
             회차 및 슬롯 관리 (Slot Operations)
           </h1>
           <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
-            매주 목요일 정기 회차를 발행하고 권역별 목표 정원 및 조기 마감을 제어합니다.
+            매주 목요일 정기 회차를 발행하고 권역별 신청 현황 및 조기 마감을 제어합니다.
           </p>
         </div>
 
@@ -125,7 +190,7 @@ export default function AdminSlotsPage() {
         <div className="p-4 border-b border-surface-container flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-on-surface">회차 상태 필터:</span>
-            {['ALL', 'OPEN', 'MATCHING', 'CONFIRMED'].map((st) => (
+            {['ALL', 'OPEN', 'MATCHING', 'CONFIRMED', 'PAST'].map((st) => (
               <button
                 key={st}
                 type="button"
@@ -136,9 +201,28 @@ export default function AdminSlotsPage() {
                     : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
                 }`}
               >
-                {st === 'ALL' ? '전체' : st === 'OPEN' ? '모집 중' : st === 'MATCHING' ? '매칭 연산 중' : '확정 완료'}
+                {st === 'ALL' ? '전체' : st === 'OPEN' ? '모집 중' : st === 'MATCHING' ? '매칭 연산 중' : st === 'CONFIRMED' ? '확정 완료' : '지난 모임'}
               </button>
             ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="h-8 px-2 rounded-lg bg-surface-container-low text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary"
+              title="회차 날짜로 검색"
+            />
+            {dateFilter && (
+              <button
+                type="button"
+                onClick={() => setDateFilter('')}
+                className="px-2 h-8 rounded-lg text-xs font-semibold bg-surface-container-low text-on-surface-variant hover:bg-surface-container"
+              >
+                초기화
+              </button>
+            )}
           </div>
 
           <div className="relative w-64">
@@ -155,16 +239,15 @@ export default function AdminSlotsPage() {
           </div>
         </div>
 
-        {/* Master Grid */}
-        <div className="overflow-x-auto">
+        {/* Master Grid: 회차가 많아도 모임 목록 영역을 밀어내지 않도록 높이 고정 + 내부 스크롤 */}
+        <div className="overflow-auto max-h-[320px]">
           <table className="w-full text-left text-xs">
-            <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container">
+            <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container sticky top-0 z-10">
               <tr>
-                <th className="py-3 px-4">회차 코드</th>
                 <th className="py-3 px-4">회차 명칭</th>
                 <th className="py-3 px-4">모임 일시</th>
                 <th className="py-3 px-4">신청 마감 일시</th>
-                <th className="py-3 px-4">누적 신청 / 목표</th>
+                <th className="py-3 px-4">신청 인원</th>
                 <th className="py-3 px-4">오픈 권역</th>
                 <th className="py-3 px-4">진행 상태</th>
                 <th className="py-3 px-4 text-center">슬롯 선택</th>
@@ -176,16 +259,16 @@ export default function AdminSlotsPage() {
                 return (
                   <tr
                     key={ev.id}
-                    className={`hover:bg-surface-container-low/60 transition-colors ${
+                    onClick={() => setSelectedEventId(ev.id)}
+                    className={`hover:bg-surface-container-low/60 transition-colors cursor-pointer ${
                       isSelected ? 'bg-primary/5 font-semibold' : ''
                     }`}
                   >
-                    <td className="py-3.5 px-4 font-mono font-bold text-primary">{ev.id}</td>
                     <td className="py-3.5 px-4 font-bold text-on-surface">{formatTitle(ev.title)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{formatEventDate(ev.eventDate)}</td>
                     <td className="py-3.5 px-4 text-on-surface-variant">{ev.deadline}</td>
-                    <td className="py-3.5 px-4 font-bold">
-                      {ev.totalApplicants} / {ev.targetCapacity}명
+                    <td className="py-3.5 px-4 font-bold text-primary">
+                      {ev.totalApplicants}명
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex gap-1 flex-wrap">
@@ -200,22 +283,26 @@ export default function AdminSlotsPage() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSlotStatus(e, ev)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
                           ev.status === 'OPEN'
-                            ? 'bg-tertiary-fixed text-tertiary'
-                            : ev.status === 'MATCHING'
-                            ? 'bg-secondary-fixed text-secondary'
-                            : 'bg-primary-container text-white'
+                            ? 'bg-tertiary-fixed text-tertiary hover:bg-tertiary hover:text-white'
+                            : 'bg-error-container text-error hover:bg-error hover:text-white'
                         }`}
+                        title="클릭 시 모집 여부 전환"
                       >
-                        {ev.status === 'OPEN' ? '모집 중' : ev.status === 'MATCHING' ? '매칭 연산' : '확정 완료'}
-                      </span>
+                        {ev.status === 'OPEN' ? '🟢 모집 중' : '🔴 모집 마감'}
+                      </button>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
                         type="button"
-                        onClick={() => setSelectedEventId(ev.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEventId(ev.id);
+                        }}
                         className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                           isSelected
                             ? 'bg-primary text-white shadow-xs'
@@ -233,87 +320,105 @@ export default function AdminSlotsPage() {
         </div>
       </div>
 
-      {/* 2. 권역별 세부 슬롯 카드 그리드 (선택된 회차의 4개 권역 슬롯) */}
+      {/* 2. 모임 목록 (선택된 회차) */}
       <div className="bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-surface-container">
           <div>
             <h2 className="font-title-md text-sm font-bold text-on-surface flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">tune</span>
-              <span>[{formatTitle(activeEvent.title)}] 세부 권역 슬롯 제어</span>
+              <span className="material-symbols-outlined text-primary text-[20px]">groups</span>
+              <span>[{formatTitle(activeEvent.title)} {formatEventDate(activeEvent.eventDate)}] 모임 목록</span>
             </h2>
-            <p className="text-xs text-on-surface-variant mt-0.5">
-              각 권역의 조기 마감 토글 및 실시간 모객 달성 현황입니다.
-            </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            총 {(activeEvent.regions || []).length}개 권역 오픈
-          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {(activeEvent.regions || []).map((reg) => {
-            const isClosed = reg.status === 'CLOSED';
-            const pct = Math.min(100, Math.round((reg.current / reg.target) * 100));
-            return (
-              <div
-                key={reg.id}
-                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
-                  isClosed
-                    ? 'bg-surface-container-low/80 border-surface-container-high opacity-85'
-                    : 'bg-surface-container-lowest border-surface-container hover:border-primary/40 shadow-xs'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-on-surface">{reg.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleRegionStatus(reg.id)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
-                        isClosed
-                          ? 'bg-error-container text-error hover:bg-error hover:text-white'
-                          : 'bg-tertiary-fixed text-tertiary hover:bg-tertiary hover:text-white'
-                      }`}
-                      title="클릭 시 오픈/마감 상태 전환"
-                    >
-                      {isClosed ? '🔴 조기 마감됨' : '🟢 정상 모집 중'}
-                    </button>
-                  </div>
+        {/* 권역 필터 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold text-on-surface">권역:</span>
+          {['ALL', ...(activeEvent.regions || []).map((r) => r.name)].map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => setRegionFilter(name)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                effectiveRegion === name
+                  ? 'bg-primary text-white font-bold'
+                  : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+              }`}
+            >
+              {name === 'ALL' ? '전체' : name}
+            </button>
+          ))}
+          {selectedRegion && (
+            <button
+              type="button"
+              onClick={() => toggleRegionStatus(selectedRegion.id, selectedRegion.name, selectedRegion.status)}
+              className={`ml-auto px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
+                selectedRegion.status === 'CLOSED'
+                  ? 'bg-error-container text-error hover:bg-error hover:text-white'
+                  : 'bg-tertiary-fixed text-tertiary hover:bg-tertiary hover:text-white'
+              }`}
+              title="클릭 시 오픈/마감 상태 전환"
+            >
+              {selectedRegion.status === 'CLOSED' ? '🔴 조기 마감됨 (클릭: 재오픈)' : '🟢 정상 모집 중 (클릭: 조기 마감)'}
+            </button>
+          )}
+        </div>
 
-                  <div className="mt-3 flex items-baseline justify-between text-xs">
-                    <span className="text-on-surface-variant">모객 인원</span>
-                    <span className="font-bold text-on-surface">
-                      {reg.current} <span className="font-normal text-on-surface-variant">/ {reg.target}명</span>
-                    </span>
-                  </div>
+        {/* 통계 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: '매칭 모임 수', value: `${meetingStats.tables}개` },
+            { label: '신청 인원 수', value: `${meetingStats.applicants}명` },
+            { label: '매칭 인원 수', value: `${meetingStats.matched}명` },
+            { label: '대기 인원 수', value: `${meetingStats.waiting}명` }
+          ].map((s) => (
+            <div key={s.label} className="p-3 rounded-xl bg-surface-container-low border border-surface-container">
+              <div className="text-[11px] text-on-surface-variant font-semibold">{s.label}</div>
+              <div className="text-lg font-bold text-on-surface mt-0.5">{s.value}</div>
+            </div>
+          ))}
+        </div>
 
-                  {/* Progress bar */}
-                  <div className="w-full h-2 rounded-full bg-surface-container-high overflow-hidden mt-1.5">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        pct >= 100 ? 'bg-primary' : 'bg-tertiary'
-                      }`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-on-surface-variant mt-1">
-                    <span>달성률 {pct}%</span>
-                    <span>최소 성원: 4명</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-surface-container flex items-center justify-between text-[11px]">
-                  <span className="text-on-surface-variant">성비 현황</span>
-                  <span className="font-bold text-on-surface">
-                    남 {reg.maleRatio}% : 여 {reg.femaleRatio}%
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+        {/* 모임 테이블 */}
+        <div className="overflow-x-auto rounded-xl border border-surface-container">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container">
+              <tr>
+                <th className="py-3 px-4">모임 일시</th>
+                <th className="py-3 px-4">권역</th>
+                <th className="py-3 px-4">인원 수</th>
+                <th className="py-3 px-4">참여 회원</th>
+                <th className="py-3 px-4">식당 이름</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-container-low">
+              {visibleTables.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-10 text-center text-on-surface-variant">매칭된 모임이 없습니다.</td>
+                </tr>
+              ) : (
+                visibleTables.map((t) => (
+                  <tr key={t.id} className="hover:bg-surface-container-low/60 transition-colors">
+                    <td className="py-3 px-4 text-on-surface whitespace-nowrap">
+                      {formatEventDate(t.eventDate)} {(t.eventTime || '').slice(0, 5)}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-on-surface">{t.region}</td>
+                    <td className="py-3 px-4 text-on-surface-variant">{t.members.length}명</td>
+                    <td className="py-3 px-4 text-on-surface">
+                      {t.members.length ? t.members.map((m) => m.name).join(', ') : '-'}
+                    </td>
+                    <td className="py-3 px-4 text-on-surface">
+                      {t.reservationStatus === 'RESERVED' && t.venue?.id ? t.venue.name : (
+                        <span className="text-outline-variant">미예약</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
-
       {/* ========================================================= */}
       {/* MODAL M-01: 신규 회차 생성 모달                          */}
       {/* ========================================================= */}
@@ -388,19 +493,6 @@ export default function AdminSlotsPage() {
                     </label>
                   ))}
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  권역당 목표 정원 (기본 48명 = 4인 12개 테이블)
-                </label>
-                <input
-                  type="number"
-                  value={targetPerRegion}
-                  onChange={(e) => setTargetPerRegion(Number(e.target.value))}
-                  step={4}
-                  className="w-full h-10 px-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary"
-                />
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-surface-container">

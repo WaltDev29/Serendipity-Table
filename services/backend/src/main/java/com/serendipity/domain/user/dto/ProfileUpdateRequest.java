@@ -19,4 +19,5 @@ public class ProfileUpdateRequest {
     private List<String> preferredTendencies;
     private List<String> budgetRanges;
     private String foodRestrictions;
+    private String password;
 }

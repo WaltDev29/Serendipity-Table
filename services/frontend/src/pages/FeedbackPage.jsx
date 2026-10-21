@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { submitFeedbackApi } from '../api/table';
+import { blockUserApi } from '../api/auth';
 
 export default function FeedbackPage() {
   const navigate = useNavigate();
@@ -14,9 +15,12 @@ export default function FeedbackPage() {
   });
   const [reviewText, setReviewText] = useState('');
   const [preferRematch, setPreferRematch] = useState(true);
-  const [blockSomeone, setBlockSomeone] = useState(false);
+  const [excludedUserIds, setExcludedUserIds] = useState([]);
+  const [preferredUserIds, setPreferredUserIds] = useState([]);
   const [isSubmitted, setIsSubmitted] = useState(userState === 'FEEDBACK_DONE');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const otherMembers = (matchResult?.members || []).filter(m => !m.isMe);
 
   const setRating = (dimension, value) => {
     setRatings(prev => ({ ...prev, [dimension]: value }));
@@ -38,6 +42,16 @@ export default function FeedbackPage() {
           });
         }
       }
+
+      // 별로인 사람 선택 시 매칭 영구 제외(차단) 등록
+      for (const avoidId of excludedUserIds) {
+        try {
+          await blockUserApi(avoidId, '사후 피드백: 향후 매칭 제외 요청');
+        } catch (e) {
+          console.warn('Block user error:', e);
+        }
+      }
+
       setIsSubmitted(true);
       setUserState('FEEDBACK_DONE');
     } catch (err) {
@@ -263,7 +277,7 @@ export default function FeedbackPage() {
                   ></textarea>
                 </div>
 
-                {/* Private Chemistry Matching Checkboxes */}
+                {/* Private Chemistry Matching & Member Exclusion */}
                 <div className="bg-surface-container-high/60 rounded-xl p-space-md flex flex-col gap-space-sm">
                   <div className="flex items-center gap-space-xs">
                     <span className="material-symbols-outlined text-primary text-lg">shield_lock</span>
@@ -273,44 +287,80 @@ export default function FeedbackPage() {
                     이 선택은 상대방에게 일절 공개되지 않으며, 서버에서 다음 매칭 조율에만 은밀히 사용됩니다.
                   </p>
                   
-                  <div className="flex flex-col gap-space-sm pt-space-xs">
-                    {/* Prefer Option */}
-                    <label className="flex items-start gap-space-sm p-space-sm rounded-lg bg-surface-container-lowest cursor-pointer shadow-sm">
-                      <input
-                        type="checkbox"
-                        checked={preferRematch}
-                        onChange={(e) => setPreferRematch(e.target.checked)}
-                        className="w-5 h-5 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
-                      />
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1">
-                          <span className="font-label-md text-label-md text-on-surface font-semibold">다음 모임에서 다시 만나고 싶은 멤버</span>
-                          <span className="px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm">우선 매칭</span>
-                        </div>
-                        <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                          서로 희망 시 향후 테이블에 우선 자동 편성됩니다. (민트초코, 책방지기 님 등)
-                        </span>
-                      </div>
-                    </label>
+                  <div className="flex flex-col gap-2.5 pt-space-xs">
+                    <span className="font-label-sm text-xs text-on-surface font-semibold">
+                      함께한 멤버별 매칭 조율 (별로였던 사람 매칭 제외)
+                    </span>
 
-                    {/* Block Option */}
-                    <label className="flex items-start gap-space-sm p-space-sm rounded-lg bg-surface-container-lowest cursor-pointer shadow-sm">
-                      <input
-                        type="checkbox"
-                        checked={blockSomeone}
-                        onChange={(e) => setBlockSomeone(e.target.checked)}
-                        className="w-5 h-5 mt-0.5 rounded accent-primary cursor-pointer shrink-0"
-                      />
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1">
-                          <span className="font-label-md text-label-md text-on-surface font-semibold">다시 만나고 싶지 않은 분</span>
-                          <span className="px-1.5 py-0.2 rounded bg-error-container text-on-error-container font-label-sm text-label-sm">100% 영구 분리</span>
-                        </div>
-                        <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                          사유를 묻지 않고 영구적으로 같은 테이블 배정에서 제외 보장합니다.
-                        </span>
-                      </div>
-                    </label>
+                    {otherMembers.length === 0 ? (
+                      <p className="text-xs text-on-surface-variant">멤버 정보를 불러오는 중입니다.</p>
+                    ) : (
+                      otherMembers.map((m) => {
+                        const isExcluded = excludedUserIds.includes(m.id);
+                        const isPreferred = preferredUserIds.includes(m.id);
+
+                        return (
+                          <div
+                            key={m.id}
+                            className={`p-3 rounded-xl bg-surface-container-lowest border transition-all ${
+                              isExcluded
+                                ? 'border-red-400 bg-red-50/50'
+                                : isPreferred
+                                ? 'border-tertiary bg-tertiary-fixed/10'
+                                : 'border-surface-container'
+                            } shadow-xs flex flex-col gap-2`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-label-md font-bold text-on-surface">{m.nickname || m.name}</span>
+                                <span className="text-[11px] text-on-surface-variant">· {m.ageGroup || m.job}</span>
+                              </div>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">
+                                {m.mbti}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1.5 border-t border-surface-container-low text-xs">
+                              {/* Option 1: Again Preference */}
+                              <label className="flex items-center gap-1.5 cursor-pointer text-tertiary select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isPreferred}
+                                  disabled={isExcluded}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setPreferredUserIds(prev => [...prev, m.id]);
+                                    } else {
+                                      setPreferredUserIds(prev => prev.filter(id => id !== m.id));
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded accent-tertiary cursor-pointer"
+                                />
+                                <span className="font-medium text-[11px]">다시 만나고 싶음</span>
+                              </label>
+
+                              {/* Option 2: Exclude Member (별로인 사람 제외) */}
+                              <label className="flex items-center gap-1.5 cursor-pointer text-red-600 select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isExcluded}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setExcludedUserIds(prev => [...prev, m.id]);
+                                      setPreferredUserIds(prev => prev.filter(id => id !== m.id));
+                                    } else {
+                                      setExcludedUserIds(prev => prev.filter(id => id !== m.id));
+                                    }
+                                  }}
+                                  className="w-4 h-4 rounded accent-red-600 cursor-pointer"
+                                />
+                                <span className="font-semibold text-[11px]">매칭 제외 (별로였음)</span>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
@@ -387,12 +437,24 @@ export default function FeedbackPage() {
                       </span>
                     </div>
 
-                    {/* Secret Match Pill */}
-                    <div className="flex items-center gap-space-xs bg-tertiary-fixed/40 text-on-tertiary-fixed-variant px-3 py-2 rounded-lg mt-space-xs">
-                      <span className="material-symbols-outlined text-base text-tertiary">lock_person</span>
-                      <span className="font-body-sm text-body-sm leading-snug">
-                        비공개 선호도: <strong className="font-semibold text-tertiary">다시 만나고 싶은 멤버</strong> 우선 매칭 등록됨
-                      </span>
+                    {/* Secret Match Pill & Exclusion Pill */}
+                    <div className="flex flex-col gap-1.5 mt-space-xs">
+                      {preferredUserIds.length > 0 && (
+                        <div className="flex items-center gap-space-xs bg-tertiary-fixed/40 text-on-tertiary-fixed-variant px-3 py-2 rounded-lg">
+                          <span className="material-symbols-outlined text-base text-tertiary">lock_person</span>
+                          <span className="font-body-sm text-body-sm leading-snug">
+                            비공개 선호도: <strong className="font-semibold text-tertiary">{preferredUserIds.length}명</strong> 우선 매칭 반영됨
+                          </span>
+                        </div>
+                      )}
+                      {excludedUserIds.length > 0 && (
+                        <div className="flex items-center gap-space-xs bg-red-100 text-red-900 px-3 py-2 rounded-lg">
+                          <span className="material-symbols-outlined text-base text-red-600">block</span>
+                          <span className="font-body-sm text-body-sm leading-snug">
+                            매칭 제외: <strong className="font-semibold text-red-700">{excludedUserIds.length}명</strong> 향후 같은 테이블 100% 영구 배제됨
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

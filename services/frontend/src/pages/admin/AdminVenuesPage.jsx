@@ -115,9 +115,13 @@ export default function AdminVenuesPage() {
               {/* Photo & Badge */}
               <div className="relative h-44 w-full overflow-hidden bg-surface-container">
                 <img
-                  src={venue.image}
+                  src={venue.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80'}
                   alt={venue.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80';
+                  }}
                 />
                 <div className="absolute top-3 left-3 flex gap-1.5">
                   <span className="px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-sm text-[11px] font-bold">
@@ -128,19 +132,20 @@ export default function AdminVenuesPage() {
                   </span>
                 </div>
 
-                <div className="absolute top-3 right-3">
-                  <button
-                    type="button"
-                    onClick={() => toggleVenueReservation(venue.id)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all shadow-md ${
-                      venue.isReserved
-                        ? 'bg-tertiary text-white'
-                        : 'bg-surface-container-lowest/90 text-on-surface hover:bg-surface-container-lowest'
-                    }`}
-                  >
-                    {venue.isReserved ? '✓ 예약 확정 완료' : '예약 미완료 (체크)'}
-                  </button>
-                </div>
+                {venue.isReserved && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold shadow-md bg-tertiary text-white">
+                      ✓ 예약 확정 완료
+                    </span>
+                  </div>
+                )}
+                {venue.reservationPending && (
+                  <div className="absolute top-3 right-3">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold shadow-md bg-amber-500 text-white animate-pulse">
+                      ⏳ 예약 진행 중
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Body Info */}
@@ -192,12 +197,12 @@ export default function AdminVenuesPage() {
             <div className="p-4 pt-2 border-t border-surface-container flex items-center justify-between text-xs">
               <span className="text-outline">캐치테이블/네이버 예약 제휴사</span>
               <a
-                href={`https://map.naver.com/v5/search/${encodeURIComponent(venue.name)}`}
+                href={venue.naverMapUrl || `https://map.naver.com/p/search/${encodeURIComponent(venue.name)}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-primary font-bold hover:underline flex items-center gap-0.5"
               >
-                <span>지도 열기</span>
+                <span>네이버 지도 상세</span>
                 <span className="material-symbols-outlined text-[13px]">open_in_new</span>
               </a>
             </div>

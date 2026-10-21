@@ -25,4 +25,23 @@ public class ChatController {
         List<ChatMessageResponse> messages = chatService.getMessages(roomId);
         return ResponseEntity.ok(ApiResponse.ok(messages));
     }
+
+    @org.springframework.web.bind.annotation.PostMapping("/rooms/{roomId}/messages")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> sendMessage(
+            @PathVariable UUID roomId,
+            @org.springframework.web.bind.annotation.RequestBody com.serendipity.domain.chat.dto.ChatMessageRequest req) {
+        req.setRoomId(roomId);
+        ChatMessageResponse response = chatService.sendMessage(req);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/broadcast-notice")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> broadcastNotice(
+            @org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> body) {
+        String region = body.getOrDefault("region", "ALL");
+        String title = body.getOrDefault("title", "");
+        String content = body.getOrDefault("content", "");
+        int count = chatService.broadcastAdminNotice(region, title, content);
+        return ResponseEntity.ok(ApiResponse.ok(java.util.Map.of("sentRooms", count)));
+    }
 }

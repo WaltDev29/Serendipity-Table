@@ -7,8 +7,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useApp();
 
-  const [phone, setPhone] = useState('010-8492-3310');
-  const [password, setPassword] = useState('password123!');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);

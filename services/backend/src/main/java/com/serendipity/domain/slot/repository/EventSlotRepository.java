@@ -9,5 +9,6 @@ import java.util.Optional;
 
 public interface EventSlotRepository extends JpaRepository<EventSlot, Long> {
     List<EventSlot> findByEventDateGreaterThanEqualOrderByEventDateAsc(LocalDate date);
+    Optional<EventSlot> findByEventDate(LocalDate date);
     Optional<EventSlot> findFirstByStatusOrderByEventDateAsc(String status);
 }

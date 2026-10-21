@@ -6,11 +6,13 @@ export default function Header() {
   const location = useLocation();
   const { isNotiDrawerOpen, setIsNotiDrawerOpen, setIsEtiquetteOpen, notifications } = useApp();
 
-  // 관리자 콘솔(/admin), 로그인(/login), 회원가입(/signup) 경로에서는 모바일 사용자 헤더 숨김
+  // 관리자 콘솔(/admin), 로그인(/login), 회원가입(/signup), 전용 채팅방(/chat) 경로에서는 모바일 사용자 헤더 숨김
   if (
     location.pathname.startsWith('/admin') ||
     location.pathname === '/login' ||
-    location.pathname === '/signup'
+    location.pathname === '/signup' ||
+    location.pathname === '/chat' ||
+    location.pathname === '/chat/inquiry'
   ) {
     return null;
   }

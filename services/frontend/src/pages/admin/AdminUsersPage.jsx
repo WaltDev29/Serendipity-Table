@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
-import { useAdmin } from '../../context/AdminContext';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAdmin } from '../../context/AdminContext';
+import { updateUserByAdminApi, sendDirectMessageApi } from '../../api/admin';
 
 export default function AdminUsersPage() {
   const navigate = useNavigate();
-  const { users, banUser, unbanUser, addStrikeUser, addAuditLog } = useAdmin();
+  const { users, banUser, unbanUser, addStrikeUser, addAuditLog, refreshAdminData } = useAdmin();
+
+  useEffect(() => {
+    refreshAdminData();
+  }, [refreshAdminData]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -12,11 +17,13 @@ export default function AdminUsersPage() {
   // 우클릭 컨텍스트 메뉴 상태
   const [contextMenu, setContextMenu] = useState(null); // { x, y, user }
 
-  // 1. 정보 수정 모달 상태
+  // 1. 정보 수정 모달 상태 (전화번호, 비밀번호, 나이, 성별)
   const [editUser, setEditUser] = useState(null);
-  const [editNickname, setEditNickname] = useState('');
-  const [editJob, setEditJob] = useState('');
-  const [editMbti, setEditMbti] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editAge, setEditAge] = useState('');
+  const [editGender, setEditGender] = useState('M');
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   // 2. 주의 사유 추가 모달 상태
   const [strikeTargetUser, setStrikeTargetUser] = useState(null);
@@ -27,6 +34,12 @@ export default function AdminUsersPage() {
   const [banTargetUser, setBanTargetUser] = useState(null);
   const [banReason, setBanReason] = useState('당일 무단 노쇼');
   const [banNote, setBanNote] = useState('');
+
+  // 4. 1:1 메시지 전송 모달 상태
+  const [dmTargetUser, setDmTargetUser] = useState(null);
+  const [dmTitle, setDmTitle] = useState('');
+  const [dmContent, setDmContent] = useState('');
+  const [isSendingDm, setIsSendingDm] = useState(false);
 
   // 우클릭 이벤트 핸들러
   const handleContextMenu = (e, u) => {
@@ -45,59 +58,62 @@ export default function AdminUsersPage() {
   // 모달 오픈 핸들러
   const openEditModal = (u) => {
     setEditUser(u);
-    setEditNickname(u.nickname || u.name);
-    setEditJob(u.job || '');
-    setEditMbti(u.mbti || '');
+    setEditPhone(u.phone && u.phone !== '-' ? u.phone : '');
+    setEditPassword('');
+    const currentAge = u.age || (u.birthYear ? (2026 - u.birthYear + 1) : 28);
+    setEditAge(String(currentAge));
+    setEditGender(u.gender === '여' || u.gender === 'F' ? 'F' : 'M');
     closeContextMenu();
   };
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editUser) return;
-    addAuditLog('USER_EDIT', '총괄관리자', `회원 ${editUser.name}(${editUser.id}) 정보 수정: 직업=${editJob}, MBTI=${editMbti}`);
-    alert(`${editUser.name} 회원의 정보가 수정되었습니다.`);
-    setEditUser(null);
-  };
-
-  const openStrikeModal = (u) => {
-    setStrikeTargetUser(u);
-    setStrikeReason('무단 지각 (30분 이상)');
-    setStrikeNote('');
-    closeContextMenu();
-  };
-
-  const handleStrikeSubmit = async (e) => {
-    e.preventDefault();
-    if (!strikeTargetUser) return;
-    const fullReason = `${strikeReason}${strikeNote ? ` (${strikeNote})` : ''}`;
-    await addStrikeUser(strikeTargetUser.id, fullReason);
-    setStrikeTargetUser(null);
-  };
-
-  const openBanModal = (u) => {
-    setBanTargetUser(u);
-    setBanReason('당일 무단 노쇼');
-    setBanNote('');
-    closeContextMenu();
-  };
-
-  const handleBanSubmit = async (e) => {
-    e.preventDefault();
-    if (!banTargetUser) return;
-    await banUser(banTargetUser.id, banReason, banNote);
-    setBanTargetUser(null);
-  };
-
-  const handleUnban = async (u) => {
-    if (window.confirm(`${u.name} 회원의 블랙리스트 등록을 해제하시겠습니까?`)) {
-      await unbanUser(u.id);
+    try {
+      setIsUpdatingUser(true);
+      const parsedAge = parseInt(editAge, 10);
+      const birthYear = !isNaN(parsedAge) && parsedAge > 0 ? (2026 - parsedAge + 1) : editUser.birthYear;
+      await updateUserByAdminApi(editUser.id, {
+        phone: editPhone,
+        password: editPassword.trim() ? editPassword.trim() : null,
+        birthYear: birthYear,
+        gender: editGender
+      });
+      await refreshAdminData();
+      addAuditLog('USER_EDIT', '총괄관리자', `회원 ${editUser.name}(${editUser.id}) 정보 수정: 연락처=${editPhone}, 나이=${editAge}, 성별=${editGender}`);
+      alert(`${editUser.name} 회원의 정보가 수정되었습니다.`);
+      setEditUser(null);
+    } catch (err) {
+      console.error('Update user failed:', err);
+      alert('회원 정보 수정 실패: ' + (err.message || '오류 발생'));
+    } finally {
+      setIsUpdatingUser(false);
     }
+  };
+
+  const openDmModal = (u) => {
+    setDmTargetUser(u);
+    setDmTitle(`[우연한 식탁] ${u.name}님께 안내드립니다`);
+    setDmContent('');
     closeContextMenu();
   };
 
-  const handleStartChat = (u) => {
-    closeContextMenu();
-    navigate('/admin/chat-ops');
+  const handleDmSubmit = async (e) => {
+    e.preventDefault();
+    if (!dmTargetUser || !dmTitle.trim() || !dmContent.trim()) return;
+    try {
+      setIsSendingDm(true);
+      await sendDirectMessageApi(dmTargetUser.id, dmTitle.trim(), dmContent.trim());
+      await refreshAdminData();
+      addAuditLog('DM_SENT', '총괄관리자', `회원 ${dmTargetUser.name}(${dmTargetUser.id})에게 1:1 메시지 전송: ${dmTitle.trim()}`);
+      alert(`${dmTargetUser.name} 회원님께 1:1 메시지를 발송하였습니다.`);
+      setDmTargetUser(null);
+    } catch (err) {
+      console.error('Send DM failed:', err);
+      alert('메시지 전송 실패: ' + (err.message || '오류 발생'));
+    } finally {
+      setIsSendingDm(false);
+    }
   };
 
   const filteredUsers = users.filter((u) => {
@@ -190,7 +206,7 @@ export default function AdminUsersPage() {
                   <th className="py-3 px-3 text-center">보유 참여권</th>
                   <th className="py-3 px-3.5 text-right">총 결제 금액</th>
                   <th className="py-3 px-3.5">매너온도</th>
-                  <th className="py-3 px-3.5">제재 단계</th>
+                  <th className="py-3 px-3.5">상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container-low">
@@ -202,6 +218,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ) : (
                   filteredUsers.map((u) => {
+                    const isWithdrawn = u.status === 'WITHDRAWN' || u.status === 'DELETED' || u.isWithdrawn;
                     const isBanned = u.status === 'BANNED';
                     const isWarning = u.status === 'WARNING';
                     return (
@@ -252,14 +269,18 @@ export default function AdminUsersPage() {
                         <td className="py-3.5 px-3.5">
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              isBanned
+                              isWithdrawn
+                                ? 'bg-outline-variant/30 text-outline'
+                                : isBanned
                                 ? 'bg-error-container text-error'
                                 : isWarning
                                 ? 'bg-secondary-fixed text-secondary'
                                 : 'bg-tertiary-fixed text-tertiary'
                             }`}
                           >
-                            {isBanned
+                            {isWithdrawn
+                              ? '탈퇴'
+                              : isBanned
                               ? '영구 차단'
                               : isWarning
                               ? `주의 ${u.strikeCount}회`
@@ -285,6 +306,34 @@ export default function AdminUsersPage() {
           <div className="px-3 py-1.5 text-[11px] text-outline font-bold border-b border-surface-container">
             {contextMenu.user.name} ({contextMenu.user.phone})
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const targetPhone = contextMenu.user.phone || '';
+              navigate(`/admin/applications?phone=${encodeURIComponent(targetPhone)}`);
+              closeContextMenu();
+            }}
+            className="w-full px-3 py-2 text-left hover:bg-surface-container flex items-center gap-2 text-on-surface"
+          >
+            <span className="material-symbols-outlined text-[15px] text-tertiary">how_to_reg</span>
+            <span>참가 신청 기록</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const targetPhone = contextMenu.user.phone || '';
+              navigate(`/admin/payments?phone=${encodeURIComponent(targetPhone)}`);
+              closeContextMenu();
+            }}
+            className="w-full px-3 py-2 text-left hover:bg-surface-container flex items-center gap-2 text-on-surface"
+          >
+            <span className="material-symbols-outlined text-[15px] text-secondary">payments</span>
+            <span>결제 내역</span>
+          </button>
+
+          <div className="border-t border-surface-container my-1"></div>
 
           <button
             type="button"
@@ -328,11 +377,11 @@ export default function AdminUsersPage() {
 
           <button
             type="button"
-            onClick={() => handleStartChat(contextMenu.user)}
+            onClick={() => openDmModal(contextMenu.user)}
             className="w-full px-3 py-2 text-left hover:bg-surface-container flex items-center gap-2 text-on-surface"
           >
-            <span className="material-symbols-outlined text-[15px] text-primary">chat</span>
-            <span>개인 채팅 시작</span>
+            <span className="material-symbols-outlined text-[15px] text-primary">mail</span>
+            <span>1:1 메시지 전송</span>
           </button>
         </div>
       )}
@@ -347,27 +396,55 @@ export default function AdminUsersPage() {
             </h3>
             <form onSubmit={handleEditSubmit} className="space-y-3">
               <div>
-                <label className="text-xs text-on-surface-variant block mb-1">직업</label>
+                <label className="text-xs text-on-surface-variant block mb-1">전화번호</label>
                 <input
                   type="text"
-                  value={editJob}
-                  onChange={(e) => setEditJob(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container"
+                  required
+                  placeholder="01012345678"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container font-mono"
                 />
               </div>
               <div>
-                <label className="text-xs text-on-surface-variant block mb-1">MBTI</label>
+                <label className="text-xs text-on-surface-variant block mb-1">새 비밀번호 (미입력 시 기존 유지)</label>
                 <input
-                  type="text"
-                  maxLength={4}
-                  value={editMbti}
-                  onChange={(e) => setEditMbti(e.target.value.toUpperCase())}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container font-mono"
+                  type="password"
+                  placeholder="새 비밀번호 입력"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-on-surface-variant block mb-1">나이 (만)</label>
+                  <input
+                    type="number"
+                    min="19"
+                    max="99"
+                    required
+                    value={editAge}
+                    onChange={(e) => setEditAge(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-on-surface-variant block mb-1">성별</label>
+                  <select
+                    value={editGender}
+                    onChange={(e) => setEditGender(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container"
+                  >
+                    <option value="M">남성</option>
+                    <option value="F">여성</option>
+                  </select>
+                </div>
               </div>
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
+                  disabled={isUpdatingUser}
                   onClick={() => setEditUser(null)}
                   className="flex-1 py-2 rounded-xl bg-surface-container text-xs font-semibold text-on-surface"
                 >
@@ -375,9 +452,10 @@ export default function AdminUsersPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-xl bg-primary text-white text-xs font-bold"
+                  disabled={isUpdatingUser}
+                  className="flex-1 py-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-50"
                 >
-                  저장
+                  {isUpdatingUser ? '저장 중...' : '저장'}
                 </button>
               </div>
             </form>
@@ -492,6 +570,63 @@ export default function AdminUsersPage() {
                   className="flex-1 py-2 rounded-xl bg-error text-white text-xs font-bold"
                 >
                   차단 확정
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. 1:1 메시지 발송 모달 */}
+      {dmTargetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container flex flex-col gap-4">
+            <h3 className="font-title-md text-sm font-bold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px]">mail</span>
+              <span>1:1 메시지 전송 ({dmTargetUser.name})</span>
+            </h3>
+            <p className="text-xs text-on-surface-variant">
+              해당 메시지는 회원의 1:1 문의/알림 내역에 답변 완료 형태로 전달됩니다.
+            </p>
+            <form onSubmit={handleDmSubmit} className="space-y-3">
+              <div>
+                <label className="text-xs text-on-surface-variant block mb-1">제목</label>
+                <input
+                  type="text"
+                  required
+                  value={dmTitle}
+                  onChange={(e) => setDmTitle(e.target.value)}
+                  placeholder="메시지 제목을 입력하세요"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-on-surface-variant block mb-1">내용</label>
+                <textarea
+                  rows={5}
+                  required
+                  value={dmContent}
+                  onChange={(e) => setDmContent(e.target.value)}
+                  placeholder="전달할 메시지 내용을 입력하세요..."
+                  className="w-full px-3 py-2 rounded-xl bg-surface-container text-xs text-on-surface border border-surface-container resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={isSendingDm}
+                  onClick={() => setDmTargetUser(null)}
+                  className="flex-1 py-2 rounded-xl bg-surface-container text-xs font-semibold text-on-surface"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSendingDm}
+                  className="flex-1 py-2 rounded-xl bg-primary text-white text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[15px]">send</span>
+                  <span>{isSendingDm ? '발송 중...' : '메시지 발송'}</span>
                 </button>
               </div>
             </form>

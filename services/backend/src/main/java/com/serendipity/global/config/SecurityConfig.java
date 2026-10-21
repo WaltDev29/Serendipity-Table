@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/slots/**",
+                                "/uploads/**",
                                 "/ws-chat/**",
                                 "/actuator/**",
                                 "/error"

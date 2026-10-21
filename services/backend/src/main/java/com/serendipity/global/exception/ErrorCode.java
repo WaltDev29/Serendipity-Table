@@ -21,6 +21,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "A004", "해당 사용자를 찾을 수 없습니다."),
     USER_ALREADY_EXISTS(HttpStatus.CONFLICT, "A005", "이미 등록된 전화번호입니다."),
     USER_BLACKLISTED(HttpStatus.FORBIDDEN, "A006", "이용 정지(블랙리스트) 처리된 계정입니다."),
+    USER_WITHDRAWN(HttpStatus.FORBIDDEN, "A007", "탈퇴 처리된 회원 계정입니다."),
 
     // Ticket & Payment
     TICKET_NOT_FOUND(HttpStatus.NOT_FOUND, "T001", "사용 가능한 참가권이 없습니다."),

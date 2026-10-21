@@ -25,6 +25,7 @@ public class ActiveTableResponse {
     private LocalTime eventTime;
     private BigDecimal harmonyScore;
     private String status;
+    private String reservationStatus;
     private UUID chatRoomId;
 
     // Venue details

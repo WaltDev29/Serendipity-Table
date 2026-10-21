@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { getMyProfileApi, loginApi, signupApi } from '../api/auth';
 import { getMyActiveTableApi, getMyPastTablesApi } from '../api/table';
 import { getMyApplicationsApi, applySlotApi, cancelApplicationApi } from '../api/application';
-import { getRoomMessagesApi, createStompChatClient, publishChatMessage } from '../api/chat';
+import { getRoomMessagesApi, createStompChatClient, publishChatMessage, sendChatMessageApi } from '../api/chat';
+import { getMyInquiriesApi } from '../api/cs';
+import { getMyNotificationsApi, markNotificationReadApi, markAllNotificationsReadApi } from '../api/notification';
 
 const AppContext = createContext();
 
@@ -50,22 +52,24 @@ export const AppProvider = ({ children }) => {
       tableName: `${table.region} 식탁 #${table.tableNo || 1}`,
       eventDate: `${table.eventDate} ${table.eventTime ? table.eventTime.substring(0, 5) : '19:30'}`,
       status: table.status,
+      reservationStatus: table.reservationStatus,
       chatRoomId: table.chatRoomId,
       harmonyScore: table.harmonyScore,
       venue: {
         id: table.venue?.id,
-        name: table.venue?.name || '추천 다이닝',
+        name: (table.reservationStatus === 'RESERVED' && table.venue?.name) ? table.venue.name : '예약 전',
         genre: 'DINING & BISTRO',
-        address: table.venue?.address || '서울 마포구 동교로 210, 2층',
-        subway: '인근 지하철역 도보 5분',
-        menu: table.venue?.representativeMenu || '시그니처 코스 & 와인 페어링',
+        address: table.reservationStatus === 'RESERVED' ? (table.venue?.address || '') : '',
+        subway: table.reservationStatus === 'RESERVED' ? '인근 지하철역 도보 5분' : '',
+        menu: table.reservationStatus === 'RESERVED' ? (table.venue?.representativeMenu || '시그니처 코스') : '',
         avgPrice: table.venue?.avgPrice ? `1인 약 ${table.venue.avgPrice.toLocaleString()}원` : '1인 약 25,000원 선',
         atmosphere: ['#따뜻한조명', '#조용한대화', '#와인페어링'],
         rating: '4.8 (210)',
         image: table.venue?.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
         kakaoMapUrl: table.venue?.mapUrl,
         naverMapUrl: table.venue?.naverMapUrl,
-        phone: table.venue?.phone
+        phone: table.venue?.phone,
+        isReserved: table.reservationStatus === 'RESERVED' && Boolean(table.venue?.id)
       },
       members: (table.members || []).map((m, idx) => {
         const isMe = m.userId === userId;
@@ -115,7 +119,35 @@ export const AppProvider = ({ children }) => {
 
       const activeUserId = profile?.id;
 
-      // 2. 활성 식탁 조회
+      // 2. 관리자 공지 및 서버 알림 목록 조회 (활성 식탁 여부와 무관하게 공통 로드)
+      let adminNotices = [];
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          adminNotices = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Failed to parse global notices:', e);
+      }
+
+      let serverNotices = [];
+      try {
+        const sNotices = await getMyNotificationsApi();
+        if (Array.isArray(sNotices)) serverNotices = sNotices;
+      } catch (e) {
+        console.warn('Failed to fetch server notices:', e);
+      }
+
+      setNotifications((prev) => {
+        const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
+        return [
+          ...adminNotices,
+          ...serverNotices,
+          ...nonNotices.filter(n => !serverNotices.some(sn => sn.id === n.id))
+        ];
+      });
+
+      // 3. 활성 식탁 조회
       let activeTable = null;
       try {
         activeTable = await getMyActiveTableApi();
@@ -126,20 +158,7 @@ export const AppProvider = ({ children }) => {
       if (activeTable && activeTable.tableId) {
         const formatted = formatTableResponse(activeTable, activeUserId);
         setMatchResult(formatted);
-        setUserState('CONFIRMED');
-
-        // 알림 목록 설정
-        setNotifications([
-          {
-            id: 1,
-            type: 'MATCH',
-            title: `🎉 ${formatted.tableName} 매칭 완료!`,
-            desc: `배정된 식당(${formatted.venue.name})과 4인의 익명 멤버 카드를 확인해보세요.`,
-            time: '방금 전',
-            read: false,
-            link: '/match/result'
-          }
-        ]);
+        setUserState(activeTable.status === 'MATCHED' ? 'MATCHED' : 'CONFIRMED');
 
         // 채팅방 메시지 로드 및 웹소켓 연결
         if (activeTable.chatRoomId) {
@@ -171,6 +190,7 @@ export const AppProvider = ({ children }) => {
       } else {
         // 활성 식탁이 없는 경우 신청 목록 확인
         setMatchResult(null);
+
         try {
           const apps = await getMyApplicationsApi();
           const activeApp = (apps || []).find(a => a.status === 'APPLIED' || a.status === 'WAITING');
@@ -207,43 +227,95 @@ export const AppProvider = ({ children }) => {
           profile = await getMyProfileApi();
         } catch (e) {
           token = null;
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       }
 
-      if (token) {
+      if (token && profile) {
         await refreshAppData();
+      } else {
+        // 비로그인 상태여도 기본 공지사항은 로드
+        try {
+          const stored = localStorage.getItem('global_notices');
+          if (stored) {
+            setNotifications(JSON.parse(stored));
+          }
+        } catch (e) {
+          console.warn('Failed to load guest notices:', e);
+        }
       }
       setIsAuthInitialized(true);
     };
 
     initAuth();
 
+    // 관리자 공지 발송 실시간 브로드캐스트 리스너
+    const handleNewNotice = () => {
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          const notices = JSON.parse(stored);
+          setNotifications((prev) => {
+            const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
+            return [...notices, ...nonNotices];
+          });
+        }
+      } catch (e) {
+        console.warn('Error reading new notice broadcast:', e);
+      }
+    };
+
+    window.addEventListener('new_notice_broadcast', handleNewNotice);
+
     return () => {
+      window.removeEventListener('new_notice_broadcast', handleNewNotice);
       if (stompClientRef.current) {
         stompClientRef.current.deactivate();
       }
     };
   }, [refreshAppData]);
 
-  // 메시지 전송 핸들러 (STOMP 웹소켓 발행)
-  const sendChatMessage = (text, type = 'TALK', payload = null) => {
+  // 메시지 전송 핸들러 (STOMP 웹소켓 발행 + HTTP API fallback)
+  const sendChatMessage = async (text, type = 'TALK', payload = null) => {
     if (!text && !payload) return;
     if (!matchResult?.chatRoomId) {
       console.warn('No active chat room ID');
       return;
     }
 
+    const messageData = {
+      roomId: matchResult.chatRoomId,
+      senderId: currentUser?.id,
+      senderNickname: currentUser?.nickname || '나',
+      senderRole: 'USER',
+      messageType: type,
+      content: text,
+      payload
+    };
+
+    let sentViaWs = false;
     if (stompClientRef.current && stompClientRef.current.connected) {
-      publishChatMessage(stompClientRef.current, {
-        roomId: matchResult.chatRoomId,
-        senderId: currentUser?.id,
-        senderRole: 'USER',
-        messageType: type,
-        content: text,
-        payload
-      });
-    } else {
-      console.warn('STOMP client not connected, message not sent');
+      try {
+        publishChatMessage(stompClientRef.current, messageData);
+        sentViaWs = true;
+      } catch (wsErr) {
+        console.warn('STOMP publish failed, falling back to HTTP:', wsErr);
+      }
+    }
+
+    if (!sentViaWs) {
+      try {
+        const savedMsg = await sendChatMessageApi(matchResult.chatRoomId, messageData);
+        if (savedMsg) {
+          setChatMessages((prev) => {
+            if (prev.some((m) => m.id === savedMsg.id)) return prev;
+            return [...prev, savedMsg];
+          });
+        }
+      } catch (httpErr) {
+        console.error('Failed to send chat message via HTTP:', httpErr);
+      }
     }
   };
 
@@ -280,6 +352,51 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // 알림 읽음 처리 핸들러 (개별 알림 상세 보기 또는 클릭 시)
+  const markNotificationAsRead = async (id) => {
+    try {
+      await markNotificationReadApi(id);
+    } catch (e) {
+      // ignore
+    }
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const updatedList = list.map((n) => (n.id === id ? { ...n, read: true } : n));
+          localStorage.setItem('global_notices', JSON.stringify(updatedList));
+        }
+      } catch (e) {
+        console.warn('Failed to update stored notice read status:', e);
+      }
+      return updated;
+    });
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await markAllNotificationsReadApi();
+    } catch (e) {
+      // ignore
+    }
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const updatedList = list.map((n) => ({ ...n, read: true }));
+          localStorage.setItem('global_notices', JSON.stringify(updatedList));
+        }
+      } catch (e) {
+        console.warn('Failed to update stored notice read status:', e);
+      }
+      return updated;
+    });
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -310,7 +427,9 @@ export const AppProvider = ({ children }) => {
         isEtiquetteOpen,
         setIsEtiquetteOpen,
         isCsOpen,
-        setIsCsOpen
+        setIsCsOpen,
+        markNotificationAsRead,
+        markAllNotificationsRead
       }}
     >
       {children}

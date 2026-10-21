@@ -62,8 +62,12 @@ public class CsService {
                         .build())
                 .collect(Collectors.toList());
 
+        User user = inq.getUser();
         return CsInquiryResponse.builder()
                 .id(inq.getId())
+                .userId(user != null ? user.getId() : null)
+                .userName(user != null ? user.getName() : "문의 회원")
+                .userPhone(user != null ? user.getPhone() : "-")
                 .category(inq.getCategory())
                 .content(inq.getContent())
                 .status(inq.getStatus())

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { updateProfileApi } from '../api/auth';
+import { updateProfileApi, uploadProfileImageApi } from '../api/auth';
 
 export default function InformationInputPage() {
   const navigate = useNavigate();
@@ -10,6 +10,52 @@ export default function InformationInputPage() {
   const [step, setStep] = useState(1); // 1: 기본 프로필, 2: 취향/성향, 3: 식사 선호
   const [dietInput, setDietInput] = useState('');
   const [isSavedModalOpen, setIsSavedModalOpen] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState(currentUser?.profileImageUrl || '');
+
+  // 프로필 사진 변경 핸들러 (백엔드 서버 저장)
+  const handleProfileImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const res = await uploadProfileImageApi(file);
+      const url = typeof res === 'string' ? res : (res?.data || res?.imageUrl);
+      if (url) {
+        setProfileImageUrl(url);
+        setCurrentUser((prev) => ({ ...prev, profileImageUrl: url }));
+      }
+    } catch (err) {
+      alert('프로필 사진 업로드 실패: ' + err.message);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  // 비밀번호 변경 상태
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  // 회원가입 정보(이름, 전화번호, 출생연도, 성별) 자동 동기화 (수정 불가 정보)
+  React.useEffect(() => {
+    if (currentUser) {
+      setApplicationData((prev) => ({
+        ...prev,
+        name: currentUser.name || prev.name,
+        phone: currentUser.phone || prev.phone,
+        birthYear: currentUser.birthYear ? String(currentUser.birthYear) : prev.birthYear,
+        gender: currentUser.gender || prev.gender,
+        job: currentUser.job || prev.job,
+        mbti: currentUser.mbti || prev.mbti,
+        instagramId: currentUser.instagramId || prev.instagramId,
+        interests: (currentUser.interests && currentUser.interests.length > 0) ? currentUser.interests : prev.interests,
+        myTendencies: (currentUser.myTendencies && currentUser.myTendencies.length > 0) ? currentUser.myTendencies : prev.myTendencies,
+        preferredTendencies: (currentUser.preferredTendencies && currentUser.preferredTendencies.length > 0) ? currentUser.preferredTendencies : prev.preferredTendencies,
+      }));
+    }
+  }, [currentUser, setApplicationData]);
 
   // 10종 관심사
   const interestChips = [
@@ -82,7 +128,7 @@ export default function InformationInputPage() {
 
   const handleSaveAll = async () => {
     try {
-      await updateProfileApi({
+      const payload = {
         name: applicationData.name,
         nickname: applicationData.nickname || applicationData.name,
         job: applicationData.job,
@@ -95,7 +141,13 @@ export default function InformationInputPage() {
         preferredTendencies: applicationData.preferredTendencies,
         budgetRanges: applicationData.budgetRange ? [applicationData.budgetRange] : [],
         foodRestrictions: (applicationData.foodRestrictions || []).join(', ')
-      });
+      };
+
+      if (newPassword && newPassword.trim().length >= 4) {
+        payload.password = newPassword.trim();
+      }
+
+      await updateProfileApi(payload);
     } catch (e) {
       console.warn('Profile update note:', e);
     }
@@ -181,31 +233,161 @@ export default function InformationInputPage() {
                 </p>
               </div>
 
+              {/* 프로필 사진 섹션 (기본은 아이콘, 백엔드 서버에 사진 저장) */}
+              <div className="flex items-center gap-4 p-3 bg-surface-container-low rounded-2xl border border-surface-container">
+                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-primary-fixed/40 flex items-center justify-center shrink-0 border-2 border-primary/20 shadow-xs">
+                  {profileImageUrl ? (
+                    <img
+                      src={profileImageUrl}
+                      alt="프로필 사진"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="material-symbols-outlined text-[36px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
+                      person
+                    </span>
+                  )}
+                  {isUploadingImage && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-[10px]">
+                      업로드중
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-on-surface">프로필 사진</span>
+                    <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary-container transition-all">
+                      <span>{profileImageUrl ? '사진 변경' : '사진 등록'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">
+                    기본 프로필은 아이콘으로 노출되며, 등록 시 서버에 안전하게 보관됩니다.
+                  </p>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <div>
-                  <label className="block font-label-md text-xs text-on-surface font-semibold mb-1">
-                    이름 (실명)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-label-md text-xs text-on-surface font-semibold">
+                      이름 (실명)
+                    </label>
+                    <span className="text-[10px] text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md font-medium">
+                      🔒 가입 정보 고정 (수정 불가)
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={applicationData.name}
-                    onChange={(e) => setApplicationData({ ...applicationData, name: e.target.value })}
-                    placeholder="홍길동"
-                    className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    disabled
+                    readOnly
+                    className="w-full h-11 px-3 rounded-xl bg-surface-container text-on-surface-variant text-sm border border-outline-variant/30 cursor-not-allowed select-none opacity-80"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-label-md text-xs text-on-surface font-semibold mb-1">
-                    휴대폰 번호 (매칭 알림 수신용)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-label-md text-xs text-on-surface font-semibold">
+                      휴대폰 번호 (매칭 알림 수신용)
+                    </label>
+                    <span className="text-[10px] text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-md font-medium">
+                      🔒 가입 정보 고정 (수정 불가)
+                    </span>
+                  </div>
                   <input
                     type="tel"
                     value={applicationData.phone}
-                    onChange={(e) => setApplicationData({ ...applicationData, phone: e.target.value })}
-                    placeholder="010-1234-5678"
-                    className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    disabled
+                    readOnly
+                    className="w-full h-11 px-3 rounded-xl bg-surface-container text-on-surface-variant text-sm border border-outline-variant/30 cursor-not-allowed select-none opacity-80"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-label-md text-xs text-on-surface font-semibold">
+                        출생연도
+                      </label>
+                      <span className="text-[10px] text-on-surface-variant">🔒 고정</span>
+                    </div>
+                    <input
+                      type="number"
+                      value={applicationData.birthYear}
+                      disabled
+                      readOnly
+                      className="w-full h-11 px-3 rounded-xl bg-surface-container text-on-surface-variant text-sm border border-outline-variant/30 cursor-not-allowed select-none opacity-80"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-label-md text-xs text-on-surface font-semibold">
+                        성별
+                      </label>
+                      <span className="text-[10px] text-on-surface-variant">🔒 고정</span>
+                    </div>
+                    <div className="flex gap-2">
+                      {['F', 'M'].map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          disabled
+                          className={`flex-1 h-11 rounded-xl text-xs font-bold transition-all cursor-not-allowed ${
+                            applicationData.gender === g
+                              ? 'bg-primary/80 text-white shadow-xs'
+                              : 'bg-surface-container text-outline opacity-50'
+                          }`}
+                        >
+                          {g === 'F' ? '여성' : '남성'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 비밀번호 변경 섹션 (선택) */}
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-label-md text-xs text-on-surface font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px] text-primary">lock_reset</span>
+                      <span>비밀번호 변경 (선택)</span>
+                    </label>
+                    <span className="text-[10px] text-on-surface-variant">변경 시에만 입력</span>
+                  </div>
+
+                  {passwordError && (
+                    <div className="text-[11px] text-red-500 font-semibold">{passwordError}</div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        setPasswordError('');
+                      }}
+                      placeholder="새 비밀번호 (4자리 이상)"
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-lowest text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        setPasswordError('');
+                      }}
+                      placeholder="새 비밀번호 확인"
+                      className="w-full h-10 px-3 rounded-xl bg-surface-container-lowest text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -219,43 +401,6 @@ export default function InformationInputPage() {
                     placeholder="@seoyeon_slowbistro"
                     className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-label-md text-xs text-on-surface font-semibold mb-1">
-                      출생연도
-                    </label>
-                    <input
-                      type="number"
-                      value={applicationData.birthYear}
-                      onChange={(e) => setApplicationData({ ...applicationData, birthYear: e.target.value })}
-                      placeholder="1995"
-                      className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-sm border border-outline-variant/30 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-label-md text-xs text-on-surface font-semibold mb-1">
-                      성별
-                    </label>
-                    <div className="flex gap-2">
-                      {['F', 'M'].map((g) => (
-                        <button
-                          key={g}
-                          type="button"
-                          onClick={() => setApplicationData({ ...applicationData, gender: g })}
-                          className={`flex-1 h-11 rounded-xl text-xs font-bold transition-all ${
-                            applicationData.gender === g
-                              ? 'bg-primary text-white shadow-xs'
-                              : 'bg-surface-container-low text-on-surface-variant hover:text-on-surface'
-                          }`}
-                        >
-                          {g === 'F' ? '여성' : '남성'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -290,7 +435,20 @@ export default function InformationInputPage() {
 
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  if (newPassword || confirmPassword) {
+                    if (newPassword.length < 4) {
+                      setPasswordError('비밀번호는 4자리 이상이어야 합니다.');
+                      return;
+                    }
+                    if (newPassword !== confirmPassword) {
+                      setPasswordError('새 비밀번호가 일치하지 않습니다.');
+                      return;
+                    }
+                  }
+                  setPasswordError('');
+                  setStep(2);
+                }}
                 disabled={!applicationData.name || !applicationData.phone}
                 className="w-full h-12 mt-2 rounded-xl bg-primary text-white font-label-lg text-sm font-bold shadow-md hover:bg-primary-container active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-1"
               >

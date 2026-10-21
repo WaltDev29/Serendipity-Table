@@ -86,6 +86,40 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private String role = "ROLE_USER";
 
+    @Column(name = "status", length = 20)
+    @Builder.Default
+    private String status = "ACTIVE";
+
+    @Column(name = "profile_image_url", columnDefinition = "TEXT")
+    private String profileImageUrl;
+
+    public void withdraw() {
+        this.status = "WITHDRAWN";
+    }
+
+    public void updateProfileImageUrl(String url) {
+        this.profileImageUrl = url;
+    }
+
+    public void rejoin(String passwordHash, String name, String nickname, String job,
+                       String instagramId, String mbti, List<String> interests,
+                       List<String> myTendencies, List<String> preferredTendencies,
+                       List<String> budgetRanges, String foodRestrictions) {
+        this.status = "ACTIVE";
+        this.passwordHash = passwordHash;
+        this.name = name;
+        this.nickname = nickname;
+        this.job = job;
+        this.instagramId = instagramId;
+        this.mbti = mbti;
+        this.interests = interests != null ? interests : new ArrayList<>();
+        this.myTendencies = myTendencies != null ? myTendencies : new ArrayList<>();
+        this.preferredTendencies = preferredTendencies != null ? preferredTendencies : new ArrayList<>();
+        this.budgetRanges = budgetRanges != null ? budgetRanges : new ArrayList<>();
+        this.foodRestrictions = foodRestrictions;
+        this.profileImageUrl = null;
+    }
+
     public void updateProfile(String nickname, String job, String instagramId, String mbti,
                               List<String> interests, List<String> myTendencies,
                               List<String> preferredTendencies, List<String> budgetRanges,
@@ -103,6 +137,12 @@ public class User extends BaseTimeEntity {
 
     public void updatePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
+    }
+
+    public void updateIdentityByAdmin(String phone, Integer birthYear, String gender) {
+        if (phone != null && !phone.trim().isEmpty()) this.phone = phone;
+        if (birthYear != null) this.birthYear = birthYear;
+        if (gender != null && !gender.trim().isEmpty()) this.gender = gender;
     }
 
     public void increaseStrike() {

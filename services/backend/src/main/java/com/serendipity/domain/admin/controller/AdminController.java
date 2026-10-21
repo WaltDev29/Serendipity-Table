@@ -46,14 +46,32 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getUsers()));
     }
 
-    @PatchMapping("/slots/{slotId}/regions/{region}/toggle-close")
+    @PatchMapping("/slots/{slotId}/regions/toggle-close")
     public ResponseEntity<ApiResponse<Void>> toggleRegionClosed(
             @PathVariable Long slotId,
-            @PathVariable String region,
+            @RequestParam String region,
             @RequestParam boolean isClosed,
             @AuthenticationPrincipal UserPrincipal principal) {
         adminService.toggleRegionClosed(slotId, region, isClosed, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("권역 마감 상태가 변경되었습니다.", null));
+    }
+
+    @PostMapping("/slots")
+    public ResponseEntity<ApiResponse<SlotResponse>> createSlot(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate eventDate,
+            @RequestParam(required = false, defaultValue = "48") Integer targetCapacity,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        SlotResponse created = adminService.createSlot(eventDate, targetCapacity, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("신규 회차가 등록되었습니다.", created));
+    }
+
+    @PatchMapping("/slots/{slotId}/status")
+    public ResponseEntity<ApiResponse<Void>> updateSlotStatus(
+            @PathVariable Long slotId,
+            @RequestParam String status,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.updateSlotStatus(slotId, status, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("슬롯 상태가 변경되었습니다.", null));
     }
 
     @GetMapping("/tables")
@@ -127,8 +145,83 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok("답변이 등록되었습니다.", null));
     }
 
+    @PostMapping("/cs/inquiries/{inquiryId}/resolve")
+    public ResponseEntity<ApiResponse<Void>> resolveInquiry(
+            @PathVariable UUID inquiryId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.resolveInquiry(inquiryId, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("문의가 해결 처리되었습니다.", null));
+    }
+
+    @DeleteMapping("/cs/inquiries/{inquiryId}")
+    public ResponseEntity<ApiResponse<Void>> deleteInquiry(
+            @PathVariable UUID inquiryId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.deleteInquiry(inquiryId, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("문의가 삭제되었습니다.", null));
+    }
+
     @GetMapping("/audit-logs")
     public ResponseEntity<ApiResponse<List<AdminAuditLog>>> getAuditLogs() {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getAuditLogs()));
     }
+
+    @PatchMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<Void>> updateUser(
+            @PathVariable UUID userId,
+            @RequestBody AdminUserUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.updateUserByAdmin(userId, request, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("회원 정보가 성공적으로 수정되었습니다.", null));
+    }
+
+    @PostMapping("/users/{userId}/message")
+    public ResponseEntity<ApiResponse<Void>> sendDirectMessage(
+            @PathVariable UUID userId,
+            @Valid @RequestBody AdminDirectMessageRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.sendDirectMessage(userId, request, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("1:1 메시지가 성공적으로 전송되었습니다.", null));
+    }
+
+    @PostMapping("/applications/{applicationId}/refund")
+    public ResponseEntity<ApiResponse<Void>> refundApplication(
+            @PathVariable UUID applicationId,
+            @RequestBody(required = false) AdminRefundRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String reason = request != null && request.getReason() != null ? request.getReason() : "관리자 수동 환불";
+        adminService.refundApplication(applicationId, reason, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("환불 및 참가권 차감 처리가 완료되었습니다.", null));
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<ApiResponse<List<AdminOrderResponse>>> getOrders() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getOrders()));
+    }
+
+    @PostMapping("/orders/{orderId}/refund")
+    public ResponseEntity<ApiResponse<Void>> refundOrder(
+            @PathVariable UUID orderId,
+            @RequestBody(required = false) AdminRefundRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String reason = request != null && request.getReason() != null ? request.getReason() : "관리자 수동 주문 환불";
+        adminService.refundOrder(orderId, reason, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("주문 환불 처리가 완료되었습니다.", null));
+    }
+
+    @GetMapping("/analytics/feedback")
+    public ResponseEntity<ApiResponse<AdminFeedbackResponse>> getFeedbackAnalytics() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getFeedbackAnalytics()));
+    }
+
+    @GetMapping("/analytics/preferences")
+    public ResponseEntity<ApiResponse<List<AdminPreferenceEvaluationResponse>>> getPreferenceEvaluations() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getPreferenceEvaluations()));
+    }
+
+    @GetMapping("/analytics/reviews")
+    public ResponseEntity<ApiResponse<List<AdminReviewResponse>>> getReviews() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getReviews()));
+    }
 }
+

@@ -62,3 +62,17 @@ export function publishChatMessage(stompClient, { roomId, senderId, senderRole =
     })
   });
 }
+
+export async function sendChatMessageApi(roomId, messageData) {
+  return await apiFetch(`/chat/rooms/${roomId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(messageData)
+  });
+}
+
+export async function broadcastRoomNoticeApi(region, title, content) {
+  return await apiFetch('/chat/broadcast-notice', {
+    method: 'POST',
+    body: JSON.stringify({ region, title, content })
+  });
+}

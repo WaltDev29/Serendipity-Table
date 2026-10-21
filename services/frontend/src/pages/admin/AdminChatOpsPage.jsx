@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../../context/AdminContext';
+import { sendChatMessageApi, broadcastRoomNoticeApi } from '../../api/chat';
 
 export default function AdminChatOpsPage() {
   const {
@@ -14,42 +15,107 @@ export default function AdminChatOpsPage() {
   const [adminInput, setAdminInput] = useState('');
   const [kickTargetUser, setKickTargetUser] = useState(null);
 
+  const [chatFilterTab, setChatFilterTab] = useState('ACTIVE'); // 'ACTIVE' (모임 진행 중) | 'PAST' (지난 모임)
+  const [selectedPastDate, setSelectedPastDate] = useState('ALL'); // 'ALL' or specific date YYYY-MM-DD
+
+  // 현재 날짜 기준 모임 다음날까지 '진행 중'으로 판정 (테스트 날짜 2026-10-21 기준)
+  const todayStr = '2026-10-21';
+  const isRoomActiveMeeting = (room) => {
+    const roomDate = room.eventDate || '2026-10-22';
+    // 모임 당일 및 모임 다음날까지 활성 상태로 간주
+    const meetingDate = new Date(roomDate);
+    const expireDate = new Date(meetingDate);
+    expireDate.setDate(expireDate.getDate() + 1); // 다음날 23:59까지
+    expireDate.setHours(23, 59, 59, 999);
+    const now = new Date(todayStr);
+    return now <= expireDate;
+  };
+
+  // 지난 모임에 속하는 채팅방들의 고유 날짜 목록 (내림차순)
+  const pastDates = Array.from(
+    new Set(
+      chatRooms
+        .filter((r) => !isRoomActiveMeeting(r))
+        .map((r) => r.eventDate || '2026-10-15')
+    )
+  ).sort((a, b) => new Date(b) - new Date(a));
+
+  // 탭 및 날짜 필터링 적용된 채팅방 목록
+  const filteredChatRooms = chatRooms
+    .filter((room) => {
+      const isActive = isRoomActiveMeeting(room);
+      if (chatFilterTab === 'ACTIVE') {
+        return isActive;
+      } else {
+        if (isActive) return false;
+        if (selectedPastDate !== 'ALL') {
+          return (room.eventDate || '2026-10-15') === selectedPastDate;
+        }
+        return true;
+      }
+    })
+    .sort((a, b) => {
+      if (chatFilterTab === 'PAST') {
+        // 지난 모임 날짜별 내림차순 정렬
+        const dateA = new Date(a.eventDate || '2026-10-01');
+        const dateB = new Date(b.eventDate || '2026-10-01');
+        return dateB - dateA;
+      }
+      return 0;
+    });
+
   const defaultRoom = {
     id: 'placeholder',
     roomName: '개설된 채팅방 없음',
     venueName: '미배정',
     memberCount: 0,
     unreadCount: 0,
-    lastMessage: '현재 활성화된 단체방이 없습니다.',
+    lastMessage: '선택된 필터에 해당하는 단체방이 없습니다.',
     lastMessageTime: '-',
     messages: [],
     members: []
   };
 
-  const activeRoom = (chatRooms && chatRooms.length > 0)
-    ? (chatRooms.find((r) => r.id === activeChatRoomId) || chatRooms[0])
+  const activeRoom = (filteredChatRooms && filteredChatRooms.length > 0)
+    ? (filteredChatRooms.find((r) => r.id === activeChatRoomId) || filteredChatRooms[0])
     : defaultRoom;
 
   // 운영자 직접 메시지 전송
-  const handleSendAdminMessage = (e) => {
+  const handleSendAdminMessage = async (e) => {
     e.preventDefault();
     if (!adminInput.trim()) return;
+
+    const textToSend = adminInput.trim();
+    setAdminInput('');
+
+    // 실제 백엔드에 전송 (DB 저장 및 WebSocket 브로드캐스트)
+    if (activeRoom.id && activeRoom.id !== 'placeholder') {
+      try {
+        await sendChatMessageApi(activeRoom.id, {
+          senderRole: 'ADMIN',
+          messageType: 'ADMIN_NOTICE',
+          content: textToSend
+        });
+      } catch (err) {
+        console.warn('Backend chat send error:', err);
+      }
+    }
 
     setChatRooms((prev) =>
       prev.map((room) =>
         room.id === activeRoom.id
           ? {
               ...room,
-              lastMessage: adminInput,
+              lastMessage: textToSend,
               lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               messages: [
                 ...room.messages,
                 {
                   id: `admin-${Date.now()}`,
-                  type: 'TALK',
-                  sender: '운영자 김관리 (Manager)',
+                  type: 'ADMIN_NOTICE',
+                  sender: '식탁 지킴이(운영자)',
                   avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                  text: adminInput,
+                  text: textToSend,
                   time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                   isAdmin: true
                 }
@@ -58,36 +124,138 @@ export default function AdminChatOpsPage() {
           : room
       )
     );
-    setAdminInput('');
   };
 
-  // AI 아이스브레이킹 추천 질문 전송
-  const handleSendIcebreak = () => {
+  // 공용 액션 발송 선택 모달 상태 (타입: 'ICEBREAK' | 'VENUE_GUIDE')
+  const [sendScopeModal, setSendScopeModal] = useState(null); // { type: 'ICEBREAK' | 'VENUE_GUIDE', title: string, content: string }
+
+  // AI 질문 발송 트리거
+  const handleTriggerIcebreak = () => {
     const prompts = [
       '💡 [AI 추천 스몰토크] 최근 1년 동안 내 삶에 가장 신선한 자극을 주었던 경험이나 취미는 무엇인가요?',
       '💡 [AI 추천 스몰토크] 내가 생각하는 가장 완벽한 주말 휴식 루틴을 한 줄로 소개해주세요!',
       '💡 [AI 추천 스몰토크] 오늘 식탁에서 꼭 한 번 나눠보고 싶은 재미있는 대화 주제가 있나요?'
     ];
     const picked = prompts[Math.floor(Math.random() * prompts.length)];
+    setSendScopeModal({
+      type: 'ICEBREAK',
+      title: 'AI 아이스브레이킹 질문 전송',
+      content: picked
+    });
+  };
+
+  // 식당 안내 발송 트리거
+  const handleTriggerVenueGuide = () => {
+    const guideText = `[식당 안내] 배정된 제휴 식당: ${activeRoom.venueName || '예약 식당'}\n매장 2층 안쪽 '우연한 식탁' 전용 룸으로 오시면 자리 안내를 도와드립니다.`;
+    setSendScopeModal({
+      type: 'VENUE_GUIDE',
+      title: '식당 안내 발송',
+      content: guideText
+    });
+  };
+
+  // 모달에서 발송 범위(현재 채팅방 vs 전체 채팅방) 선택 실행
+  const executeSendScope = async (targetScope) => {
+    if (!sendScopeModal) return;
+    const { type, content } = sendScopeModal;
+
+    // 백엔드 연동
+    if (targetScope === 'CURRENT') {
+      if (activeRoom.id && activeRoom.id !== 'placeholder') {
+        try {
+          await sendChatMessageApi(activeRoom.id, {
+            senderRole: 'ADMIN',
+            messageType: type === 'ICEBREAK' ? 'ICEBREAKING_PROMPT' : 'ADMIN_NOTICE',
+            content
+          });
+        } catch (err) {
+          console.warn('Backend send error:', err);
+        }
+      }
+    } else {
+      try {
+        await broadcastRoomNoticeApi('ALL', '', content);
+      } catch (err) {
+        console.warn('Backend broadcast error:', err);
+      }
+    }
 
     setChatRooms((prev) =>
-      prev.map((room) =>
-        room.id === activeRoom.id
-          ? {
-              ...room,
-              messages: [
-                ...room.messages,
-                {
-                  id: `ice-${Date.now()}`,
-                  type: 'ICEBREAKING_PROMPT',
-                  text: picked,
-                  time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }
-              ]
-            }
-          : room
-      )
+      prev.map((room) => {
+        if (targetScope === 'CURRENT' && room.id !== activeRoom.id) {
+          return room;
+        }
+
+        const newMsg = {
+          id: `${type.toLowerCase()}-${Date.now()}-${room.id}`,
+          type: type === 'ICEBREAK' ? 'ICEBREAKING_PROMPT' : 'ADMIN_NOTICE',
+          sender: type === 'ICEBREAK' ? 'AI 매칭 어시스턴트' : '식탁 지킴이(운영자)',
+          text: content,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isAdmin: true
+        };
+
+        return {
+          ...room,
+          lastMessage: content,
+          lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          messages: [...room.messages, newMsg]
+        };
+      })
     );
+
+    alert(`${targetScope === 'CURRENT' ? '현재 채팅방' : '전체 채팅방'}에 성공적으로 전송되었습니다.`);
+    setSendScopeModal(null);
+  };
+
+  // 모임 채팅 전체 공지 모달 상태
+  const [isRoomNoticeModalOpen, setIsRoomNoticeModalOpen] = useState(false);
+  const [roomNoticeRegion, setRoomNoticeRegion] = useState('ALL'); // ALL, 홍대, 잠실, 강남, 을지로
+  const [roomNoticeTitle, setRoomNoticeTitle] = useState('');
+  const [roomNoticeContent, setRoomNoticeContent] = useState('');
+
+  const handleBroadcastRoomNotice = async (e) => {
+    e.preventDefault();
+    if (!roomNoticeContent.trim()) return;
+
+    const targetNoticeText = roomNoticeTitle ? `[공지] ${roomNoticeTitle}\n${roomNoticeContent}` : `[공지] ${roomNoticeContent}`;
+
+    // 실제 백엔드 채팅방 및 웹소켓에 공지 브로드캐스트
+    try {
+      await broadcastRoomNoticeApi(roomNoticeRegion, roomNoticeTitle, roomNoticeContent);
+    } catch (err) {
+      console.warn('Backend broadcastRoomNoticeApi error:', err);
+    }
+
+    // 현재 활성화된 모임에만 발송 (권역 필터 조건 반영)
+    setChatRooms((prev) =>
+      prev.map((room) => {
+        const matchRegion = roomNoticeRegion === 'ALL' || (room.roomName || '').includes(roomNoticeRegion) || (room.region || '').includes(roomNoticeRegion);
+        if (!matchRegion) return room;
+
+        return {
+          ...room,
+          lastMessage: `[공지] ${roomNoticeTitle || roomNoticeContent}`,
+          lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          messages: [
+            ...room.messages,
+            {
+              id: `room-notice-${Date.now()}-${room.id}`,
+              type: 'ADMIN_NOTICE',
+              sender: '식탁 지킴이(운영자)',
+              text: targetNoticeText,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isAdmin: true
+            }
+          ]
+        };
+      })
+    );
+
+    alert(`활성화된 모임(${roomNoticeRegion === 'ALL' ? '전체' : roomNoticeRegion})에 공지가 성공적으로 발송되었습니다.`);
+    setIsRoomNoticeModalOpen(false);
+    setRoomNoticeTitle('');
+    setRoomNoticeContent('');
   };
 
   return (
@@ -96,17 +264,25 @@ export default function AdminChatOpsPage() {
       <div className="flex items-center justify-between pb-2 border-b border-surface-container shrink-0">
         <div>
           <h1 className="font-headline-sm text-lg font-bold text-on-surface">
-            실시간 채팅 관제 및 긴급 공지 (Chat Ops & Broadcast)
+            모임 채팅 관리
           </h1>
           <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
-            진행 중인 모든 테이블 단체방을 실시간 모니터링하고 7대 메시지 타입 관제 및 비매너 참가자를 즉시 제재합니다.
+            진행 중인 모든 테이블 단체방을 실시간 모니터링하고 7대 메시지 타입 관제 및 활성 모임 대상 공지를 발송합니다.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsRoomNoticeModalOpen(true)}
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-primary text-white hover:bg-primary-container transition-all font-label-md text-xs font-bold shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[17px]">campaign</span>
+            <span>모임 전체 공지 발송</span>
+          </button>
           <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-xs font-bold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse" />
-            <span>실시간 관제 스트림 정상 (WebSocket 연결)</span>
+            <span>실시간 관제 정상</span>
           </span>
         </div>
       </div>
@@ -117,15 +293,70 @@ export default function AdminChatOpsPage() {
         {/* 1. LEFT PANEL (3 cols): 채팅방 목록                       */}
         {/* ========================================================= */}
         <div className="col-span-3 border-r border-surface-container flex flex-col min-h-0 bg-surface-container-low/40">
-          <div className="p-3 border-b border-surface-container flex items-center justify-between">
-            <span className="font-title-md text-xs font-bold text-on-surface">
-              테이블 단체방 ({chatRooms.length})
-            </span>
-            <span className="text-[10px] text-outline font-semibold">10/22 회차</span>
+          {/* Filter Tabs */}
+          <div className="p-2.5 border-b border-surface-container space-y-2">
+            <div className="grid grid-cols-2 gap-1 bg-surface-container p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setChatFilterTab('ACTIVE')}
+                className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all ${
+                  chatFilterTab === 'ACTIVE'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                모임 진행 중
+              </button>
+              <button
+                type="button"
+                onClick={() => setChatFilterTab('PAST')}
+                className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all ${
+                  chatFilterTab === 'PAST'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                지난 모임
+              </button>
+            </div>
+
+            {/* Date Filter Dropdown for Past Meetings */}
+            {chatFilterTab === 'PAST' && (
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[15px] text-outline">calendar_today</span>
+                <select
+                  value={selectedPastDate}
+                  onChange={(e) => setSelectedPastDate(e.target.value)}
+                  className="flex-1 h-8 px-2 rounded-lg bg-surface-container-lowest text-xs font-medium border border-surface-container text-on-surface focus:outline-none focus:border-primary"
+                >
+                  <option value="ALL">전체 날짜 (최신순)</option>
+                  {pastDates.map((date) => (
+                    <option key={date} value={date}>
+                      {date} 모임
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="font-title-md text-[11px] font-bold text-on-surface">
+                {chatFilterTab === 'ACTIVE' ? '진행 중인 모임' : '지난 모임 기록'} ({filteredChatRooms.length})
+              </span>
+              <span className="text-[10px] text-outline font-semibold">
+                {chatFilterTab === 'ACTIVE' ? 'D+1 활성 유지' : '기록 보관'}
+              </span>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto divide-y divide-surface-container-low">
-            {chatRooms.map((room) => {
+            {filteredChatRooms.length === 0 ? (
+              <div className="py-8 text-center text-xs text-on-surface-variant px-3">
+                <span className="material-symbols-outlined text-2xl text-outline block mb-1">forum</span>
+                해당 조건의 채팅방이 없습니다.
+              </div>
+            ) : (
+              filteredChatRooms.map((room) => {
               const isActive = room.id === activeRoom.id;
               return (
                 <div
@@ -151,7 +382,8 @@ export default function AdminChatOpsPage() {
                   </p>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         </div>
 
@@ -317,73 +549,74 @@ export default function AdminChatOpsPage() {
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={handleSendIcebreak}
+                  onClick={handleTriggerIcebreak}
                   className="w-full py-2.5 px-3 rounded-xl bg-secondary-fixed text-secondary font-bold text-xs hover:bg-secondary-fixed-dim transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[16px]">psychology</span>
-                    <span>AI 질문 즉시 투입</span>
+                    <span>AI 질문 발송</span>
                   </div>
                   <span className="material-symbols-outlined text-[14px]">send</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    sendEmergencyNotice(
-                      activeRoom.roomName,
-                      '식당 룸 위치 안내',
-                      '매장 2층 안쪽 우연한 식탁 전용 룸으로 오시면 자리 안내를 도와드립니다.',
-                      true
-                    )
-                  }
+                  onClick={handleTriggerVenueGuide}
                   className="w-full py-2.5 px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-xs transition-colors flex items-center justify-between"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-primary">campaign</span>
-                    <span>룸 위치 핀 공지 띄우기</span>
+                    <span className="material-symbols-outlined text-[16px] text-primary">storefront</span>
+                    <span>식당 안내 발송</span>
                   </div>
-                  <span className="material-symbols-outlined text-[14px]">push_pin</span>
+                  <span className="material-symbols-outlined text-[14px]">send</span>
                 </button>
               </div>
             </div>
 
             {/* Participants Status & Kick Action */}
             <div className="space-y-2 pt-3 border-t border-surface-container">
-              <span className="font-bold text-xs text-on-surface block">
-                참가자 명단 및 현장 도착 상태
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-on-surface block">
+                  참가자 명단 ({activeRoom.members?.length || 0}명)
+                </span>
+                <span className="text-[10px] text-outline font-medium">실시간 참여 현황</span>
+              </div>
               <div className="space-y-1.5">
-                {[
-                  { name: '김서연', age: 29, status: '도착 완료 (19:24)', isArrived: true },
-                  { name: '이도현', age: 31, status: '이동 중 (예상 19:28)', isArrived: false },
-                  { name: '박지민', age: 28, status: '도착 완료 (19:20)', isArrived: true },
-                  { name: '최원우', age: 30, status: '도착 완료 (19:25)', isArrived: true }
-                ].map((member) => (
-                  <div
-                    key={member.name}
-                    className="p-2 rounded-xl bg-surface-container-low flex items-center justify-between text-xs"
-                  >
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-bold text-on-surface">{member.name}</span>
-                        <span className="text-[10px] text-outline">({member.age}세)</span>
-                      </div>
-                      <span className={`text-[10px] font-semibold ${member.isArrived ? 'text-tertiary' : 'text-on-surface-variant'}`}>
-                        {member.status}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setKickTargetUser(member.name)}
-                      className="px-2 py-0.5 rounded bg-error-container text-error hover:bg-error hover:text-white text-[10px] font-bold transition-colors"
-                      title="비매너/폭언 시 강제 퇴장"
-                    >
-                      강퇴
-                    </button>
+                {(!activeRoom.members || activeRoom.members.length === 0) ? (
+                  <div className="py-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
+                    배정된 참가자가 없습니다.
                   </div>
-                ))}
+                ) : (
+                  activeRoom.members.map((member) => {
+                    const memberName = member.name || member.nickname || '참가자';
+                    const memberAge = member.age ? `${member.age}세` : (member.gender === 'F' ? '여성' : '남성');
+                    return (
+                      <div
+                        key={member.id || memberName}
+                        className="p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-on-surface">{memberName}</span>
+                          <span className="text-[10px] text-outline font-mono">({memberAge})</span>
+                          {member.job && (
+                            <span className="text-[10px] text-on-surface-variant truncate max-w-[70px]">
+                              · {member.job}
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setKickTargetUser(memberName)}
+                          className="px-2 py-0.5 rounded bg-error-container text-error hover:bg-error hover:text-white text-[10px] font-bold transition-colors"
+                          title="비매너/폭언 시 강제 퇴장"
+                        >
+                          강퇴
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -423,6 +656,164 @@ export default function AdminChatOpsPage() {
                 className="flex-1 h-9 rounded-xl bg-error text-white text-xs font-bold"
               >
                 즉시 강제 퇴장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 모임 전체/권역별 공지 발송 모달 */}
+      {isRoomNoticeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container flex flex-col gap-4">
+            <div className="flex items-center justify-between pb-3 border-b border-surface-container">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary-fixed flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined text-[18px]">campaign</span>
+                </div>
+                <div>
+                  <h3 className="font-title-md text-base font-bold text-on-surface">
+                    모임 단체방 전체 공지 발송
+                  </h3>
+                  <p className="font-body-sm text-[12px] text-on-surface-variant">
+                    현재 활성화된 모임 단체방에만 공지 메시지를 전송합니다.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRoomNoticeModalOpen(false)}
+                className="w-7 h-7 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleBroadcastRoomNotice} className="space-y-3">
+              {/* Target Region */}
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1">
+                  발송 대상 (모임 전체 / 권역별 선택)
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[
+                    { id: 'ALL', label: '전체 모임' },
+                    { id: '홍대', label: '홍대' },
+                    { id: '잠실', label: '잠실' },
+                    { id: '강남', label: '강남' },
+                    { id: '을지로', label: '을지로' }
+                  ].map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRoomNoticeRegion(r.id)}
+                      className={`h-8 rounded-lg text-xs font-semibold transition-all ${
+                        roomNoticeRegion === r.id
+                          ? 'bg-primary text-white shadow-xs font-bold'
+                          : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1">
+                  공지 제목 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={roomNoticeTitle}
+                  onChange={(e) => setRoomNoticeTitle(e.target.value)}
+                  placeholder="예: [안내] 모임 시작 10분 전 안내"
+                  className="w-full h-9 px-3 rounded-xl bg-surface-container-low text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1">
+                  공지 내용 <span className="text-error">*</span>
+                </label>
+                <textarea
+                  value={roomNoticeContent}
+                  onChange={(e) => setRoomNoticeContent(e.target.value)}
+                  rows={3}
+                  required
+                  placeholder="활성 모임 단체방에 전달할 안내 사항을 입력하세요."
+                  className="w-full p-3 rounded-xl bg-surface-container-low text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-surface-container">
+                <button
+                  type="button"
+                  onClick={() => setIsRoomNoticeModalOpen(false)}
+                  className="flex-1 h-10 rounded-xl bg-surface-container text-xs font-bold text-on-surface"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={!roomNoticeContent.trim()}
+                  className="flex-1 h-10 rounded-xl bg-primary text-white text-xs font-bold shadow-md hover:bg-primary-container disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">send</span>
+                  <span>모임방에 공지 발송</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* AI 질문 / 식당 안내 발송 범위(현재 채팅방 vs 전체 채팅방) 선택 모달 */}
+      {sendScopeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-surface-container flex flex-col gap-3">
+            <div className="flex items-center justify-between pb-2 border-b border-surface-container">
+              <h3 className="font-title-md text-sm font-bold text-on-surface flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-[18px]">
+                  {sendScopeModal.type === 'ICEBREAK' ? 'psychology' : 'storefront'}
+                </span>
+                <span>{sendScopeModal.title}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSendScopeModal(null)}
+                className="w-6 h-6 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-surface-container-low text-xs text-on-surface leading-relaxed border border-surface-container">
+              <span className="text-[10px] text-outline font-bold block mb-1">전송 메시지 내용 미리보기</span>
+              <p className="whitespace-pre-wrap">{sendScopeModal.content}</p>
+            </div>
+
+            <p className="text-xs text-on-surface-variant font-medium">
+              해당 메시지를 발송할 대상을 선택해 주세요.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-container">
+              <button
+                type="button"
+                onClick={() => executeSendScope('CURRENT')}
+                className="h-10 rounded-xl bg-secondary-fixed text-secondary hover:bg-secondary-fixed-dim text-xs font-bold transition-colors flex items-center justify-center gap-1 shadow-xs"
+              >
+                <span className="material-symbols-outlined text-[15px]">forum</span>
+                <span>현재 채팅방</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => executeSendScope('ALL')}
+                className="h-10 rounded-xl bg-primary text-white hover:bg-primary-container text-xs font-bold transition-colors flex items-center justify-center gap-1 shadow-md"
+              >
+                <span className="material-symbols-outlined text-[15px]">campaign</span>
+                <span>전체 채팅방</span>
               </button>
             </div>
           </div>

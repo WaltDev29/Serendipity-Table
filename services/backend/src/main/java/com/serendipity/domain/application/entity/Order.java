@@ -52,4 +52,8 @@ public class Order {
     @CreatedDate
     @Column(name = "paid_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void updateStatus(String status) {
+        this.status = status;
+    }
 }

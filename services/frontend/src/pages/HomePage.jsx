@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { getHomeStatsApi } from '../api/slot';
+import ApplyModal from '../components/common/ApplyModal';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { userState, matchResult } = useApp();
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
   const [stats, setStats] = useState({
     cumulativeParticipants: 1700,
@@ -161,102 +163,27 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Open Regional Lineup Section */}
-        <section className="w-full flex flex-col gap-3 pt-2">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-[11px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                <span>이번 주 오픈 라인업</span>
-              </div>
-              <span className="font-label-sm text-[11px] text-on-surface-variant">정원 마감 시 조기 종료</span>
-            </div>
-            <h2 className="font-headline-md text-lg font-bold text-on-surface">
-              이번 주 목요일 모임 권역 <span className="text-primary text-sm font-semibold">(10/22 저녁 7:30)</span>
-            </h2>
-            <p className="font-body-sm text-[12px] text-on-surface-variant leading-relaxed">
-              희망 권역을 신청하시면, AI 매칭 엔진이 성향과 취향 기반으로 4~6인 테이블을 자동 구성합니다.
-            </p>
+
+
+        {/* 신청 전(userState === 'NONE') 사용자 대상 모임 신청 CTA 버튼 */}
+        {userState === 'NONE' && (
+          <div className="w-full">
+            <button
+              type="button"
+              onClick={() => setIsApplyModalOpen(true)}
+              className="w-full py-3.5 px-4 rounded-2xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">restaurant</span>
+              <span>이번 주 목요일 모임 신청하기</span>
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
           </div>
+        )}
 
-          {/* Region Cards */}
-          <div className="flex flex-col gap-3">
-            {/* Card 1: 홍대/합정 */}
-            <article
-              onClick={() => navigate('/apply')}
-              className="p-4 rounded-2xl bg-surface-container-lowest shadow-sm border border-surface-container hover:border-primary transition-all flex flex-col gap-2 cursor-pointer group hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-primary text-on-primary font-label-sm text-[11px] font-bold">
-                    마감 임박
-                  </span>
-                  <h3 className="font-headline-sm text-base font-bold text-on-surface group-hover:text-primary transition-colors">
-                    홍대 / 합정 권역
-                  </h3>
-                </div>
-                <span className="text-[12px] text-primary font-semibold">D-2 잔여 2석</span>
-              </div>
-              <p className="font-body-sm text-[12px] text-on-surface-variant">
-                연남동·상수 감성 캐주얼 비스트로 & 내추럴 와인 다이닝 중심
-              </p>
-              <div className="flex items-center gap-1.5 pt-1 text-[11px] text-on-surface-variant">
-                <span className="px-2 py-0.5 rounded-full bg-surface-container">#예상 3~4개 테이블</span>
-                <span className="px-2 py-0.5 rounded-full bg-surface-container">#20대 후반~30대 초반</span>
-              </div>
-            </article>
-
-            {/* Card 2: 잠실/송파 */}
-            <article
-              onClick={() => navigate('/apply')}
-              className="p-4 rounded-2xl bg-surface-container-lowest shadow-sm border border-surface-container hover:border-secondary transition-all flex flex-col gap-2 cursor-pointer group hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-secondary text-on-secondary font-label-sm text-[11px] font-bold">
-                    모집 중
-                  </span>
-                  <h3 className="font-headline-sm text-base font-bold text-on-surface group-hover:text-secondary transition-colors">
-                    잠실 / 송파 권역
-                  </h3>
-                </div>
-                <span className="text-[12px] text-secondary font-semibold">정원 80% 달성</span>
-              </div>
-              <p className="font-body-sm text-[12px] text-on-surface-variant">
-                송리단길·석촌호수 인근 따뜻한 분위기의 양식 & 다이닝 펍
-              </p>
-              <div className="flex items-center gap-1.5 pt-1 text-[11px] text-on-surface-variant">
-                <span className="px-2 py-0.5 rounded-full bg-surface-container">#예상 2~3개 테이블</span>
-                <span className="px-2 py-0.5 rounded-full bg-surface-container">#직장인 소셜 다이닝</span>
-              </div>
-            </article>
-
-            {/* Card 3: 강남/신논현 */}
-            <article
-              onClick={() => navigate('/apply')}
-              className="p-4 rounded-2xl bg-surface-container-lowest shadow-sm border border-surface-container hover:border-tertiary transition-all flex flex-col gap-2 cursor-pointer group hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-tertiary text-on-tertiary font-label-sm text-[11px] font-bold">
-                    모집 중
-                  </span>
-                  <h3 className="font-headline-sm text-base font-bold text-on-surface group-hover:text-tertiary transition-colors">
-                    강남 / 신논현 권역
-                  </h3>
-                </div>
-                <span className="text-[12px] text-tertiary font-semibold">정원 70% 달성</span>
-              </div>
-              <p className="font-body-sm text-[12px] text-on-surface-variant">
-                역삼·신논현 조용한 룸 보유 비스트로 & 모던 이탈리안
-              </p>
-              <div className="flex items-center gap-1.5 pt-1 text-[11px] text-on-surface-variant">
-                <span className="px-2 py-0.5 rounded-full bg-surface-container">#퇴근 후 가벼운 한잔</span>
-                <span className="px-2 py-0.5 rounded-full bg-surface-container">#스타트업·IT 직군</span>
-              </div>
-            </article>
-          </div>
-        </section>
+        <ApplyModal
+          isOpen={isApplyModalOpen}
+          onClose={() => setIsApplyModalOpen(false)}
+        />
 
         {/* 3 Safe Promises Banner */}
         <section className="p-4 rounded-3xl bg-surface-container-low border border-surface-container flex flex-col gap-3">

@@ -3,6 +3,9 @@
 -- 기준: PRD v1.1.0, 08_백엔드_개발_계획서.md
 -- ========================================================
 
+SET timezone = 'Asia/Seoul';
+ALTER DATABASE serendipity_db SET timezone TO 'Asia/Seoul';
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -316,42 +319,42 @@ INSERT INTO users (
 ) VALUES 
 (
     'a0000000-0000-0000-0000-000000000001', '01000000000', 
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a', -- admin123
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '총괄관리자', '운영팀장', 1990, 'M', '서비스 운영 총괄', 'serendipity_official', 'ENFJ',
     ARRAY['자기계발·공부', '스타트업'], ARRAY['이야기를 이끄는 편'], ARRAY['열정 있는 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_ADMIN', 45.0
 ),
 (
     '10000000-0000-0000-0000-000000000001', '01084923310',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a', -- 1234
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '김서연', '서연', 1997, 'F', '브랜드 디자이너', 'seoyeon_k', 'ENFP',
     ARRAY['와인·위스키', '전시·미술관', '러닝·마라톤'], ARRAY['이야기를 이끄는 편', '웃음이 많은 편'],
     ARRAY['열정 있는 사람', '잘 들어주는 사람'], ARRAY['20,000~30,000원'], '오이', 'ROLE_USER', 36.8
 ),
 (
     '10000000-0000-0000-0000-000000000002', '01011112222',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '이도현', '민트초코', 1996, 'M', '그로스 마케터', 'mint_dohyun', 'ENTP',
     ARRAY['스타트업·창업', '재테크·투자'], ARRAY['논리적인 대화 선호'], ARRAY['유쾌하고 긍정적인 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_USER', 37.2
 ),
 (
     '10000000-0000-0000-0000-000000000003', '01033334444',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '박지민', '러너', 1995, 'F', '백엔드 엔지니어', 'jimin_run', 'ISTJ',
     ARRAY['러닝·마라톤', '반려동물'], ARRAY['조용히 경청하는 편'], ARRAY['예의 바르고 배려심 넘치는 사람'],
     ARRAY['20,000~30,000원'], '갑각류 알레르기', 'ROLE_USER', 38.0
 ),
 (
     '10000000-0000-0000-0000-000000000004', '01055556666',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '최원우', '책방지기', 1993, 'M', '공간 건축가', 'wonwoo_arch', 'INTP',
     ARRAY['독서·인문학', '전시·미술관'], ARRAY['생각을 깊게 나누는 편'], ARRAY['깊이 있는 대화를 좋아하는 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_USER', 36.5
 ),
 (
     '10000000-0000-0000-0000-000000000005', '01077778888',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiV55R2mKL8G9/jE3t8yO9K8YyO9m2a',
+    '$2a$10$4cS2bzERYOfbRWxAJRBf2.PXHNXggS9vXLjV4L4zPT35g0Yeb7UJS', -- password123
     '배강석', '강석', 1991, 'M', '프리랜서', 'gangseok_b', 'ESTP',
     ARRAY['영화·넷플릭스'], ARRAY['주도적인 편'], ARRAY['활동적인 사람'],
     ARRAY['20,000~30,000원'], '없음', 'ROLE_USER', 31.2
@@ -369,51 +372,45 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. 테스트 회차 등록 (매주 목요일 19:30)
+-- 현재 주 목요일(CURRENT_DATE + 1 day) 및 다음주 목요일(CURRENT_DATE + 8 days) 등록
 INSERT INTO event_slots (id, event_date, event_time, match_deadline, status)
 VALUES
-(1, CURRENT_DATE + INTERVAL '2 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '1 day', 'OPEN'),
-(2, CURRENT_DATE + INTERVAL '9 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '8 days', 'OPEN')
+(3, CURRENT_DATE + INTERVAL '1 day', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '12 hours', 'OPEN'),
+(4, CURRENT_DATE + INTERVAL '8 days', '19:30:00', CURRENT_TIMESTAMP + INTERVAL '5 days', 'OPEN')
 ON CONFLICT (id) DO NOTHING;
 
--- 4. 4대 권역 슬롯 등록
+SELECT setval('event_slots_id_seq', (SELECT COALESCE(MAX(id), 1) FROM event_slots));
+
+-- 4. 4대 권역 슬롯 등록 (정원 제한 없이 신청 접수)
 INSERT INTO region_slots (event_slot_id, region, target_capacity, current_count, is_closed)
 VALUES
-(1, '홍대/합정', 48, 42, FALSE),
-(1, '강남/신논현', 48, 48, TRUE),
-(1, '을지로/종로', 48, 36, FALSE),
-(1, '잠실', 48, 20, FALSE)
+(3, '홍대/합정', 0, 42, FALSE),
+(3, '강남/신논현', 0, 48, TRUE),
+(3, '을지로/종로', 0, 36, FALSE),
+(3, '잠실/송파', 0, 20, FALSE)
 ON CONFLICT (event_slot_id, region) DO UPDATE SET
     current_count = EXCLUDED.current_count,
     is_closed = EXCLUDED.is_closed;
 
--- 5. 테스트 제휴 식당 등록
-INSERT INTO venues (id, name, region, address, map_url, naver_map_url, representative_menu, avg_price, capacity_tables, phone, is_reserved, image_url)
+-- 5. 테스트 제휴 식당 등록 (네이버 지도 연동)
+INSERT INTO venues (name, region, address, map_url, naver_map_url, representative_menu, avg_price, capacity_tables, phone, benefits, is_reserved, image_url)
 VALUES
-(
-    'b0000000-0000-0000-0000-000000000001', '연남 브리즈 다이닝', '홍대/합정', '서울 마포구 동교로 210', 
-    'https://map.kakao.com/link/to/연남브리즈', 'https://map.naver.com/v5/search/연남브리즈', 
-    '트러플 크림 파스타 & 내추럴 와인', 25000, 4, '02-333-1001', TRUE, 
-    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80'
-),
-(
-    'b0000000-0000-0000-0000-000000000002', '합정 슬로우키친', '홍대/합정', '서울 마포구 독막로 45', 
-    'https://map.kakao.com/link/to/합정슬로우', 'https://map.naver.com/v5/search/합정슬로우', 
-    '수비드 부채살 스테이크 & 타파스', 28000, 3, '02-333-1002', TRUE, 
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80'
-),
-(
-    'b0000000-0000-0000-0000-000000000003', '을지로 레트로 다이닝', '을지로/종로', '서울 중구 을지로 105', 
-    'https://map.kakao.com/link/to/을지로레트로', 'https://map.naver.com/v5/search/을지로레트로', 
-    '모던 한식 타파스 & 전통주 페어링', 24000, 4, '02-222-3001', TRUE, 
-    'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=600&q=80'
-),
-(
-    'b0000000-0000-0000-0000-000000000004', '강남 모던 프렌치 비스트로', '강남/신논현', '서울 강남구 봉은사로 12', 
-    'https://map.kakao.com/link/to/강남모던프렌치', 'https://map.naver.com/v5/search/강남모던프렌치', 
-    '가을 제철 코스와 캐주얼 페어링', 30000, 5, '02-555-2001', TRUE, 
-    'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80'
-)
-ON CONFLICT (id) DO NOTHING;
+-- 홍대/합정 (3곳)
+('연남토마 본점', '홍대/합정', '서울 마포구 월드컵북로6길 61', 'https://map.naver.com/p/entry/place/1229825670', 'https://map.naver.com/p/entry/place/1229825670', '명란 오일 파스타 & 가츠덮밥', 22000, 4, '02-332-8064', '웰컴 에이드 1잔 제공', false, 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=600&q=80'),
+('오레노라멘 본점', '홍대/합정', '서울 마포구 독막로6길 14', 'https://map.naver.com/p/entry/place/814481697', 'https://map.naver.com/p/entry/place/814481697', '토리 파이탄 라멘 & 차슈', 12000, 4, '02-322-3539', '면/밥 무료 리필 서비스', false, 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=600&q=80'),
+('멕시코식당', '홍대/합정', '서울 마포구 독막로2길 23', 'https://map.naver.com/p/entry/place/1700484018', 'https://map.naver.com/p/entry/place/1700484018', '치미창가 & 엔칠라다', 19000, 4, '02-336-3666', '나초칩 1바스켓 서비스', false, 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80'),
+
+-- 강남/신논현 (1곳)
+('어거스트 힐 강남점', '강남/신논현', '서울 강남구 강남대로106길 25', 'https://map.naver.com/p/entry/place/661051254', 'https://map.naver.com/p/entry/place/661051254', '채끝 스테이크 & 트러플 파스타', 32000, 6, '02-568-8003', '웰컴 하우스 와인 1잔', false, 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80'),
+
+-- 을지로/종로 (3곳)
+('을지다락', '을지로/종로', '서울 중구 수표로10길 19', 'https://map.naver.com/p/entry/place/1444910504', 'https://map.naver.com/p/entry/place/1444910504', '다락 오므라이스 & 매콤크림파스타', 23000, 4, '070-8844-4484', '웰컴 스파클링 에이드 1잔', true, 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=600&q=80'),
+('녁 을지로점', '을지로/종로', '서울 중구 수표로 65', 'https://map.naver.com/p/entry/place/412011201', 'https://map.naver.com/p/entry/place/412011201', '갈비 리조또 & 수제 생면 파스타', 30000, 4, '070-4150-0504', '식전 브루스케타 서비스', false, 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80'),
+('을지로보석', '을지로/종로', '서울 중구 마른내로 11-10 3층', 'https://map.naver.com/p/entry/place/1148721944', 'https://map.naver.com/p/entry/place/1148721944', '제철 한식 다이닝 코스', 27000, 5, '02-2274-1234', '내추럴 와인 시음 1잔', false, 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=600&q=80'),
+
+-- 잠실/송파 (2곳)
+('엘리스리틀이태리 송리단길점', '잠실/송파', '서울 송파구 백제고분로41길 43-21', 'https://map.naver.com/p/entry/place/37192433', 'https://map.naver.com/p/entry/place/37192433', '화덕피자 & 트러플 리조또', 29000, 4, '02-421-2244', '웰컴 아란치니 서비스', true, 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80'),
+('갓잇 송리단길점', '잠실/송파', '서울 송파구 오금로16길 20', 'https://map.naver.com/p/entry/place/1246280409', 'https://map.naver.com/p/entry/place/1246280409', '멕시칸 타코 & 파히타 세트', 26000, 5, '02-423-9451', '또띠아 무제한 리필', false, 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=600&q=80');
 
 -- 6. 테스트 확정 테이블 등록 (홍대 1번 테이블)
 INSERT INTO dining_tables (id, event_slot_id, table_no, region, venue_id, harmony_score, male_count, female_count, status, reservation_status)

@@ -41,8 +41,9 @@ export default function CustomerServicePage() {
     setIsSubmitted(true);
     try {
       await createInquiryApi(category, `[${category}] 고객 문의`, inquiryText);
-      await showAlert('문의가 백엔드 CS 시스템에 정상 접수되었습니다.\n운영자가 확인 후 신속히 답변을 전달해 드립니다.', '문의 접수');
+      await showAlert('문의가 접수되었습니다. 1:1 문의 채팅방으로 이동합니다.', '문의 접수');
       setInquiryText('');
+      navigate('/chat/inquiry');
     } catch (err) {
       await showAlert('문의 접수 실패: ' + err.message, '오류');
     } finally {

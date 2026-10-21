@@ -14,8 +14,13 @@ export default defineConfig({
     watch: {
       usePolling: true
     },
+    allowedHosts: true,
     proxy: {
       '/api': {
+        target: 'http://backend:8080',
+        changeOrigin: true
+      },
+      '/uploads': {
         target: 'http://backend:8080',
         changeOrigin: true
       },

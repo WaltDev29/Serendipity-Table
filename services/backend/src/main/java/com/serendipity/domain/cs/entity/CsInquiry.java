@@ -50,4 +50,8 @@ public class CsInquiry {
     public void markAsAnswered() {
         this.status = "ANSWERED";
     }
+
+    public void markAsResolved() {
+        this.status = "RESOLVED";
+    }
 }

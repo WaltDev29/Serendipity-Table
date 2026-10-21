@@ -5,48 +5,66 @@ import { useAdmin } from '../../context/AdminContext';
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { pinnedNotice, setPinnedNotice, sendEmergencyNotice, auditLogs } = useAdmin();
+  const {
+    pinnedNotice,
+    setPinnedNotice,
+    sendEmergencyNotice,
+    auditLogs,
+    adminUser,
+    logoutAdmin,
+    matchingTables = [],
+    csInquiries = [],
+    exceptionsAcknowledged
+  } = useAdmin();
 
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
-  const [noticeTarget, setNoticeTarget] = useState('ALL'); // ALL, HONGDAE, ACTIVE
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
-  const [isPinNotice, setIsPinNotice] = useState(true);
 
   const [isNotiDropdownOpen, setIsNotiDropdownOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
 
-  // 공지 프리셋 템플릿
-  const noticePresets = [
-    { label: '식당 룸 위치 안내', title: '식당 룸 위치 안내', text: '매장 2층 안쪽 "우연한 식탁" 전용 룸으로 오시면 테이블별 자리 안내를 도와드립니다.' },
-    { label: '지각/도착 체크인 안내', title: '모임 시작 10분 전 안내', text: '모임 시작 10분 전입니다! 현장 도착 시 채팅방의 [도착 체크인] 버튼을 눌러주세요.' },
-    { label: '주차 및 길찾기 안내', title: '매장 주차 및 길찾기 유의사항', text: '매장 건물 주차가 불가하오니 도보 3분 거리의 인근 공영주차장을 이용해주시기 바랍니다.' }
-  ];
+  // 실시간 긴급 운영 큐: 4인 미달 테이블만 표시 (취소된 모임 및 0명 모임 제외)
+  const urgentTables = matchingTables.filter((t) => {
+    const memCount = t.members?.length || 0;
+    return memCount > 0 && memCount < 4 && t.status !== 'CANCELLED' && t.status !== 'TRANSFERRED_NEXT_WEEK' && t.status !== 'REFUNDED_ALL';
+  });
+  const totalUrgentCount = exceptionsAcknowledged ? 0 : urgentTables.length;
 
   const handleSendNotice = (e) => {
     e.preventDefault();
     if (!noticeMessage.trim()) return;
-    sendEmergencyNotice(noticeTarget, noticeTitle || '🚨 운영자 긴급 공지', noticeMessage, isPinNotice);
+    sendEmergencyNotice('ALL', noticeTitle || '📢 전체 공지사항', noticeMessage, false);
     setIsNoticeModalOpen(false);
     setNoticeTitle('');
     setNoticeMessage('');
+    alert('전체 회원에게 공지사항이 성공적으로 발송되었습니다.');
   };
 
   const navGroups = [
     {
       group: '',
       items: [
-        { to: '/admin/dashboard', icon: 'dashboard', label: '운영 대시보드' },
-        { to: '/admin/slots', icon: 'calendar_month', label: '회차 & 슬롯 관리' },
+        { to: '/admin/dashboard', icon: 'dashboard', label: '대시보드' },
+        { to: '/admin/users', icon: 'groups', label: '회원 목록' },
         { to: '/admin/applications', icon: 'how_to_reg', label: '참가 신청' },
         { to: '/admin/payments', icon: 'payments', label: '결제 내역' },
-        { to: '/admin/matching', icon: 'smart_toy', label: 'AI 매칭 & 개입' },
-        { to: '/admin/venues', icon: 'storefront', label: '식당 POOL & 배정' },
-        { to: '/admin/chat-ops', icon: 'forum', label: '채팅 관제 & 공지' },
-        { to: '/admin/users', icon: 'groups', label: '회원목록' },
+        { to: '/admin/slots', icon: 'calendar_month', label: '회차 슬롯 관리' },
+        { to: '/admin/matching', icon: 'smart_toy', label: 'AI 매칭' },
+        { to: '/admin/venues', icon: 'storefront', label: '식당 Pool' },
+        { to: '/admin/chat-ops', icon: 'forum', label: '모임 채팅 관리' },
         { to: '/admin/cs', icon: 'support_agent', label: '고객센터' },
-        { to: '/admin/analytics', icon: 'query_stats', label: '피드백 & 정산 통계' },
-        { to: '/admin/exceptions', icon: 'download', label: '예외 큐 & CSV 내보내기' }
+        {
+          to: '/admin/analytics',
+          icon: 'query_stats',
+          label: '피드백',
+          subItems: [
+            { to: '/admin/analytics/preferences', label: '선호&비선호 평가' },
+            { to: '/admin/analytics/reviews', label: '리뷰' }
+          ]
+        },
+        { to: '/admin/exceptions', icon: 'download', label: '예외 큐' },
+        { to: '/admin/flow-test', icon: 'science', label: '전체 흐름 테스트', isHighlight: true }
       ]
     }
   ];
@@ -77,7 +95,7 @@ export default function AdminLayout() {
             {/* AI Status Badge */}
             <div className="mt-space-sm inline-flex items-center gap-space-xs px-2.5 py-1 rounded-full bg-tertiary-fixed text-tertiary-container font-label-sm text-label-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-              <span className="font-semibold">AI Engine: ONLINE (Zero-Touch)</span>
+              <span className="font-semibold">자동화 활성화 중</span>
             </div>
           </div>
 
@@ -90,26 +108,72 @@ export default function AdminLayout() {
                     {group.group}
                   </div>
                 )}
-                <nav className="space-y-space-xxs">
+                <nav className="space-y-space-xs">
                   {group.items.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      className={({ isActive }) =>
-                        `group flex items-center gap-space-sm px-space-sm py-2 rounded-lg transition-colors font-label-lg text-label-lg ${
-                          isActive
-                            ? 'bg-primary-container text-on-primary font-semibold shadow-xs'
-                            : 'text-surface-variant hover:bg-inverse-surface hover:text-surface'
-                        }`
-                      }
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                      <span className="truncate">{item.label}</span>
-                    </NavLink>
+                    <React.Fragment key={item.to}>
+                      {item.isHighlight ? (
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) =>
+                            `group relative flex items-center justify-between px-space-sm py-2 rounded-xl transition-all duration-300 font-label-lg text-label-lg font-bold shadow-md mt-2 ${
+                              isActive
+                                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white ring-2 ring-amber-300/80 shadow-lg scale-[1.02]'
+                                : 'bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-red-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 hover:border-amber-400'
+                            }`
+                          }
+                        >
+                          <div className="flex items-center gap-space-sm min-w-0">
+                            <span className="material-symbols-outlined text-[19px] text-amber-400">science</span>
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-400 text-stone-900 shadow-xs">
+                            TEST
+                          </span>
+                        </NavLink>
+                      ) : (
+                        <NavLink
+                          to={item.to}
+                          end={item.to === '/admin/analytics'}
+                          className={({ isActive }) =>
+                            `group flex items-center gap-space-sm px-space-sm py-2 rounded-lg transition-colors font-label-lg text-label-lg ${
+                              isActive
+                                ? 'bg-primary-container text-on-primary font-semibold shadow-xs'
+                                : 'text-surface-variant hover:bg-inverse-surface hover:text-surface'
+                            }`
+                          }
+                        >
+                          <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                          <span className="truncate">{item.label}</span>
+                        </NavLink>
+                      )}
+
+                      {/* Sub-items (하단 들여쓰기 배치) */}
+                      {item.subItems && (
+                        <div className="pl-6 space-y-1 mt-1 mb-1 border-l-2 border-surface-variant/30 ml-3">
+                          {item.subItems.map((sub) => (
+                            <NavLink
+                              key={sub.to}
+                              to={sub.to}
+                              className={({ isActive }) =>
+                                `group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium ${
+                                  isActive
+                                    ? 'bg-primary/20 text-primary-container font-bold border-l-2 border-primary -ml-[2px]'
+                                    : 'text-surface-variant/80 hover:bg-inverse-surface/60 hover:text-surface'
+                                }`
+                              }
+                            >
+                              <span className="text-[10px] text-surface-variant/50 leading-none">•</span>
+                              <span className="truncate">{sub.label}</span>
+                            </NavLink>
+                          ))}
+                        </div>
+                      )}
+                    </React.Fragment>
                   ))}
                 </nav>
               </div>
             ))}
+
           </div>
         </div>
 
@@ -118,24 +182,37 @@ export default function AdminLayout() {
           <div className="flex items-center justify-between gap-space-xs">
             <div className="flex items-center gap-space-xs min-w-0">
               <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-xs ring-1 ring-inverse-surface">
-                김
+                {adminUser?.name ? adminUser.name.slice(0, 1) : '관'}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-label-md text-label-md text-surface truncate font-semibold">
-                  운영자 김관리
+                  {adminUser?.name || '운영자'}
                 </span>
                 <span className="font-label-sm text-[10px] text-outline-variant">
-                  Super Admin
+                  {adminUser?.role === 'ROLE_ADMIN' ? 'Super Admin' : 'Admin'}
                 </span>
               </div>
             </div>
-            <Link
-              to="/"
-              className="p-1.5 rounded text-outline-variant hover:text-surface hover:bg-inverse-surface transition-colors flex items-center justify-center"
-              title="모바일 사용자 웹으로 이동"
-            >
-              <span className="material-symbols-outlined text-[18px]">smartphone</span>
-            </Link>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  logoutAdmin();
+                  navigate('/admin/login', { replace: true });
+                }}
+                className="p-1.5 rounded text-outline-variant hover:text-error hover:bg-inverse-surface transition-colors flex items-center justify-center"
+                title="관리자 로그아웃"
+              >
+                <span className="material-symbols-outlined text-[18px]">logout</span>
+              </button>
+              <Link
+                to="/"
+                className="p-1.5 rounded text-outline-variant hover:text-surface hover:bg-inverse-surface transition-colors flex items-center justify-center"
+                title="모바일 사용자 웹으로 이동"
+              >
+                <span className="material-symbols-outlined text-[18px]">smartphone</span>
+              </Link>
+            </div>
           </div>
         </div>
       </aside>
@@ -144,46 +221,20 @@ export default function AdminLayout() {
       <div className="pl-[260px] flex-1 flex flex-col min-w-0">
         {/* Top Global Header (64px) */}
         <header className="fixed top-0 left-[260px] right-0 h-16 bg-surface-container-lowest border-b border-surface-variant z-40 px-gutter flex items-center justify-between shadow-[0_1px_8px_rgba(26,27,30,0.04)]">
-          {/* Header Left: Event Countdown Pill */}
           <div className="flex items-center gap-space-md">
-            <div className="inline-flex items-center gap-space-xs px-3 py-1.5 rounded-full bg-secondary-fixed text-on-secondary-container border border-secondary-fixed-dim/40 font-label-sm text-label-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-container opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-              </span>
-              <span className="font-semibold tracking-tight">
-                🔥 이번 주 목요일 모임 (2026.10.22 19:30) | D-2 (화 18:00 매칭 자동 마감)
-              </span>
-            </div>
-          </div>
-
-          {/* Header Center: Global Search Input */}
-          <div className="relative w-[400px] max-w-full hidden md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
-              search
-            </span>
-            <input
-              type="text"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              placeholder="이름, 전화번호, 인스타그램 ID, 배정 식당 검색..."
-              className="w-full h-9 pl-9 pr-14 rounded-xl bg-surface-container-low border border-surface-variant font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all"
-            />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-container-high text-on-surface-variant border border-surface-variant">
-              Ctrl + K
-            </kbd>
+            {/* 검색 영역 및 모임 일정 제거 완료 */}
           </div>
 
           {/* Header Right: Actions & Tools */}
           <div className="flex items-center gap-space-sm">
-            {/* Quick Emergency Broadcast Action */}
+            {/* Quick Notice Broadcast Action (사용자 앱 전체/공지 발송) */}
             <button
               type="button"
               onClick={() => setIsNoticeModalOpen(true)}
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-primary-container text-on-primary hover:bg-on-primary-fixed-variant transition-colors font-label-md text-label-md shadow-sm"
             >
-              <span className="material-symbols-outlined text-[18px]">notification_add</span>
-              <span>긴급 공지 발송</span>
+              <span className="material-symbols-outlined text-[18px]">campaign</span>
+              <span>공지 발송</span>
             </button>
 
             <div className="h-5 w-px bg-surface-variant mx-space-xxs"></div>
@@ -197,9 +248,11 @@ export default function AdminLayout() {
                 title="실시간 운영 알림"
               >
                 <span className="material-symbols-outlined text-[20px]">notifications</span>
-                <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-primary-container text-on-primary text-[10px] font-bold">
-                  3
-                </span>
+                {totalUrgentCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-primary-container text-on-primary text-[10px] font-bold">
+                    {totalUrgentCount}
+                  </span>
+                )}
               </button>
 
               {/* Notification Dropdown */}
@@ -207,30 +260,27 @@ export default function AdminLayout() {
                 <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest rounded-2xl shadow-xl border border-surface-variant p-3 z-50 animate-fade-in">
                   <div className="flex items-center justify-between pb-2 border-b border-surface-container">
                     <span className="font-title-md text-xs font-bold text-on-surface">실시간 긴급 운영 큐</span>
-                    <span className="text-[11px] text-primary font-semibold">3건 미확인</span>
+                    <span className="text-[11px] text-primary font-semibold">
+                      {totalUrgentCount > 0 ? `${totalUrgentCount}건 미확인` : '대기 항목 없음'}
+                    </span>
                   </div>
                   <div className="divide-y divide-surface-container-low max-h-60 overflow-y-auto mt-1">
-                    <div className="py-2 text-xs">
-                      <p className="font-bold text-error flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">warning</span>
-                        을지로-04 테이블 4인 미달 (현재 2명)
-                      </p>
-                      <p className="text-on-surface-variant text-[11px] mt-0.5">화요일 18:00까지 대안 처리(이월/환불) 필요</p>
-                    </div>
-                    <div className="py-2 text-xs">
-                      <p className="font-bold text-on-surface flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px] text-tertiary">support_agent</span>
-                        정유진 회원 일정 변경 CS 인입
-                      </p>
-                      <p className="text-on-surface-variant text-[11px] mt-0.5">다음 주로 모임 이월 요청 (10분 전)</p>
-                    </div>
-                    <div className="py-2 text-xs">
-                      <p className="font-bold text-on-surface flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px] text-secondary">payments</span>
-                        강민수 회원 1회권 결제 완료
-                      </p>
-                      <p className="text-on-surface-variant text-[11px] mt-0.5">강남/신논현 1번 테이블 배정 대기</p>
-                    </div>
+                    {totalUrgentCount === 0 ? (
+                      <div className="py-6 text-center text-on-surface-variant text-xs">
+                        <span className="material-symbols-outlined text-2xl text-outline block mb-1">check_circle</span>
+                        현재 긴급 처리 대기 중인 항목이 없습니다.
+                      </div>
+                    ) : (
+                      urgentTables.map((t) => (
+                        <div key={t.id} className="py-2 text-xs">
+                          <p className="font-bold text-error flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">warning</span>
+                            {t.name || t.id} 4인 미달 (현재 {t.members?.length || 0}명)
+                          </p>
+                          <p className="text-on-surface-variant text-[11px] mt-0.5">대안 처리(이월/환불/추가배정) 조치 필요</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                   <button
                     type="button"
@@ -298,10 +348,10 @@ export default function AdminLayout() {
                 </div>
                 <div>
                   <h3 className="font-title-md text-base font-bold text-on-surface">
-                    운영자 긴급 공지 발송 (Admin Notice)
+                    사용자 앱 전체 공지 발송 (User App Notice)
                   </h3>
                   <p className="font-body-sm text-[12px] text-on-surface-variant">
-                    테이블 단체방에 상단 핀 배너 및 알림톡을 동시 발송합니다.
+                    사용자 앱의 모든 회원에게 공지 알림을 발송합니다.
                   </p>
                 </div>
               </div>
@@ -314,54 +364,16 @@ export default function AdminLayout() {
               </button>
             </div>
 
-            <form onSubmit={handleSendNotice} className="space-y-3">
-              {/* Target Range */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  발송 대상 범위
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'ALL', label: '금주 전체 (38개 방)' },
-                    { id: 'HONGDAE', label: '홍대/합정 권역' },
-                    { id: 'ACTIVE', label: '현재 관제 중인 방' }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setNoticeTarget(t.id)}
-                      className={`h-9 rounded-xl text-xs font-semibold transition-all ${
-                        noticeTarget === t.id
-                          ? 'bg-primary text-white shadow-xs font-bold'
-                          : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Presets */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  자주 쓰는 템플릿 프리셋
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {noticePresets.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setNoticeTitle(preset.title);
-                        setNoticeMessage(preset.text);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant text-[11px] font-medium border border-outline-variant/30 transition-colors"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
+            <form onSubmit={handleSendNotice} className="space-y-4">
+              {/* Target Notice Info */}
+              <div className="p-3 rounded-xl bg-surface-container-low border border-surface-container flex items-center justify-between text-xs">
+                <span className="font-semibold text-on-surface flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-[16px]">groups</span>
+                  발송 대상
+                </span>
+                <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full text-[11px]">
+                  전체 회원 일괄 발송
+                </span>
               </div>
 
               {/* Title & Body */}
@@ -373,35 +385,23 @@ export default function AdminLayout() {
                   type="text"
                   value={noticeTitle}
                   onChange={(e) => setNoticeTitle(e.target.value)}
-                  placeholder="예: [안내] 매장 룸 위치 및 도착 체크인"
+                  placeholder="예: [공지] 모임 시작 안내 및 주의사항"
                   className="w-full h-10 px-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-on-surface mb-1">
-                  공지 본문 내용 (최대 200자)
+                  공지 본문 내용 <span className="text-error">*</span>
                 </label>
                 <textarea
-                  rows={3}
+                  rows={4}
+                  required
                   value={noticeMessage}
                   onChange={(e) => setNoticeMessage(e.target.value)}
-                  placeholder="참가자들에게 전달할 명확하고 긴급한 운영 공지사항을 입력하세요."
-                  className="w-full p-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  placeholder="회원들에게 전달할 공지사항 내용을 입력하세요. 사용자 앱 알림함과 상단 알림에 즉시 표시됩니다."
+                  className="w-full p-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary resize-none leading-relaxed"
                 />
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="pinNotice"
-                  checked={isPinNotice}
-                  onChange={(e) => setIsPinNotice(e.target.checked)}
-                  className="accent-primary w-4 h-4 rounded"
-                />
-                <label htmlFor="pinNotice" className="text-xs text-on-surface font-semibold cursor-pointer">
-                  채팅방 상단에 핀 배너로 영구 고정 및 카카오 알림톡 동시 발송
-                </label>
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-surface-container">
@@ -418,7 +418,7 @@ export default function AdminLayout() {
                   className="flex-1 h-10 rounded-xl bg-primary text-white text-xs font-bold shadow-md hover:bg-primary-container disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
                 >
                   <span className="material-symbols-outlined text-[16px]">send</span>
-                  <span>즉시 일괄 발송</span>
+                  <span>전체 공지 발송</span>
                 </button>
               </div>
             </form>

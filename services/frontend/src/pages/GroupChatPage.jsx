@@ -55,27 +55,43 @@ export default function GroupChatPage() {
     setSelectedGameVote(option);
   };
 
-  if (!matchResult) {
+  const isChatRoomAvailable = matchResult && (matchResult.status === 'CONFIRMED' || matchResult.chatRoomId);
+
+  if (!matchResult || !isChatRoomAvailable) {
     return (
-      <div className="w-full bg-surface min-h-[calc(100vh-5rem)] flex items-center justify-center p-6 text-center">
-        <div className="max-w-sm bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col items-center gap-4">
+      <div className="w-full h-full bg-surface-container-lowest flex items-center justify-center p-6 text-center">
+        <div className="max-w-sm bg-surface-container-low p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined text-3xl">chat</span>
+            <span className="material-symbols-outlined text-3xl">lock_clock</span>
           </div>
           <div>
-            <h3 className="font-headline-sm text-lg font-bold text-on-surface">참여 중인 단체 채팅방이 없습니다</h3>
+            <h3 className="font-headline-sm text-lg font-bold text-on-surface">
+              {matchResult?.status === 'MATCHED' ? '채팅방 오픈 준비 중' : '참여 중인 단체 채팅방이 없습니다'}
+            </h3>
             <p className="font-body-sm text-xs text-on-surface-variant mt-1.5 leading-relaxed">
-              목요일 정기 식탁 매칭이 완료되면 4인 전용 실시간 채팅방이 자동으로 열립니다.
+              {matchResult?.status === 'MATCHED'
+                ? '현재 1~3단계 매칭 진행 중입니다. 4단계(화요일 정오 12:00) 최종 매칭 확정 및 식당 예약 시 4인 단체 채팅방이 정식 개설됩니다.'
+                : '목요일 정기 식탁 매칭이 완료되면 4인 전용 실시간 채팅방이 자동으로 열립니다.'}
             </p>
           </div>
           <div className="w-full flex flex-col gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/booking')}
-              className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
-            >
-              목요일 식탁 신청하기
-            </button>
+            {matchResult?.status === 'MATCHED' ? (
+              <button
+                type="button"
+                onClick={() => navigate('/match/result')}
+                className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
+              >
+                매칭 결과(멤버 리스트) 보기
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/booking')}
+                className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
+              >
+                목요일 식탁 신청하기
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -89,357 +105,237 @@ export default function GroupChatPage() {
     );
   }
 
+  const isVenueReserved = matchResult.venue?.isReserved === true;
+  const rawDate = matchResult.eventDate ? matchResult.eventDate.split(' ')[0] : '목요일';
+  const chatRoomTitle = `${rawDate} ${isVenueReserved ? (matchResult.venue?.name || '식당') : '식당 예약 전'}`;
+
   return (
-    <div className="w-full bg-surface min-h-[calc(100vh-5rem)]">
-      <div className="flex flex-col w-full items-center justify-start py-space-md px-space-xs sm:px-space-md">
-        
-        {/* Main Desktop/Mobile Container */}
-        <div className="w-full max-w-5xl flex flex-col lg:flex-row items-start justify-center gap-space-lg relative">
-          
-          {/* Central Mobile Chat Container (Max 480px) */}
-          <div className="w-full max-w-[480px] mx-auto bg-surface-container-lowest shadow-xl rounded-2xl overflow-hidden flex flex-col relative transition-all duration-300">
-            
-            {/* Top Chat Header: 좌측 상단 메뉴 버튼 배치 */}
-            <div className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-space-md py-space-sm shadow-sm flex items-center justify-between border-b border-surface-container">
-              {/* Left Side: 메뉴 버튼 & 식탁 타이틀 */}
-              <div className="flex items-center gap-2 min-w-0">
-                <button
-                  type="button"
-                  onClick={() => setIsDrawerOpen(true)}
-                  className="w-9 h-9 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high flex items-center justify-center transition-colors shrink-0"
-                  title="대화방 메뉴 열기"
-                >
-                  <span className="material-symbols-outlined text-xl">menu</span>
-                </button>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h2 className="font-headline-sm text-sm font-bold text-on-surface truncate">{matchResult.tableName}</h2>
-                    <span className="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[10px] font-bold shrink-0">4명</span>
-                  </div>
-                  <p className="font-body-sm text-[11px] text-on-surface-variant truncate">{matchResult.venue.name} · 19:30</p>
-                </div>
+    <div id="group-chat-container" className="w-full h-full bg-surface-container-lowest flex flex-col relative overflow-hidden flex-1">
+      {/* Central Chat Container (Full width & height of phone screen) */}
+      <div className="w-full h-full flex flex-col flex-1 min-h-0 relative">
+        {/* Top Chat Header */}
+        <header className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-surface-container shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate('/chats')}
+                className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shrink-0"
+                title="채팅 목록으로"
+              >
+                <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+              </button>
+              <div className="w-9 h-9 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold shrink-0">
+                <span className="material-symbols-outlined text-lg">restaurant</span>
               </div>
-
-              {/* Right Side: 식당 정보 버튼 & 닫기(채팅 목록 이동) */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsVenueModalOpen(true)}
-                  className="w-9 h-9 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center hover:opacity-90 transition-opacity"
-                  title="식당 정보 보기"
-                >
-                  <span className="material-symbols-outlined text-lg">place</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/chats')}
-                  className="w-9 h-9 rounded-full bg-surface-container text-on-surface-variant flex items-center justify-center hover:bg-surface-container-high transition-colors"
-                  title="채팅 목록으로 이동"
-                >
-                  <span className="material-symbols-outlined text-lg">close</span>
-                </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="font-headline-sm text-sm font-bold text-on-surface truncate">{chatRoomTitle}</h1>
+                  <span className="px-1.5 py-0.2 rounded-full bg-primary-fixed text-primary text-[10px] font-bold shrink-0">4명</span>
+                </div>
+                <p className="font-body-sm text-[11px] text-on-surface-variant truncate">
+                  {isVenueReserved ? `${matchResult.venue?.name} · ${matchResult.eventDate}` : `식당 예약 전 · ${matchResult.eventDate}`}
+                </p>
               </div>
             </div>
 
-            {/* Pinned Notices Area (도착 체크인 기능 삭제) */}
-            <div className="flex flex-col bg-surface-container-low">
-              {/* ADMIN_NOTICE */}
-              <div className="bg-primary px-space-md py-2.5 flex items-start gap-space-xs text-on-primary shadow-sm">
-                <span className="material-symbols-outlined text-lg shrink-0 mt-0.5">warning</span>
-                <div className="flex-1 text-label-md font-label-md leading-snug">
-                  <strong className="font-bold">[운영자 긴급 공지]</strong> 식당 2층 안쪽 '우연한 식탁' 4인 전용 룸으로 안내받으시면 됩니다.
-                </div>
-              </div>
-              
-              {/* Pin Notice (도착 체크인 버튼 제거) */}
-              <div className="px-space-md py-2 bg-surface-container-high flex items-center justify-between text-on-surface-variant text-xs">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined text-secondary text-base">push_pin</span>
-                  <span className="truncate text-on-surface font-medium">📍 오늘 저녁 7:30 {matchResult.venue.name}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsVenueModalOpen(true)}
-                  className="px-2 py-0.5 rounded-md bg-surface-container hover:bg-surface-container-highest text-on-surface text-[11px] font-semibold flex items-center gap-0.5 shrink-0 transition-colors"
-                >
-                  <span>식당 안내</span>
-                  <span className="material-symbols-outlined text-xs">chevron_right</span>
-                </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsVenueModalOpen(true)}
+                className="w-8 h-8 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center hover:opacity-90 transition-opacity"
+                title="식당 정보 보기"
+              >
+                <span className="material-symbols-outlined text-base">place</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDrawerOpen(true)}
+                className="w-8 h-8 rounded-full bg-surface-container text-on-surface hover:bg-surface-container-high flex items-center justify-center transition-colors"
+                title="대화방 메뉴 열기"
+              >
+                <span className="material-symbols-outlined text-base">menu</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Pinned Notice Bar (Matches CS notice style) */}
+          <div className="bg-primary/5 px-4 py-2 border-b border-primary/10 flex items-center justify-between text-xs text-on-surface">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="material-symbols-outlined text-primary text-base shrink-0">place</span>
+              <span className="text-[11px] text-on-surface-variant truncate font-medium">
+                {isVenueReserved
+                  ? `${matchResult.eventDate} @ ${matchResult.venue?.name} (예약자명: 우연한 식탁)`
+                  : `${matchResult.eventDate} @ 식당 예약 전 (예약 진행 중입니다)`}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsVenueModalOpen(true)}
+              className="px-2 py-0.5 rounded-md bg-surface-container hover:bg-surface-container-highest text-on-surface text-[11px] font-semibold flex items-center gap-0.5 shrink-0 transition-colors ml-2"
+            >
+              <span>{isVenueReserved ? '식당 안내' : '예약 현황'}</span>
+              <span className="material-symbols-outlined text-xs">chevron_right</span>
+            </button>
+          </div>
+
+          {/* CHAT STREAM (Full vertical flex fill inside mobile screen) */}
+          <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto bg-surface-bright min-h-0">
+            {/* System Welcome Card */}
+            <div className="flex justify-center my-1">
+              <div className="bg-surface-container rounded-2xl p-3 max-w-sm text-center shadow-xs flex flex-col items-center gap-1">
+                <span className="text-xl">🎉</span>
+                <p className="text-xs font-bold text-primary">{chatRoomTitle} 대화방입니다</p>
+                <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                  취향이 통하는 4인의 매칭이 완료되었습니다.<br />
+                  편안하고 다정한 대화를 나눠보세요!
+                </p>
               </div>
             </div>
 
-            {/* CHAT STREAM */}
-            <div className="flex-1 p-space-md flex flex-col gap-space-md overflow-y-auto bg-surface-bright" style={{ maxHeight: '640px', minHeight: '480px' }}>
-              
-              {/* 1. SYSTEM_WELCOME */}
-              <div className="flex flex-col items-center justify-center my-space-xs">
-                <div className="bg-surface-container rounded-2xl p-space-md max-w-sm text-center shadow-sm flex flex-col items-center gap-space-xs">
-                  <span className="text-2xl">🎉</span>
-                  <p className="font-label-lg text-label-lg text-primary font-bold">우연한 식탁에 오신 것을 환영합니다!</p>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                    서로를 존중하는 따뜻한 식탁을 만들어가요.<br />
-                    <span className="text-error font-semibold">(행사 2일 전 이후 노쇼 시 영구 이용 제한)</span>
-                  </p>
-                </div>
-              </div>
+            {/* DYNAMIC CHAT MESSAGES */}
+            {chatMessages.map((msg) => {
+              const msgType = msg.messageType || msg.type;
+              const senderName = msg.senderNickname || msg.senderName || msg.sender || '멤버';
+              const timeStr = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (msg.timestamp || '');
 
-              {/* 2. VENUE_CARD */}
-              <div className="flex flex-col rounded-2xl overflow-hidden bg-surface-container-lowest shadow-md">
-                <div className="relative h-36 w-full overflow-hidden">
-                  <img
-                    className="w-full h-full object-cover"
-                    src={matchResult.venue.image}
-                    alt={matchResult.venue.name}
-                  />
-                  <span className="absolute top-2.5 left-2.5 px-space-xs py-0.5 rounded-full bg-on-background/80 text-surface text-label-sm font-label-sm backdrop-blur-sm">
-                    배정 식당 안내
-                  </span>
-                </div>
-                <div className="p-space-md flex flex-col gap-space-xs">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-headline-sm text-headline-sm text-on-surface font-bold">{matchResult.venue.name}</h3>
-                    <span className="px-2 py-0.5 rounded bg-primary-fixed text-primary font-label-sm text-label-sm">예약명: 우연한 식탁</span>
-                  </div>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-base text-secondary">location_on</span>
-                    {matchResult.venue.address}
-                  </p>
-                  <div className="p-space-xs bg-surface-container-low rounded-lg mt-1 flex flex-col">
-                    <span className="font-label-sm text-label-sm text-on-surface-variant">추천 메뉴 &amp; 예상 금액</span>
-                    <span className="font-label-md text-label-md text-on-surface font-semibold">{matchResult.venue.menu} ({matchResult.venue.avgPrice})</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-space-xs mt-space-xs">
-                    <button
-                      type="button"
-                      onClick={() => alert('카카오맵으로 길찾기를 실행합니다.')}
-                      className="h-10 rounded-xl bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-label-md text-label-md font-semibold gap-1 hover:opacity-90 transition-opacity"
-                    >
-                      <span className="material-symbols-outlined text-base">near_me</span>
-                      카카오맵 길찾기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alert('네이버지도로 상세 정보를 봅니다.')}
-                      className="h-10 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-label-md text-label-md font-semibold gap-1 hover:opacity-90 transition-opacity"
-                    >
-                      <span className="material-symbols-outlined text-base">map</span>
-                      네이버지도
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. DYNAMIC CHAT MESSAGES */}
-              {chatMessages.map((msg) => {
-                const msgType = msg.messageType || msg.type;
-                const senderName = msg.senderNickname || msg.senderName || msg.sender || '멤버';
-                const timeStr = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (msg.timestamp || '');
-
-                if (msgType === 'SYSTEM' || msgType === 'SYSTEM_WELCOME') {
-                  return (
-                    <div key={msg.id} className="flex justify-center my-space-xs">
-                      <div className="px-space-md py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm shadow-sm max-w-sm text-center">
-                        {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (msgType === 'CHECKIN_NOTICE' || msgType === 'ARRIVAL_CHECKIN') {
-                  return (
-                    <div key={msg.id} className="flex justify-center my-space-xs">
-                      <div className="px-space-md py-1.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm shadow-sm flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm">where_to_vote</span>
-                        <span>{typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}</span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (msgType === 'ADMIN_NOTICE') {
-                  return (
-                    <div key={msg.id} className="flex justify-center my-space-xs">
-                      <div className="px-space-md py-2 rounded-xl bg-primary-container text-on-primary-container font-label-md text-label-md flex items-center gap-2 shadow-sm max-w-md">
-                        <span className="material-symbols-outlined text-lg">campaign</span>
-                        <span>{typeof msg.content === 'string' ? msg.content : msg.content?.text}</span>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (msgType === 'BLIND') {
-                  return (
-                    <div key={msg.id} className="rounded-xl p-space-sm bg-surface-container-high/60 flex items-center justify-between text-on-surface-variant">
-                      <div className="flex items-center gap-1 font-body-sm text-body-sm">
-                        <span className="material-symbols-outlined text-base">block</span>
-                        <span>차단한 사용자의 메시지입니다.</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => alert('차단된 메시지: ' + msg.content)}
-                        className="font-label-sm text-label-sm text-primary hover:underline font-semibold"
-                      >
-                        내용 보기 ▾
-                      </button>
-                    </div>
-                  );
-                }
-
-                if (msgType === 'VENUE_CARD') {
-                  return null;
-                }
-
-                // TALK MESSAGE
-                const isMe = msg.isMe || msg.senderId === currentUser?.id || msg.senderRole === 'ME' || senderName === '나' || senderName === currentUser?.nickname;
-
-                if (isMe) {
-                  return (
-                    <div key={msg.id} className="flex flex-col items-end self-end max-w-[78%]">
-                      <div className="flex items-end gap-1 justify-end">
-                        <div className="flex flex-col items-end gap-0.5 shrink-0">
-                          <span className="font-label-sm text-label-sm text-on-surface-variant">{timeStr}</span>
-                        </div>
-                        <div className="bg-primary text-on-primary rounded-2xl rounded-tr-sm px-space-md py-2.5 font-body-md text-body-md shadow-sm">
-                          {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
+              if (msgType === 'SYSTEM' || msgType === 'SYSTEM_WELCOME') {
                 return (
-                  <div key={msg.id} className="flex items-start gap-space-xs">
-                    <div className="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0 text-on-secondary-fixed font-bold text-sm shadow-sm">
-                      {senderName.slice(0, 2)}
+                  <div key={msg.id} className="flex justify-center my-1">
+                    <div className="px-3 py-1 rounded-full bg-surface-container-high text-on-surface text-[11px] font-medium shadow-xs max-w-sm text-center">
+                      {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
                     </div>
-                    <div className="flex flex-col items-start max-w-[75%]">
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="font-label-md text-label-md text-on-surface font-bold">{senderName}</span>
-                        <span className="font-label-sm text-label-sm text-on-surface-variant">
-                          {msg.senderRole || '멤버'}
-                        </span>
+                  </div>
+                );
+              }
+
+              if (msgType === 'CHECKIN_NOTICE' || msgType === 'ARRIVAL_CHECKIN') {
+                return (
+                  <div key={msg.id} className="flex justify-center my-1">
+                    <div className="px-3 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-medium shadow-xs flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">where_to_vote</span>
+                      <span>{typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (msgType === 'ADMIN_NOTICE') {
+                return (
+                  <div key={msg.id} className="flex justify-center my-1">
+                    <div className="px-3.5 py-2 rounded-xl bg-primary-container text-on-primary-container text-xs font-medium flex items-center gap-2 shadow-xs max-w-md">
+                      <span className="material-symbols-outlined text-base">campaign</span>
+                      <span>{typeof msg.content === 'string' ? msg.content : msg.content?.text}</span>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (msgType === 'BLIND') {
+                return (
+                  <div key={msg.id} className="rounded-xl p-2.5 bg-surface-container-high/60 flex items-center justify-between text-on-surface-variant text-xs">
+                    <div className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">block</span>
+                      <span>차단한 사용자의 메시지입니다.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => alert('차단된 메시지: ' + msg.content)}
+                      className="text-primary hover:underline font-semibold text-[11px]"
+                    >
+                      내용 보기 ▾
+                    </button>
+                  </div>
+                );
+              }
+
+              if (msgType === 'VENUE_CARD') {
+                return null;
+              }
+
+              // TALK MESSAGE
+              const isMe = msg.isMe || msg.senderId === currentUser?.id || msg.senderRole === 'ME' || senderName === '나' || senderName === currentUser?.nickname;
+
+              if (isMe) {
+                return (
+                  <div key={msg.id} className="flex flex-col items-end self-end max-w-[80%]">
+                    <div className="flex items-end gap-1.5 justify-end">
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                        <span className="text-[10px] text-on-surface-variant">{timeStr}</span>
                       </div>
-                      <div className="flex items-end gap-1">
-                        <div className="bg-surface-container rounded-2xl rounded-tl-sm px-space-md py-2.5 text-on-surface font-body-md text-body-md shadow-sm">
-                          {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
-                        </div>
-                        <span className="font-label-sm text-label-sm text-on-surface-variant shrink-0">{timeStr}</span>
+                      <div className="bg-primary text-on-primary rounded-2xl rounded-tr-sm px-3.5 py-2 text-xs font-medium shadow-xs leading-relaxed whitespace-pre-wrap">
+                        {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
                       </div>
                     </div>
                   </div>
                 );
-              })}
+              }
 
-              {/* 4. TOPIC_CARD (Auto-posted at 19:30) */}
-              <div className="rounded-2xl p-space-md bg-secondary-fixed text-on-secondary-fixed shadow-sm flex flex-col gap-space-xs">
-                <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm font-semibold">19:30 자동 전달 질문</span>
-                  <span className="material-symbols-outlined text-lg">lightbulb</span>
-                </div>
-                <p className="font-headline-sm text-headline-sm font-bold text-on-secondary-fixed leading-snug">
-                  💡 오늘의 스몰토크 질문 카드
-                </p>
-                <p className="font-body-md text-body-md text-on-secondary-fixed leading-normal">
-                  "요즘 가장 재미있게 본 영화나 인생 여행지를 한 곳씩 가볍게 소개해볼까요?"
-                </p>
-              </div>
-
-              {/* 5. GAME_CARD (Interactive Balance Game) */}
-              <div className="rounded-2xl p-space-md bg-surface-container-low shadow-sm flex flex-col gap-space-sm">
-                <div className="flex items-center gap-1 text-primary">
-                  <span className="material-symbols-outlined text-xl">casino</span>
-                  <h4 className="font-headline-sm text-headline-sm font-bold">식탁 밸런스 게임</h4>
-                </div>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">주말 충전 스타일은 어느 쪽인가요?</p>
-                <div className="flex flex-col gap-space-xs mt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleVote('A')}
-                    className={`w-full text-left p-space-sm rounded-xl transition-all flex items-center justify-between group ${
-                      selectedGameVote === 'A' ? 'bg-primary-fixed/40 ring-2 ring-primary' : 'bg-surface-container-lowest hover:bg-surface-container-high'
-                    }`}
-                  >
-                    <span className="font-label-md text-label-md text-on-surface font-semibold group-hover:text-primary">
-                      A. 집에서 OTT 정주행 🛋️
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm">
-                      {gameVotes.A}명 투표 {selectedGameVote === 'A' && '✓'}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleVote('B')}
-                    className={`w-full text-left p-space-sm rounded-xl transition-all flex items-center justify-between group ${
-                      selectedGameVote === 'B' ? 'bg-secondary-fixed/40 ring-2 ring-secondary' : 'bg-surface-container-lowest hover:bg-surface-container-high'
-                    }`}
-                  >
-                    <span className="font-label-md text-label-md text-on-surface font-semibold group-hover:text-primary">
-                      B. 밖에서 러닝/야외활동 🏃
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
-                      {gameVotes.B}명 투표 {selectedGameVote === 'B' && '✓'}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* BOTTOM CONTROL & INPUT SECTION */}
-            <div className="bg-surface-container-lowest p-space-sm flex flex-col gap-space-xs shadow-md border-t border-surface-container">
-              {/* Active Input Bar */}
-              {!isReadOnlyMode ? (
-                <form onSubmit={handleSendMessage} className="flex items-center gap-space-xs">
-                  <button
-                    type="button"
-                    onClick={() => alert('사진 또는 장소 공유 팝업을 연결합니다.')}
-                    className="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors"
-                    title="사진 또는 위치 첨부"
-                  >
-                    <span className="material-symbols-outlined text-xl">add</span>
-                  </button>
-                  <div className="flex-1 relative flex items-center">
-                    <input
-                      type="text"
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      placeholder="따뜻한 대화를 나눠보세요..."
-                      className="w-full h-11 px-space-md rounded-full bg-surface-container-low text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                    />
+              return (
+                <div key={msg.id} className="flex items-start gap-2 max-w-[85%]">
+                  <div className="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0 font-bold text-xs shadow-xs">
+                    {senderName.slice(0, 2)}
                   </div>
-                  <button
-                    type="submit"
-                    disabled={!inputText.trim()}
-                    className="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center hover:opacity-95 shadow-md active:scale-95 transition-all disabled:opacity-50"
-                    title="메시지 전송"
-                  >
-                    <span className="material-symbols-outlined text-xl">send</span>
-                  </button>
-                </form>
-              ) : (
-                /* Read-Only Notice Bar */
-                <div className="py-3 px-space-md rounded-xl bg-surface-container-high text-center font-label-md text-label-md text-on-surface-variant flex items-center justify-center gap-1.5">
-                  <span className="material-symbols-outlined text-base">lock</span>
-                  <span>모임이 종료되어 읽기 전용 상태입니다. (피드백을 작성해보세요)</span>
+                  <div className="flex flex-col items-start">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="text-xs font-bold text-on-surface">{senderName}</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-surface-container text-on-surface-variant text-[9px] font-semibold">
+                        {msg.senderRole || '멤버'}
+                      </span>
+                    </div>
+                    <div className="flex items-end gap-1.5">
+                      <div className="bg-surface-container rounded-2xl rounded-tl-sm px-3.5 py-2 text-on-surface text-xs shadow-xs leading-relaxed whitespace-pre-wrap border border-surface-container-high">
+                        {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
+                      </div>
+                      <span className="text-[10px] text-on-surface-variant shrink-0">{timeStr}</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+              );
+            })}
 
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Drawer Backdrop on mobile */}
+          {/* BOTTOM INPUT BAR (하단 고정 sticky bottom-0) */}
+          <div className="sticky bottom-0 z-30 p-3 bg-surface-container-lowest border-t border-surface-container shrink-0">
+            {!isReadOnlyMode ? (
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="따뜻한 대화를 나눠보세요..."
+                  className="flex-1 h-11 px-4 rounded-full bg-surface-container-low text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <button
+                  type="submit"
+                  disabled={!inputText.trim()}
+                  className="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md hover:bg-primary-container disabled:opacity-40 transition-all shrink-0"
+                  title="메시지 전송"
+                >
+                  <span className="material-symbols-outlined text-lg">send</span>
+                </button>
+              </form>
+            ) : (
+              <div className="py-2.5 px-4 rounded-xl bg-surface-container-high text-center text-xs text-on-surface-variant flex items-center justify-center gap-1.5">
+                <span className="material-symbols-outlined text-base">lock</span>
+                <span>모임이 종료되어 읽기 전용 상태입니다.</span>
+              </div>
+            )}
+          </div>
+
+          {/* Drawer Backdrop */}
           {isDrawerOpen && (
             <div
               onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
             />
           )}
 
-          {/* Slide-Out Drawer / Desktop Companion Panel (대화방 메뉴) */}
+          {/* Slide-Out Drawer (대화방 메뉴: 메뉴 버튼 클릭 시에만 오픈) */}
           <div
-            className={`fixed inset-y-0 left-0 z-50 w-[320px] max-w-[85vw] bg-surface-container-lowest shadow-2xl p-space-md flex flex-col gap-space-md transition-transform duration-300 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:shadow-xl lg:rounded-2xl lg:translate-x-0 ${
-              isDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:flex'
+            className={`fixed inset-y-0 right-0 z-50 w-[320px] max-w-[85vw] bg-surface-container-lowest shadow-2xl p-space-md flex flex-col gap-space-md transition-transform duration-300 overflow-y-auto ${
+              isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
           >
             {/* Drawer Header */}
@@ -515,39 +411,7 @@ export default function GroupChatPage() {
               </div>
             </div>
 
-            {/* Section 2: 신고하기 및 안심 보호 */}
-            <div className="p-3.5 rounded-xl bg-error-container/20 border border-error/20 flex flex-col gap-2">
-              <div className="flex items-center gap-1.5 text-error font-bold text-xs">
-                <span className="material-symbols-outlined text-[17px]">gavel</span>
-                <span>에티켓 및 안심 보호</span>
-              </div>
-              <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                쾌적한 식탁 문화를 위해 무례한 행동이나 불쾌한 언행은 즉시 신고해주세요.
-              </p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setReportTargetNickname('민트초코');
-                  setIsReportModalOpen(true);
-                }}
-                className="w-full py-2.5 rounded-xl bg-error text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs hover:bg-error/90 active:scale-[0.99] transition-all"
-              >
-                <span className="material-symbols-outlined text-[15px]">campaign</span>
-                <span>비매너 참가자 신고하기</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/blocked-users')}
-                className="w-full py-2 rounded-xl bg-surface-container-lowest text-on-surface text-xs font-semibold flex items-center justify-center gap-1 hover:bg-surface-container transition-colors border border-surface-container"
-              >
-                <span className="material-symbols-outlined text-[15px] text-secondary">shield</span>
-                <span>차단 관리 목록 가기</span>
-              </button>
-            </div>
-
-            {/* Section 3: 바로가기 메뉴 */}
+            {/* Section 2: 바로가기 메뉴 (식당 정보 및 고객센터 문의) */}
             <div className="space-y-1 pt-2 border-t border-surface-container text-xs">
               <button
                 type="button"
@@ -557,18 +421,6 @@ export default function GroupChatPage() {
                 <span className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[17px] text-secondary">store</span>
                   <span>배정 식당 정보 및 지도</span>
-                </span>
-                <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/feedback')}
-                className="w-full p-2.5 rounded-xl hover:bg-surface-container-low flex items-center justify-between text-on-surface font-medium transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[17px] text-primary">rate_review</span>
-                  <span>모임 후기 남기기</span>
                 </span>
                 <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
               </button>
@@ -586,10 +438,7 @@ export default function GroupChatPage() {
               </button>
             </div>
           </div>
-
         </div>
-
-      </div>
 
       {/* Venue Quick Modal */}
       {isVenueModalOpen && (
@@ -601,23 +450,40 @@ export default function GroupChatPage() {
             >
               <span className="material-symbols-outlined">close</span>
             </button>
-            <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
-              {matchResult.venue.name}
-            </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">
-              {matchResult.venue.address}
-            </p>
-            <div className="rounded-xl overflow-hidden mb-4 h-36">
-              <img src={matchResult.venue.image} alt="식당" className="w-full h-full object-cover" />
-            </div>
-            <p className="text-xs text-primary font-semibold mb-4">
-              대표 메뉴: {matchResult.venue.menu}
-            </p>
+            {isVenueReserved ? (
+              <>
+                <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface mb-2">
+                  {matchResult.venue?.name}
+                </h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">
+                  {matchResult.venue?.address}
+                </p>
+                <div className="rounded-xl overflow-hidden mb-4 h-36">
+                  <img src={matchResult.venue?.image} alt="식당" className="w-full h-full object-cover" />
+                </div>
+                <p className="text-xs text-primary font-semibold mb-4">
+                  대표 메뉴: {matchResult.venue?.menu}
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center mx-auto mb-3">
+                  <span className="material-symbols-outlined text-2xl">pending</span>
+                </div>
+                <h3 className="font-headline-sm text-base font-bold text-on-surface mb-1.5">
+                  식당 예약 진행 중
+                </h3>
+                <p className="font-body-sm text-xs text-on-surface-variant mb-4 leading-relaxed">
+                  현재 운영팀에서 모임 권역에 최적화된 프라이빗 식당을 예약 조율 중입니다.<br />
+                  예약이 확정되면 식당 정보와 위치가 즉시 안내됩니다!
+                </p>
+              </div>
+            )}
             <button
               onClick={() => setIsVenueModalOpen(false)}
               className="w-full py-2.5 rounded-xl bg-primary text-on-primary font-semibold text-sm"
             >
-              닫기
+              확인
             </button>
           </div>
         </div>

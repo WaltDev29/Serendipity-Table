@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { applySlotApi, checkoutOrderApi } from '../api/application';
 
 export default function BookingPage() {
   const navigate = useNavigate();
@@ -50,7 +51,9 @@ export default function BookingPage() {
     }));
   };
 
-  const handleCheckout = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleCheckout = async () => {
     if (!agreed) {
       alert('필수 이용 약관 및 노쇼 제재 규정에 동의해주세요.');
       return;
@@ -59,8 +62,35 @@ export default function BookingPage() {
       alert('희망 지역을 최소 1개 이상 선택해주세요.');
       return;
     }
-    // 모의 결제 성공 모달 팝업
-    setIsSuccessModalOpen(true);
+
+    try {
+      setIsSubmitting(true);
+      // 1. 슬롯 신청 (기본 회차 1번)
+      await applySlotApi(1, applicationData.preferredRegions);
+      setIsSuccessModalOpen(true);
+    } catch (err) {
+      // 만약 참가권 부족 에러면 주문 결제 후 재신청
+      if (err.message && err.message.includes('참가권')) {
+        try {
+          await checkoutOrderApi({
+            eventSlotId: 1,
+            ticketType: 'SINGLE',
+            ticketCount: 1,
+            amount: 8000,
+            paymentMethod: 'CARD'
+          });
+          await applySlotApi(1, applicationData.preferredRegions);
+          setIsSuccessModalOpen(true);
+          return;
+        } catch (orderErr) {
+          alert('신청 실패: ' + orderErr.message);
+          return;
+        }
+      }
+      alert('신청 처리 실패: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleConfirmDone = () => {

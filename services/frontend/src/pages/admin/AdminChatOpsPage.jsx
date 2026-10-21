@@ -14,7 +14,21 @@ export default function AdminChatOpsPage() {
   const [adminInput, setAdminInput] = useState('');
   const [kickTargetUser, setKickTargetUser] = useState(null);
 
-  const activeRoom = chatRooms.find((r) => r.id === activeChatRoomId) || chatRooms[0];
+  const defaultRoom = {
+    id: 'placeholder',
+    roomName: '개설된 채팅방 없음',
+    venueName: '미배정',
+    memberCount: 0,
+    unreadCount: 0,
+    lastMessage: '현재 활성화된 단체방이 없습니다.',
+    lastMessageTime: '-',
+    messages: [],
+    members: []
+  };
+
+  const activeRoom = (chatRooms && chatRooms.length > 0)
+    ? (chatRooms.find((r) => r.id === activeChatRoomId) || chatRooms[0])
+    : defaultRoom;
 
   // 운영자 직접 메시지 전송
   const handleSendAdminMessage = (e) => {

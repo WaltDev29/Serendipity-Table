@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { submitFeedbackApi } from '../api/table';
 
 export default function FeedbackPage() {
   const navigate = useNavigate();
@@ -21,14 +22,32 @@ export default function FeedbackPage() {
     setRatings(prev => ({ ...prev, [dimension]: value }));
   };
 
-  const handleFeedbackSubmit = (e) => {
+  const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      if (matchResult?.tableId) {
+        // 테이블 멤버 중 첫 번째 상대방 대상 피드백 전송
+        const otherMember = (matchResult.members || []).find(m => !m.isMe);
+        if (otherMember?.id) {
+          await submitFeedbackApi(matchResult.tableId, {
+            targetUserId: otherMember.id,
+            rating: Math.round((ratings.atmos + ratings.conv + ratings.food) / 3),
+            tags: preferRematch ? ['매너최고', '대화가즐거움'] : [],
+            comment: reviewText
+          });
+        }
+      }
       setIsSubmitted(true);
       setUserState('FEEDBACK_DONE');
-    }, 600);
+    } catch (err) {
+      console.warn('Feedback submit note:', err);
+      // 오프라인이나 이미 등록된 경우에도 완료 상태로 진행
+      setIsSubmitted(true);
+      setUserState('FEEDBACK_DONE');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleQuickReapply = () => {

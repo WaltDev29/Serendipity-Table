@@ -15,6 +15,40 @@ export default function VenueMembersPage() {
     }, 500);
   };
 
+  if (!matchResult) {
+    return (
+      <div className="w-full bg-surface min-h-[calc(100vh-5rem)] flex items-center justify-center p-6 text-center">
+        <div className="max-w-sm bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary">
+            <span className="material-symbols-outlined text-3xl">restaurant</span>
+          </div>
+          <div>
+            <h3 className="font-headline-sm text-lg font-bold text-on-surface">현재 확정된 식탁이 없습니다</h3>
+            <p className="font-body-sm text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+              이번 주 목요일 저녁, 취향이 통하는 이들과의 따뜻한 식탁에 참여해보세요!
+            </p>
+          </div>
+          <div className="w-full flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/booking')}
+              className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
+            >
+              목요일 식탁 신청하기
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full h-11 rounded-2xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-variant transition-colors"
+            >
+              홈 화면으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full bg-surface min-h-[calc(100vh-5rem)]">
       <div className="flex flex-col w-full">
@@ -160,135 +194,59 @@ export default function VenueMembersPage() {
 
             {/* 2x2 Member Grid */}
             <div className="grid grid-cols-2 gap-space-sm">
-              {/* Member 1: Me */}
-              <div className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between overflow-hidden">
-                <div className="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-[10px] px-2 py-0.5 rounded-bl-lg">
-                  호스트/예약확인
-                </div>
-                <div>
-                  <div className="flex items-center gap-space-sm mb-space-sm">
-                    <div className="relative w-11 h-11 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold">
-                      <span className="material-symbols-outlined text-2xl">sentiment_satisfied</span>
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1">
-                        <span className="font-label-lg text-label-lg text-on-surface font-bold">나</span>
-                        <span className="text-[10px] text-primary bg-primary-fixed/50 px-1 py-0.2 rounded font-semibold">ME</span>
+              {(matchResult?.members || []).map((m, idx) => {
+                const isHost = m.role === 'HOST' || idx === 0;
+                const bgColors = ['bg-primary-fixed text-primary', 'bg-secondary-fixed text-secondary', 'bg-tertiary-fixed text-tertiary', 'bg-surface-container-high text-on-surface-variant'];
+                const icons = ['sentiment_satisfied', 'palette', 'directions_run', 'auto_stories'];
+
+                return (
+                  <div key={m.id || idx} className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between overflow-hidden">
+                    {isHost && (
+                      <div className="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-[10px] px-2 py-0.5 rounded-bl-lg">
+                        호스트/예약확인
                       </div>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">20대 후반 · 여성</span>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-space-sm mb-space-sm">
+                        <div className={`relative w-11 h-11 rounded-full ${bgColors[idx % 4]} flex items-center justify-center font-bold`}>
+                          <span className="material-symbols-outlined text-2xl">{icons[idx % 4]}</span>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
+                          </span>
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1">
+                            <span className="font-label-lg text-label-lg text-on-surface font-bold truncate">
+                              {m.nickname || m.name}
+                            </span>
+                            {m.isMe && (
+                              <span className="text-[10px] text-primary bg-primary-fixed/50 px-1 py-0.2 rounded font-semibold">ME</span>
+                            )}
+                          </div>
+                          <span className="font-label-sm text-label-sm text-on-surface-variant">
+                            {m.ageGroup || `${m.age} · ${m.gender}`}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-medium">{m.job}</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">{m.mbti}</span>
+                        </div>
+                        <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                          매너온도 {m.mannerTemp ? Number(m.mannerTemp).toFixed(1) : '36.5'}℃
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-medium">디자이너</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">ENFP</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">#미식탐방 #새로운이야기</p>
-                  </div>
-                </div>
-                <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
-                  <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5">
-                    <span className="material-symbols-outlined text-xs">verified_user</span> 인증 완료
-                  </span>
-                  <span className="font-label-sm text-[11px]">대화 선호</span>
-                </div>
-              </div>
-
-              {/* Member 2: 민트초코 */}
-              <div className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-space-sm mb-space-sm">
-                    <div className="relative w-11 h-11 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary font-bold">
-                      <span className="material-symbols-outlined text-2xl">palette</span>
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
+                    <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
+                      <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5">
+                        <span className="material-symbols-outlined text-xs">verified_user</span> 인증 완료
                       </span>
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-label-lg text-label-lg text-on-surface font-bold truncate">민트초코</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">20대 중반 · 여성</span>
+                      <span className="font-label-sm text-[11px]">{m.status || '대화 선호'}</span>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-medium">마케터</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">INFP</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">#전시회 #맛집 #조용한카페</p>
-                  </div>
-                </div>
-                <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
-                  <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5">
-                    <span className="material-symbols-outlined text-xs">verified_user</span> 인증 완료
-                  </span>
-                  <span className="font-label-sm text-[11px]">경청 스타일</span>
-                </div>
-              </div>
-
-              {/* Member 3: 러너 */}
-              <div className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-space-sm mb-space-sm">
-                    <div className="relative w-11 h-11 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary font-bold">
-                      <span className="material-symbols-outlined text-2xl">directions_run</span>
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-label-lg text-label-lg text-on-surface font-bold truncate">러너</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">20대 후반 · 남성</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-medium">개발자</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">ENTP</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">#러닝 #영화 #브루잉커피</p>
-                  </div>
-                </div>
-                <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
-                  <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5">
-                    <span className="material-symbols-outlined text-xs">verified_user</span> 인증 완료
-                  </span>
-                  <span className="font-label-sm text-[11px]">유쾌한 에너지</span>
-                </div>
-              </div>
-
-              {/* Member 4: 책방지기 */}
-              <div className="relative bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-space-sm mb-space-sm">
-                    <div className="relative w-11 h-11 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant font-bold">
-                      <span className="material-symbols-outlined text-2xl">auto_stories</span>
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-tertiary flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[9px] text-on-tertiary font-bold">check</span>
-                      </span>
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-label-lg text-label-lg text-on-surface font-bold truncate">책방지기</span>
-                      <span className="font-label-sm text-label-sm text-on-surface-variant">30대 초반 · 남성</span>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-on-surface font-medium">건축가</span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-surface-container text-primary font-medium">ISFJ</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">#독서 #건축여행 #필름카메라</p>
-                  </div>
-                </div>
-                <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
-                  <span className="font-label-sm text-[11px] text-tertiary flex items-center gap-0.5">
-                    <span className="material-symbols-outlined text-xs">verified_user</span> 인증 완료
-                  </span>
-                  <span className="font-label-sm text-[11px]">차분한 대화</span>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
             {/* Privacy notice */}

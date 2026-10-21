@@ -59,20 +59,21 @@ export default function AdminApplicationsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-2 border-b border-surface-container">
         <div>
-          <h1 className="font-headline-sm text-lg font-bold text-on-surface">
-            참가 신청 및 결제 관리 (Applications & Orders)
+          <h1 className="font-headline-sm text-lg font-bold text-on-surface flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[22px]">how_to_reg</span>
+            <span>참가 신청 관리 (Applications)</span>
           </h1>
           <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
-            참가자의 6대 도메인 취향 설문 응답을 실시간 검증하고 수동 환불을 원스톱으로 처리합니다.
+            참가자의 6대 도메인 취향 설문 응답과 권역별 매칭 배정 현황을 실시간으로 관리합니다.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            총 {applications.length}명 접수
+            총 {applications.length}명 신청
           </span>
           <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-xs font-bold">
-            결제 완료 {applications.filter((a) => a.paymentStatus === 'PAID').length}명
+            배정 완료 {applications.filter((a) => a.matchingStatus === 'CONFIRMED').length}명
           </span>
         </div>
       </div>
@@ -102,17 +103,6 @@ export default function AdminApplicationsPage() {
             <option value="ALL">전체 성별</option>
             <option value="F">여성</option>
             <option value="M">남성</option>
-          </select>
-
-          {/* Payment filter */}
-          <select
-            value={selectedPaymentStatus}
-            onChange={(e) => setSelectedPaymentStatus(e.target.value)}
-            className="h-9 px-3 rounded-xl bg-surface-container-low text-xs font-semibold text-on-surface border border-outline-variant/30 focus:outline-none"
-          >
-            <option value="ALL">결제 상태 전체</option>
-            <option value="PAID">결제 완료</option>
-            <option value="REFUNDED">환불 완료</option>
           </select>
         </div>
 
@@ -144,15 +134,14 @@ export default function AdminApplicationsPage() {
                 <th className="py-3 px-3.5">인스타그램</th>
                 <th className="py-3 px-3.5">신청 권역</th>
                 <th className="py-3 px-3.5">예산 & 식이 제한</th>
-                <th className="py-3 px-3.5">결제 상태</th>
                 <th className="py-3 px-3.5">배정 상태</th>
-                <th className="py-3 px-3.5 text-center">액션</th>
+                <th className="py-3 px-3.5">신청 일시</th>
+                <th className="py-3 px-3.5 text-center">프로필 상세</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container-low">
               {filteredApps.map((app) => {
                 const isUnmasked = unmaskedSet.has(app.id);
-                const isRefunded = app.paymentStatus === 'REFUNDED';
                 return (
                   <tr key={app.id} className="hover:bg-surface-container-low/60 transition-colors">
                     <td className="py-3 px-3.5 font-mono text-[11px] text-on-surface-variant">
@@ -176,7 +165,7 @@ export default function AdminApplicationsPage() {
                     <td className="py-3 px-3.5 font-mono">
                       <div className="flex items-center gap-1">
                         <span>
-                          {isUnmasked ? app.phone : app.phone.replace(/(\d{3})-\d{4}-(\d{4})/, '$1-****-$2')}
+                          {isUnmasked ? app.phone : (app.phone || '').replace(/(\d{3})-\d{4}-(\d{4})/, '$1-****-$2')}
                         </span>
                         <button
                           type="button"
@@ -199,8 +188,8 @@ export default function AdminApplicationsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-3.5">
-                      <div className="text-[11px] text-on-surface">{app.budget}</div>
-                      {app.foodRestrictions.length > 0 ? (
+                      <div className="text-[11px] text-on-surface">{app.budget || '20,000~30,000원'}</div>
+                      {Array.isArray(app.foodRestrictions) && app.foodRestrictions.length > 0 ? (
                         <div className="flex gap-1 mt-0.5 flex-wrap">
                           {app.foodRestrictions.map((r) => (
                             <span key={r} className="px-1.5 py-0.2 rounded bg-error-container text-error text-[10px] font-bold">
@@ -209,52 +198,33 @@ export default function AdminApplicationsPage() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[10px] text-on-surface-variant">제한 없음</span>
+                        <span className="text-[10px] text-on-surface-variant">
+                          {typeof app.foodRestrictions === 'string' && app.foodRestrictions !== '없음' ? `제외: ${app.foodRestrictions}` : '제한 없음'}
+                        </span>
                       )}
-                    </td>
-                    <td className="py-3 px-3.5">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isRefunded
-                            ? 'bg-surface-container-high text-on-surface-variant line-through'
-                            : 'bg-secondary-fixed text-secondary'
-                        }`}
-                      >
-                        {isRefunded ? '환불 완료' : app.ticketType}
-                      </span>
                     </td>
                     <td className="py-3 px-3.5 font-medium">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                           app.matchingStatus === 'CONFIRMED'
                             ? 'bg-tertiary-fixed text-tertiary'
-                            : isRefunded
-                            ? 'bg-surface-container text-outline'
                             : 'bg-primary-fixed text-primary'
                         }`}
                       >
-                        {app.assignedTable}
+                        {app.assignedTable || '배정 대기'}
                       </span>
                     </td>
+                    <td className="py-3 px-3.5 text-on-surface-variant text-[11px]">
+                      {app.createdAt || '-'}
+                    </td>
                     <td className="py-3 px-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setActiveAppDrawer(app)}
-                          className="px-2 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-[11px] transition-colors"
-                        >
-                          상세
-                        </button>
-                        {!isRefunded && (
-                          <button
-                            type="button"
-                            onClick={() => setRefundTargetApp(app)}
-                            className="px-2 py-1 rounded-lg bg-error-container hover:bg-error hover:text-white text-error font-semibold text-[11px] transition-colors"
-                          >
-                            환불
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAppDrawer(app)}
+                        className="px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-[11px] transition-colors"
+                      >
+                        상세 설문
+                      </button>
                     </td>
                   </tr>
                 );
@@ -376,7 +346,9 @@ export default function AdminApplicationsPage() {
                 <div className="flex justify-between">
                   <span className="text-on-surface-variant">식이 제한:</span>
                   <span className="font-bold text-error">
-                    {activeAppDrawer.foodRestrictions.join(', ') || '없음'}
+                    {Array.isArray(activeAppDrawer.foodRestrictions)
+                      ? (activeAppDrawer.foodRestrictions.join(', ') || '없음')
+                      : (activeAppDrawer.foodRestrictions || '없음')}
                   </span>
                 </div>
                 <div className="flex justify-between">

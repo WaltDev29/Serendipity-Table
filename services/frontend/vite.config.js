@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    global: 'window',
+  },
   plugins: [react()],
   server: {
     host: '0.0.0.0',
@@ -10,6 +13,16 @@ export default defineConfig({
     strictPort: true,
     watch: {
       usePolling: true
+    },
+    proxy: {
+      '/api': {
+        target: 'http://backend:8080',
+        changeOrigin: true
+      },
+      '/ws-chat': {
+        target: 'http://backend:8080',
+        ws: true
+      }
     }
   }
 })

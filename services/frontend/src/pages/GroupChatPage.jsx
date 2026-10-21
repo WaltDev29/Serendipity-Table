@@ -18,12 +18,19 @@ export default function GroupChatPage() {
   const [reportReason, setReportReason] = useState('과도한 음주 또는 불쾌한 언행');
   const [reportDetail, setReportDetail] = useState('');
 
-  const chatMembers = [
-    { id: 'm-me', nickname: currentUser.nickname, isMe: true, job: currentUser.job, ageGroup: `${currentUser.age}세`, mannerTemp: currentUser.mannerTemp, initial: '나', avatarBg: 'bg-primary-fixed text-primary' },
-    { id: 'm-1', nickname: '민트초코', isMe: false, job: '마케터', ageGroup: '20대 중반', mannerTemp: 37.2, initial: '민', avatarBg: 'bg-secondary-fixed text-secondary' },
-    { id: 'm-2', nickname: '러너', isMe: false, job: '개발자', ageGroup: '20대 후반', mannerTemp: 38.0, initial: '러', avatarBg: 'bg-tertiary-fixed text-tertiary' },
-    { id: 'm-3', nickname: '책방지기', isMe: false, job: '건축가', ageGroup: '30대 초반', mannerTemp: 36.5, initial: '책', avatarBg: 'bg-surface-container-high text-on-surface-variant' },
-  ];
+  const chatMembers = (matchResult?.members || []).map((m, idx) => {
+    const bgColors = ['bg-primary-fixed text-primary', 'bg-secondary-fixed text-secondary', 'bg-tertiary-fixed text-tertiary', 'bg-surface-container-high text-on-surface-variant'];
+    return {
+      id: m.id || `m-${idx}`,
+      nickname: m.nickname,
+      isMe: m.isMe,
+      job: m.job,
+      ageGroup: m.ageGroup || `${m.age}`,
+      mannerTemp: m.mannerTemp || 36.5,
+      initial: m.nickname ? m.nickname.substring(0, 1) : '회',
+      avatarBg: bgColors[idx % 4]
+    };
+  });
 
   const messagesEndRef = useRef(null);
 
@@ -47,6 +54,40 @@ export default function GroupChatPage() {
     }));
     setSelectedGameVote(option);
   };
+
+  if (!matchResult) {
+    return (
+      <div className="w-full bg-surface min-h-[calc(100vh-5rem)] flex items-center justify-center p-6 text-center">
+        <div className="max-w-sm bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary">
+            <span className="material-symbols-outlined text-3xl">chat</span>
+          </div>
+          <div>
+            <h3 className="font-headline-sm text-lg font-bold text-on-surface">참여 중인 단체 채팅방이 없습니다</h3>
+            <p className="font-body-sm text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+              목요일 정기 식탁 매칭이 완료되면 4인 전용 실시간 채팅방이 자동으로 열립니다.
+            </p>
+          </div>
+          <div className="w-full flex flex-col gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/booking')}
+              className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
+            >
+              목요일 식탁 신청하기
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-full h-11 rounded-2xl bg-surface-container text-on-surface font-semibold text-sm hover:bg-surface-variant transition-colors"
+            >
+              홈 화면으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-surface min-h-[calc(100vh-5rem)]">
@@ -190,9 +231,11 @@ export default function GroupChatPage() {
 
               {/* 3. DYNAMIC CHAT MESSAGES */}
               {chatMessages.map((msg) => {
-                const senderName = msg.senderName || msg.sender || '멤버';
+                const msgType = msg.messageType || msg.type;
+                const senderName = msg.senderNickname || msg.senderName || msg.sender || '멤버';
+                const timeStr = msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (msg.timestamp || '');
 
-                if (msg.type === 'SYSTEM' || msg.type === 'SYSTEM_WELCOME') {
+                if (msgType === 'SYSTEM' || msgType === 'SYSTEM_WELCOME') {
                   return (
                     <div key={msg.id} className="flex justify-center my-space-xs">
                       <div className="px-space-md py-1.5 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm shadow-sm max-w-sm text-center">
@@ -202,11 +245,18 @@ export default function GroupChatPage() {
                   );
                 }
 
-                if (msg.type === 'CHECKIN_NOTICE' || msg.type === 'ARRIVAL_CHECKIN') {
-                  return null;
+                if (msgType === 'CHECKIN_NOTICE' || msgType === 'ARRIVAL_CHECKIN') {
+                  return (
+                    <div key={msg.id} className="flex justify-center my-space-xs">
+                      <div className="px-space-md py-1.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm shadow-sm flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-sm">where_to_vote</span>
+                        <span>{typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}</span>
+                      </div>
+                    </div>
+                  );
                 }
 
-                if (msg.type === 'ADMIN_NOTICE') {
+                if (msgType === 'ADMIN_NOTICE') {
                   return (
                     <div key={msg.id} className="flex justify-center my-space-xs">
                       <div className="px-space-md py-2 rounded-xl bg-primary-container text-on-primary-container font-label-md text-label-md flex items-center gap-2 shadow-sm max-w-md">
@@ -217,7 +267,7 @@ export default function GroupChatPage() {
                   );
                 }
 
-                if (msg.type === 'BLIND') {
+                if (msgType === 'BLIND') {
                   return (
                     <div key={msg.id} className="rounded-xl p-space-sm bg-surface-container-high/60 flex items-center justify-between text-on-surface-variant">
                       <div className="flex items-center gap-1 font-body-sm text-body-sm">
@@ -235,21 +285,19 @@ export default function GroupChatPage() {
                   );
                 }
 
-                if (msg.type === 'VENUE_CARD') {
-                  // 이미 상단에 별도 카드가 있으므로 패스하거나 칩으로 표시
+                if (msgType === 'VENUE_CARD') {
                   return null;
                 }
 
                 // TALK MESSAGE
-                const isMe = msg.isMe || msg.senderId === currentUser.id || senderName === '나' || senderName === currentUser.nickname;
+                const isMe = msg.isMe || msg.senderId === currentUser?.id || msg.senderRole === 'ME' || senderName === '나' || senderName === currentUser?.nickname;
 
                 if (isMe) {
                   return (
                     <div key={msg.id} className="flex flex-col items-end self-end max-w-[78%]">
                       <div className="flex items-end gap-1 justify-end">
                         <div className="flex flex-col items-end gap-0.5 shrink-0">
-                          <span className="font-label-sm text-label-sm text-primary font-bold">읽음 3</span>
-                          <span className="font-label-sm text-label-sm text-on-surface-variant">{msg.timestamp}</span>
+                          <span className="font-label-sm text-label-sm text-on-surface-variant">{timeStr}</span>
                         </div>
                         <div className="bg-primary text-on-primary rounded-2xl rounded-tr-sm px-space-md py-2.5 font-body-md text-body-md shadow-sm">
                           {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
@@ -268,14 +316,14 @@ export default function GroupChatPage() {
                       <div className="flex items-center gap-1 mb-1">
                         <span className="font-label-md text-label-md text-on-surface font-bold">{senderName}</span>
                         <span className="font-label-sm text-label-sm text-on-surface-variant">
-                          {msg.senderRole || '멤버'} · 20대
+                          {msg.senderRole || '멤버'}
                         </span>
                       </div>
                       <div className="flex items-end gap-1">
                         <div className="bg-surface-container rounded-2xl rounded-tl-sm px-space-md py-2.5 text-on-surface font-body-md text-body-md shadow-sm">
                           {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}
                         </div>
-                        <span className="font-label-sm text-label-sm text-on-surface-variant shrink-0">{msg.timestamp}</span>
+                        <span className="font-label-sm text-label-sm text-on-surface-variant shrink-0">{timeStr}</span>
                       </div>
                     </div>
                   </div>

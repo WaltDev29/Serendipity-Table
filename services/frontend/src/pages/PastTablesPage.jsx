@@ -1,41 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMyPastTablesApi } from '../api/table';
 
 export default function PastTablesPage() {
   const navigate = useNavigate();
 
-  const pastTables = [
-    {
-      id: 'past-1',
-      date: '2026.10.15 (목) 19:30',
-      venue: '을지로 레트로 다이닝',
-      region: '을지로/종로',
-      desc: '내추럴 와인과 모던 한식 타파스 · 4인 테이블',
-      members: ['김서연', '이도현', '박지민', '최원우'],
-      status: '참석 완료',
-      hasReview: true
-    },
-    {
-      id: 'past-2',
-      date: '2026.10.08 (목) 19:30',
-      venue: '강남 모던 프렌치 비스트로',
-      region: '강남/신논현',
-      desc: '가을 제철 코스와 캐주얼 페어링 · 4인 테이블',
-      members: ['김서연', '정유진', '강민수', '신예진'],
-      status: '참석 완료',
-      hasReview: true
-    },
-    {
-      id: 'past-3',
-      date: '2026.09.24 (목) 19:30',
-      venue: '홍대 연남 브리즈 다이닝',
-      region: '홍대/합정',
-      desc: '이탈리안 생면 파스타 & 내추럴 와인 · 4인 테이블',
-      members: ['김서연', '송재혁', '윤하은', '한승우'],
-      status: '참석 완료',
-      hasReview: true
-    }
-  ];
+  const [pastTables, setPastTables] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPast = async () => {
+      try {
+        setLoading(true);
+        const res = await getMyPastTablesApi();
+        if (Array.isArray(res)) {
+          setPastTables(res.map(p => ({
+            id: p.tableId,
+            date: `${p.eventDate} (목) 19:30`,
+            venue: p.venueName || '추천 다이닝',
+            region: p.region,
+            desc: `${p.region} 4인 식탁 모임`,
+            members: (p.members || []).map(m => m.nickname),
+            status: '참석 완료',
+            hasReview: p.hasReview || false
+          })));
+        }
+      } catch (e) {
+        console.warn('Failed to load past tables:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadPast();
+  }, []);
 
   return (
     <div className="w-full bg-surface min-h-[calc(100vh-4rem)] flex justify-center py-space-md px-margin sm:px-0">
@@ -66,7 +63,25 @@ export default function PastTablesPage() {
 
         {/* List of Past Tables */}
         <div className="space-y-3">
-          {pastTables.map((table) => (
+          {pastTables.length === 0 ? (
+            <div className="bg-surface-container-lowest p-8 rounded-3xl border border-surface-container text-center flex flex-col items-center gap-3 shadow-xs">
+              <div className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined text-3xl">history_edu</span>
+              </div>
+              <p className="font-headline-sm text-sm font-bold text-on-surface">아직 완료된 지난 식탁이 없습니다</p>
+              <p className="text-xs text-on-surface-variant max-w-xs leading-relaxed">
+                목요일 밤 우연한 식탁에 참여하고 소중한 인연들과의 다이닝 추억을 남겨보세요.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate('/booking')}
+                className="mt-2 px-5 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-container transition-all"
+              >
+                이번 주 식탁 신청하기
+              </button>
+            </div>
+          ) : (
+            pastTables.map((table) => (
             <div
               key={table.id}
               className="bg-surface-container-lowest p-space-md rounded-2xl border border-surface-container shadow-sm hover:shadow-md transition-all flex flex-col gap-2.5"
@@ -110,7 +125,7 @@ export default function PastTablesPage() {
                 </button>
               </div>
             </div>
-          ))}
+          )))}
         </div>
       </div>
     </div>

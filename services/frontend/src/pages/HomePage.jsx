@@ -1,19 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { getHomeStatsApi } from '../api/slot';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { userState } = useApp();
+  const { userState, matchResult } = useApp();
+
+  const [stats, setStats] = useState({
+    cumulativeParticipants: 1700,
+    averageRating: 4.8,
+    repurchaseRate: 94
+  });
+
+  useEffect(() => {
+    getHomeStatsApi()
+      .then((data) => {
+        if (data) {
+          setStats({
+            cumulativeParticipants: data.cumulativeParticipants || 1700,
+            averageRating: data.averageRating || 4.8,
+            repurchaseRate: data.repurchaseRate || 94
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to fetch home stats:', err);
+      });
+  }, []);
 
   return (
     <div className="w-full flex justify-center py-4 sm:py-6 px-3 sm:px-4">
       {/* Mobile Container (Max 480px on Desktop for authentic app feel) */}
       <div className="w-full max-w-[480px] flex flex-col gap-5 pb-24 relative">
         
-        {/* Conditional Active Status Quick Banner */}
+        {/* Conditional Active Status Quick Banner: 클릭 시 매칭 페이지(/matching)로 연결 */}
         {userState === 'WAITING' && (
-          <div className="w-full bg-gradient-to-r from-primary-fixed via-secondary-fixed to-surface-container-low rounded-2xl p-4 shadow-sm border border-primary-fixed/50 animate-fade-in">
+          <div
+            onClick={() => navigate('/matching')}
+            className="w-full bg-gradient-to-r from-primary-fixed via-secondary-fixed to-surface-container-low rounded-2xl p-4 shadow-sm border border-primary-fixed/50 animate-fade-in cursor-pointer hover:shadow-md transition-all"
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0">
@@ -25,27 +51,27 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-label-md text-[13px] text-primary font-bold">신청 완료!</span>
                     <span className="font-body-sm text-[13px] text-on-surface truncate">
-                      목요일 매칭 발표까지 <span className="font-bold text-primary">D-2</span> 남았어요
+                      목요일 매칭 발표를 기다리고 있어요
                     </span>
                   </div>
                   <span className="font-label-sm text-[11px] text-on-surface-variant truncate">
-                    홍대/합정 권역 · 와인 & 타파스 테마 대기
+                    AI 매칭 알고리즘이 최적의 4인 식탁을 구성 중입니다
                   </span>
                 </div>
               </div>
-              <Link
-                to="/matching"
-                className="shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-full bg-surface-container-lowest text-primary font-label-sm text-[12px] font-bold shadow-xs hover:bg-primary hover:text-on-primary transition-colors"
-              >
+              <div className="shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-full bg-surface-container-lowest text-primary font-label-sm text-[12px] font-bold shadow-xs">
                 <span>매칭 현황</span>
                 <span className="material-symbols-outlined text-[13px]">chevron_right</span>
-              </Link>
+              </div>
             </div>
           </div>
         )}
 
         {userState === 'CONFIRMED' && (
-          <div className="w-full bg-gradient-to-r from-secondary-fixed via-primary-fixed to-surface-container-low rounded-2xl p-4 shadow-sm border border-secondary-fixed animate-fade-in">
+          <div
+            onClick={() => navigate('/matching')}
+            className="w-full bg-gradient-to-r from-secondary-fixed via-primary-fixed to-surface-container-low rounded-2xl p-4 shadow-sm border border-secondary-fixed animate-fade-in cursor-pointer hover:shadow-md transition-all"
+          >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0">
@@ -55,21 +81,18 @@ export default function HomePage() {
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-label-md text-[13px] text-secondary font-bold">매칭 확정!</span>
                     <span className="font-body-sm text-[13px] text-on-surface truncate">
-                      홍대/합정 <strong className="text-primary font-bold">연남 브리즈 다이닝</strong>
+                      {matchResult?.tableName ? `${matchResult.tableName} ` : ''}<strong className="text-primary font-bold">{matchResult?.venue?.name || '배정 식당'}</strong>
                     </span>
                   </div>
                   <span className="font-label-sm text-[11px] text-on-surface-variant truncate">
-                    10/22 (목) 19:30 · 4명 테이블 확정됨
+                    {matchResult?.eventDate || '목요일 19:30'} · 4명 테이블 확정됨
                   </span>
                 </div>
               </div>
-              <Link
-                to="/matching"
-                className="shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-full bg-surface-container-lowest text-secondary font-label-sm text-[12px] font-bold shadow-xs hover:bg-secondary hover:text-on-secondary transition-colors"
-              >
+              <div className="shrink-0 inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-full bg-surface-container-lowest text-secondary font-label-sm text-[12px] font-bold shadow-xs">
                 <span>식당 확인</span>
                 <span className="material-symbols-outlined text-[13px]">chevron_right</span>
-              </Link>
+              </div>
             </div>
           </div>
         )}
@@ -110,32 +133,30 @@ export default function HomePage() {
                 라이프스타일과 대화가 통하는 4~6인 프라이빗 소셜 다이닝으로 직장·일상의 새로운 활력을 더해보세요.
               </p>
             </div>
-            <button
-              onClick={() => navigate('/information-input')}
-              className="w-full h-12 rounded-xl bg-primary text-on-primary font-label-lg text-[15px] font-bold flex items-center justify-center gap-2 shadow-md hover:bg-primary-container active:scale-[0.98] transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px]">edit_note</span>
-              <span>정보 입력하고 식탁 참여하기</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </button>
           </div>
         </section>
 
-        {/* Trust Metrics Bento Section */}
+        {/* Trust Metrics Bento Section (DB 연동: 누적 참가자 +1700, 평점, 재참여율) */}
         <section className="grid grid-cols-3 gap-2 w-full">
           <div className="p-3 rounded-2xl bg-surface-container-lowest shadow-xs border border-surface-container-high flex flex-col items-center text-center">
-            <span className="font-headline-md text-xl font-bold text-primary">2,400+</span>
+            <span className="font-headline-md text-xl font-bold text-primary">
+              {stats.cumulativeParticipants.toLocaleString()}+
+            </span>
             <span className="font-label-sm text-[11px] text-on-surface-variant mt-0.5">누적 참가자</span>
           </div>
           <div className="p-3 rounded-2xl bg-surface-container-lowest shadow-xs border border-surface-container-high flex flex-col items-center text-center">
             <div className="flex items-center gap-0.5">
-              <span className="font-headline-md text-xl font-bold text-secondary">4.8</span>
+              <span className="font-headline-md text-xl font-bold text-secondary">
+                {stats.averageRating.toFixed(1)}
+              </span>
               <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
             </div>
             <span className="font-label-sm text-[11px] text-on-surface-variant mt-0.5">모임 만족도</span>
           </div>
           <div className="p-3 rounded-2xl bg-surface-container-lowest shadow-xs border border-surface-container-high flex flex-col items-center text-center">
-            <span className="font-headline-md text-xl font-bold text-tertiary">94%</span>
+            <span className="font-headline-md text-xl font-bold text-tertiary">
+              {stats.repurchaseRate}%
+            </span>
             <span className="font-label-sm text-[11px] text-on-surface-variant mt-0.5">재참여 희망률</span>
           </div>
         </section>

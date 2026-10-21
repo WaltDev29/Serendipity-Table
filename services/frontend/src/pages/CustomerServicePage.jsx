@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createInquiryApi } from '../api/cs';
+import { useModal } from '../context/ModalContext';
 
 export default function CustomerServicePage() {
   const navigate = useNavigate();
+  const { showAlert } = useModal();
 
   const [openedFaq, setOpenedFaq] = useState(null);
   const [inquiryText, setInquiryText] = useState('');
@@ -32,15 +35,19 @@ export default function CustomerServicePage() {
     }
   ];
 
-  const handleSendInquiry = (e) => {
+  const handleSendInquiry = async (e) => {
     e.preventDefault();
     if (!inquiryText.trim()) return;
     setIsSubmitted(true);
-    setTimeout(() => {
-      alert('문의가 정상적으로 접수되었습니다.\n담당자가 확인 후 카카오 알림톡으로 답변을 전달해 드립니다.');
+    try {
+      await createInquiryApi(category, `[${category}] 고객 문의`, inquiryText);
+      await showAlert('문의가 백엔드 CS 시스템에 정상 접수되었습니다.\n운영자가 확인 후 신속히 답변을 전달해 드립니다.', '문의 접수');
       setInquiryText('');
+    } catch (err) {
+      await showAlert('문의 접수 실패: ' + err.message, '오류');
+    } finally {
       setIsSubmitted(false);
-    }, 500);
+    }
   };
 
   return (

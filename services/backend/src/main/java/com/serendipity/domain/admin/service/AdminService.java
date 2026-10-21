@@ -49,6 +49,8 @@ public class AdminService {
     private final CsInquiryRepository csInquiryRepository;
     private final CsInquiryReplyRepository csInquiryReplyRepository;
     private final UserBlacklistRepository userBlacklistRepository;
+    private final com.serendipity.domain.user.repository.UserTicketRepository userTicketRepository;
+    private final com.serendipity.domain.application.repository.OrderRepository orderRepository;
     private final AdminAuditLogRepository adminAuditLogRepository;
     private final EventSlotRepository eventSlotRepository;
     private final RegionSlotRepository regionSlotRepository;
@@ -249,6 +251,34 @@ public class AdminService {
                 .build());
     }
 
+    @Transactional
+    public void addStrike(UUID userId, String reason, String operatorName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        user.increaseStrike();
+        userRepository.save(user);
+
+        // 주의 3회 이상 누적 시 강제 탈퇴 및 블랙리스트 설정
+        if (user.getStrikeCount() >= 3) {
+            if (!userBlacklistRepository.existsByUser(user)) {
+                UserBlacklist blacklist = UserBlacklist.builder()
+                        .user(user)
+                        .reason("주의 3회 누적 강제 차단: " + reason)
+                        .createdBy(operatorName)
+                        .build();
+                userBlacklistRepository.save(blacklist);
+            }
+        }
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("USER_STRIKE_ADD")
+                .operatorName(operatorName)
+                .detail(String.format("유저 %s(%s) 주의 1회 부여 (현재 %d회): %s", user.getName(), user.getPhone(), user.getStrikeCount(), reason))
+                .targetId(user.getId().toString())
+                .build());
+    }
+
     @Transactional(readOnly = true)
     public List<CsInquiryResponse> getInquiries() {
         return csInquiryRepository.findAllByOrderByCreatedAtDesc().stream()
@@ -276,6 +306,93 @@ public class AdminService {
                 .detail(String.format("CS 문의 %s 답변 완료", inquiryId))
                 .targetId(inquiryId.toString())
                 .build());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminApplicationResponse> getApplications(Long slotId) {
+        List<com.serendipity.domain.application.entity.Application> apps = slotId != null
+                ? applicationRepository.findByEventSlotId(slotId)
+                : applicationRepository.findAll();
+
+        int currentYear = java.time.LocalDate.now().getYear();
+
+        return apps.stream().map(a -> {
+            User u = a.getUser();
+            String firstRegion = (a.getPreferredRegions() != null && !a.getPreferredRegions().isEmpty())
+                    ? a.getPreferredRegions().get(0)
+                    : "홍대/합정";
+
+            return AdminApplicationResponse.builder()
+                    .id(a.getId())
+                    .userId(u.getId())
+                    .name(u.getName())
+                    .gender(u.getGender())
+                    .age(u.getBirthYear() != null ? currentYear - u.getBirthYear() : 28)
+                    .phone(u.getPhone())
+                    .instagramId(u.getInstagramId())
+                    .job(u.getJob())
+                    .mbti(u.getMbti())
+                    .regions(a.getPreferredRegions())
+                    .region(firstRegion)
+                    .ticketType(a.getTicket() != null ? a.getTicket().getTicketType() : "1_TICKET")
+                    .paymentStatus("PAID")
+                    .matchStatus(a.getStatus())
+                    .status(a.getStatus())
+                    .assignedTable(a.getStatus().equals("MATCHED") ? "테이블 배정완료" : "미배정")
+                    .interests(u.getInterests())
+                    .myTendencies(u.getMyTendencies())
+                    .preferredTendencies(u.getPreferredTendencies())
+                    .budgetRanges(u.getBudgetRanges())
+                    .foodRestrictions(u.getFoodRestrictions())
+                    .createdAt(a.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminUserResponse> getUsers() {
+        int currentYear = java.time.LocalDate.now().getYear();
+        List<User> userList = userRepository.findAll();
+
+        return userList.stream().map(u -> {
+            var blacklistOpt = userBlacklistRepository.findByUser(u);
+            boolean isBanned = blacklistOpt.isPresent();
+
+            // Real DB calculations
+            int remainingTickets = userTicketRepository.findByUserOrderByCreatedAtDesc(u).stream()
+                    .mapToInt(t -> t.getRemainingCount() != null ? t.getRemainingCount() : 0)
+                    .sum();
+
+            int totalSpend = orderRepository.findByUserOrderByCreatedAtDesc(u).stream()
+                    .filter(o -> "PAID".equals(o.getStatus()))
+                    .mapToInt(o -> o.getAmount() != null ? o.getAmount() : 0)
+                    .sum();
+
+            int attendanceCount = tableMemberRepository.findByUser(u).size();
+
+            return AdminUserResponse.builder()
+                    .id(u.getId())
+                    .name(u.getName())
+                    .nickname(u.getNickname())
+                    .phone(u.getPhone())
+                    .birthYear(u.getBirthYear())
+                    .age(u.getBirthYear() != null ? currentYear - u.getBirthYear() : 28)
+                    .gender(u.getGender())
+                    .job(u.getJob())
+                    .instagramId(u.getInstagramId())
+                    .mbti(u.getMbti())
+                    .mannerTemp(u.getMannerTemp())
+                    .strikeCount(u.getStrikeCount())
+                    .remainingTickets(remainingTickets)
+                    .totalSpend(totalSpend)
+                    .attendanceCount(attendanceCount)
+                    .role(u.getRole())
+                    .status(isBanned ? "BANNED" : "ACTIVE")
+                    .banReason(blacklistOpt.map(UserBlacklist::getReason).orElse(null))
+                    .bannedAt(blacklistOpt.map(UserBlacklist::getCreatedAt).orElse(null))
+                    .createdAt(u.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

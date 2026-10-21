@@ -6,17 +6,21 @@ export default function Header() {
   const location = useLocation();
   const { isNotiDrawerOpen, setIsNotiDrawerOpen, setIsEtiquetteOpen, notifications } = useApp();
 
-  // 관리자 콘솔(/admin) 경로에서는 모바일 사용자 헤더 숨김
-  if (location.pathname.startsWith('/admin')) {
+  // 관리자 콘솔(/admin), 로그인(/login), 회원가입(/signup) 경로에서는 모바일 사용자 헤더 숨김
+  if (
+    location.pathname.startsWith('/admin') ||
+    location.pathname === '/login' ||
+    location.pathname === '/signup'
+  ) {
     return null;
   }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-surface-container-high/60 h-14 flex items-center justify-center px-4 shadow-[0_1px_6px_rgba(0,0,0,0.03)]">
-      {/* Centered App Top Bar (Logo, Brand Name, and Utility Icons gathered in Center) */}
-      <div className="flex items-center justify-center gap-2">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-xl border-b border-surface-container-high/60 h-14 flex items-center px-4 shadow-[0_1px_6px_rgba(0,0,0,0.03)]">
+      <div className="w-full max-w-[480px] mx-auto flex items-center justify-between">
+        {/* Left-aligned Brand Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-primary shadow-xs">
             <span
@@ -31,8 +35,8 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Utility Buttons grouped in center alongside brand logo */}
-        <div className="flex items-center gap-1.5 ml-2 pl-2 border-l border-surface-container-highest">
+        {/* Right-aligned Utility and Auth Buttons */}
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => setIsEtiquetteOpen(true)}

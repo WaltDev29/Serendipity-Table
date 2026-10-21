@@ -15,17 +15,11 @@ export default function DemoSwitcher() {
 
   const demoPresets = [
     { label: '⚙️ 운영자 콘솔 (A-01~09)', path: '/admin/dashboard', state: 'CONFIRMED', desc: '와이드 데스크톱 관리자 백오피스' },
-    { label: 'P-01 홈 (미신청 상태)', path: '/', state: 'NONE', desc: '초기 홈 화면 및 회차 오픈 안내' },
-    { label: 'P-01 홈 (신청 완료 배너)', path: '/', state: 'WAITING', desc: '상단 D-2 신청완료 퀵배너 표시' },
-    { label: 'P-02~03 설문 작성 (1~2단계)', path: '/apply', state: 'NONE', desc: '인적사항 & 취향 성향 칩' },
     { label: 'P-04~05 일정/결제 (3~4단계)', path: '/booking', state: 'NONE', desc: '예산/식단/권역/모의결제' },
-    { label: 'P-06 매칭 대기 (WAITING)', path: '/match/status', state: 'WAITING', desc: 'D-Day 카운트다운 타이머' },
     { label: 'P-07 매칭 완료 (CONFIRMED)', path: '/match/result', state: 'CONFIRMED', desc: '배정 식당 & 4인 프로필' },
     { label: 'P-08 실시간 단체 채팅방', path: '/chat', state: 'CONFIRMED', desc: '7대 메시지 타입 & 체크인' },
     { label: 'P-09 매칭 대안 선택', path: '/fallback', state: 'NONE', desc: '불매칭 시 무료이월/환불' },
-    { label: 'P-10 모임 피드백 & 리텐션', path: '/feedback', state: 'FEEDBACK_DONE', desc: '3대 별점 & 1초 재신청' },
-    { label: 'P-12 마이페이지 & CS', path: '/my', state: 'CONFIRMED', desc: '보유 참가권 & 1:1 CS 문의' },
-    { label: 'P-13 내 채팅방 목록', path: '/chats', state: 'CONFIRMED', desc: '활성/종료 모임 탭' }
+    { label: 'P-10 모임 피드백 & 리텐션', path: '/feedback', state: 'FEEDBACK_DONE', desc: '3대 별점 & 1초 재신청' }
   ];
 
   return (

@@ -1,34 +1,40 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { useModal } from '../context/ModalContext';
+import { signupApi } from '../api/auth';
+import { formatPhoneNumber } from '../utils/formatters';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { setCurrentUser, setApplicationData } = useApp();
+  const { refreshAppData } = useApp();
+  const { showAlert, showConfirm } = useModal();
 
   const [formData, setFormData] = useState({
     name: '',
+    nickname: '',
     phone: '',
     password: '',
     confirmPassword: '',
-    birthYear: '',
+    birthYear: '1995',
     gender: 'F',
-    job: '',
+    job: '직장인',
     agreeTerms: true,
     agreePrivacy: true
   });
 
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : name === 'phone' ? formatPhoneNumber(value) : value
     }));
   };
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       setErrorMsg('이름(실명)을 입력해주세요.');
@@ -51,28 +57,36 @@ export default function SignupPage() {
       return;
     }
 
-    // AppContext 상태 업데이트
-    setCurrentUser((prev) => ({
-      ...prev,
-      name: formData.name,
-      phone: formData.phone,
-      birthYear: formData.birthYear || '1995',
-      gender: formData.gender,
-      job: formData.job || '직장인'
-    }));
+    const confirmed = await showConfirm('입력하신 정보로 회원가입을 진행하시겠습니까?', '회원가입 확인');
+    if (!confirmed) {
+      return;
+    }
 
-    setApplicationData((prev) => ({
-      ...prev,
-      name: formData.name,
-      phone: formData.phone,
-      birthYear: formData.birthYear || '1995',
-      gender: formData.gender,
-      job: formData.job || '직장인'
-    }));
+    try {
+      setIsLoading(true);
+      setErrorMsg('');
+      const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+      const nickname = formData.nickname.trim() || formData.name;
 
-    // 회원가입 직후 정보 입력 페이지로 이동 (사용자 요구사항 반영)
-    alert(`🎉 ${formData.name}님, 회원가입이 완료되었습니다!\n이어서 나만의 취향과 성향 정보를 입력해주세요.`);
-    navigate('/information-input');
+      await signupApi({
+        phone: cleanPhone,
+        password: formData.password,
+        name: formData.name,
+        nickname,
+        birthYear: parseInt(formData.birthYear, 10) || 1995,
+        gender: formData.gender,
+        job: formData.job || '직장인'
+      });
+
+      await refreshAppData();
+
+      await showAlert(`🎉 ${formData.name}님, 회원가입이 완료되었습니다!\n이어서 나만의 취향과 성향 정보를 입력해주세요.`, '가입 완료');
+      navigate('/information-input');
+    } catch (err) {
+      setErrorMsg(err.message || '회원가입에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -269,10 +283,11 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              className="w-full h-12 mt-2 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-1"
+              disabled={isLoading}
+              className="w-full h-12 mt-2 rounded-xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-1 disabled:opacity-60"
             >
-              <span>가입 완료하고 내 취향 설정하기</span>
-              <span className="material-symbols-outlined text-base">arrow_forward</span>
+              <span>{isLoading ? '가입 처리 중...' : '회원가입'}</span>
+              <span className="material-symbols-outlined text-base">person_add</span>
             </button>
           </form>
         </div>

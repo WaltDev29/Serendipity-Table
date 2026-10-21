@@ -14,4 +14,5 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     boolean existsByUserAndEventSlotAndStatusNot(User user, EventSlot eventSlot, String status);
     List<Application> findByUserOrderByCreatedAtDesc(User user);
     List<Application> findByEventSlot(EventSlot eventSlot);
+    List<Application> findByEventSlotId(Long eventSlotId);
 }

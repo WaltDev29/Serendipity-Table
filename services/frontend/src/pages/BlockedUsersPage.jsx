@@ -1,17 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMyBlocksApi, unblockUserApi } from '../api/auth';
+import { useModal } from '../context/ModalContext';
 
 export default function BlockedUsersPage() {
   const navigate = useNavigate();
+  const { showAlert, showConfirm } = useModal();
 
-  const [blockedUsers, setBlockedUsers] = useState([
-    { id: 'b-1', name: '배강석', date: '2026.09.28', reason: '대화 매너 부적합 (연락처 강요)' },
-    { id: 'b-2', name: '이민우', date: '2026.08.14', reason: '시간 미준수 및 언어 무례' }
-  ]);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleUnblock = (id, name) => {
-    if (window.confirm(`${name}님의 차단을 해제하시겠습니까?\n해제 시 향후 목요일 모임에서 같은 테이블로 매칭될 수 있습니다.`)) {
-      setBlockedUsers((prev) => prev.filter((u) => u.id !== id));
+  const loadBlocks = async () => {
+    try {
+      setLoading(true);
+      const res = await getMyBlocksApi();
+      if (Array.isArray(res)) {
+        setBlockedUsers(res.map(b => ({
+          id: b.targetUserId,
+          name: b.targetUserNickname || '익명 참가자',
+          date: b.createdAt ? new Date(b.createdAt).toLocaleDateString() : '최근',
+          reason: b.reason || '이용 수칙 미준수'
+        })));
+      }
+    } catch (e) {
+      console.warn('Failed to load blocks:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBlocks();
+  }, []);
+
+  const handleUnblock = async (id, name) => {
+    const ok = await showConfirm(
+      `${name}님의 차단을 해제하시겠습니까?\n해제 시 향후 목요일 모임에서 같은 테이블로 매칭될 수 있습니다.`,
+      '차단 해제 확인'
+    );
+    if (ok) {
+      try {
+        await unblockUserApi(id);
+        await showAlert('차단이 해제되었습니다.', '해제 완료');
+        await loadBlocks();
+      } catch (err) {
+        await showAlert('차단 해제 실패: ' + err.message, '오류');
+      }
     }
   };
 

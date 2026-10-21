@@ -18,4 +18,5 @@ public interface TableMemberRepository extends JpaRepository<TableMember, UUID> 
 
     @Query("SELECT tm FROM TableMember tm JOIN FETCH tm.diningTable dt JOIN FETCH dt.eventSlot es WHERE tm.user = :user ORDER BY es.eventDate DESC")
     List<TableMember> findByUserOrderByEventDateDesc(@Param("user") User user);
+    List<TableMember> findByUser(User user);
 }

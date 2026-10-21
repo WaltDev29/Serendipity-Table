@@ -4,63 +4,55 @@ import { useApp } from '../context/AppContext';
 
 export default function ChatListPage() {
   const navigate = useNavigate();
-  const { matchResult } = useApp();
+  const { matchResult, pastTables } = useApp();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const chatRooms = [
-    {
-      id: 'active-1',
+  const chatRooms = [];
+
+  if (matchResult) {
+    chatRooms.push({
+      id: matchResult.chatRoomId || 'active-1',
       title: matchResult.tableName,
       isActive: true,
       statusText: '진행 중',
-      venue: matchResult.venue.name,
-      timeDisplay: '19:26', // 당일 메시지는 시간만 표시
-      lastMessage: '다들 어디쯤 오셨나요? 도착하신 분 계세요?',
-      unreadCount: 2,
-      path: '/chat',
-      members: [
-        { name: '민트초코', initial: '민', bg: 'bg-secondary-fixed text-secondary' },
-        { name: '러너', initial: '러', bg: 'bg-tertiary-fixed text-tertiary' },
-        { name: '책방지기', initial: '책', bg: 'bg-surface-container-high text-on-surface-variant' },
-        { name: '나', initial: '나', bg: 'bg-primary-fixed text-primary' },
-      ]
-    },
-    {
-      id: 'past-1',
-      title: '10/15 을지로 레트로 식탁',
-      isActive: false,
-      statusText: '종료',
-      venue: '을지로 레트로 다이닝',
-      timeDisplay: '10.15', // 날짜가 지난 경우 해당 날짜만 표시
-      lastMessage: '오늘 다들 너무 반가웠어요! 다음에 와인 모임 또 해요 :)',
+      venue: matchResult.venue?.name || '배정 식당',
+      timeDisplay: '오늘',
+      lastMessage: '실시간 그룹 대화방에 참여해보세요.',
       unreadCount: 0,
       path: '/chat',
-      members: [
-        { name: '김서연', initial: '서', bg: 'bg-primary-fixed text-primary' },
-        { name: '이도현', initial: '도', bg: 'bg-secondary-fixed text-secondary' },
-        { name: '박지민', initial: '지', bg: 'bg-tertiary-fixed text-tertiary' },
-        { name: '최원우', initial: '원', bg: 'bg-surface-container-high text-on-surface-variant' },
-      ]
-    },
-    {
-      id: 'past-2',
-      title: '10/08 강남 프렌치 식탁',
+      members: (matchResult.members || []).map((m, idx) => {
+        const bgColors = ['bg-primary-fixed text-primary', 'bg-secondary-fixed text-secondary', 'bg-tertiary-fixed text-tertiary', 'bg-surface-container-high text-on-surface-variant'];
+        return {
+          name: m.nickname,
+          initial: m.nickname ? m.nickname.substring(0, 1) : '회',
+          bg: bgColors[idx % 4]
+        };
+      })
+    });
+  }
+
+  (pastTables || []).forEach((pt, idx) => {
+    chatRooms.push({
+      id: pt.tableId || `past-${idx}`,
+      title: `${pt.eventDate} ${pt.region} 식탁`,
       isActive: false,
       statusText: '종료',
-      venue: '강남 모던 프렌치 비스트로',
-      timeDisplay: '10.08', // 날짜가 지난 경우 해당 날짜만 표시
-      lastMessage: '정산 금액 28,000원씩 송금 완료했습니다!',
+      venue: pt.venueName || '다이닝',
+      timeDisplay: pt.eventDate ? pt.eventDate.substring(5) : '완료',
+      lastMessage: '모임이 종료되었습니다. 매너 평가에 참여해주셔서 감사합니다.',
       unreadCount: 0,
       path: '/chat',
-      members: [
-        { name: '김서연', initial: '서', bg: 'bg-primary-fixed text-primary' },
-        { name: '정유진', initial: '유', bg: 'bg-tertiary-fixed text-tertiary' },
-        { name: '강민수', initial: '민', bg: 'bg-secondary-fixed text-secondary' },
-        { name: '신예진', initial: '예', bg: 'bg-surface-container-high text-on-surface-variant' },
-      ]
-    }
-  ];
+      members: (pt.members || []).map((m, mIdx) => {
+        const bgColors = ['bg-primary-fixed text-primary', 'bg-secondary-fixed text-secondary', 'bg-tertiary-fixed text-tertiary', 'bg-surface-container-high text-on-surface-variant'];
+        return {
+          name: m.nickname,
+          initial: m.nickname ? m.nickname.substring(0, 1) : '회',
+          bg: bgColors[mIdx % 4]
+        };
+      })
+    });
+  });
 
   const filteredChats = chatRooms.filter((c) =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

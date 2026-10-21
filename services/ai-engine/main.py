@@ -66,10 +66,10 @@ def match_candidates(req: MatchRequest):
         if (max(ages) - min(ages)) > 8:
             return False
 
-        # 하드 제약 3: 성비 1명 고립 방지 (남녀 혼합 시 각 2인 이상)
+        # 하드 제약 3: 성비 1명 고립 방지 (남녀 혼합 시 각 2인 이상, 동성 4인도 허용)
         males = sum(1 for c in group if c.gender == 'M')
         females = sum(1 for c in group if c.gender == 'F')
-        if (males == 1 or females == 1):
+        if males == 1 or females == 1:
             return False
 
         # 하드 제약 4: 차단/기피 관계 분리
@@ -88,10 +88,10 @@ def match_candidates(req: MatchRequest):
         age_diff = max(ages) - min(ages)
         age_score = max(0.0, 25.0 - (age_diff * 2.5))
 
-        # 성비 점수 (2:2 완벽 균형 시 30점 만점)
+        # 성비 점수 (2:2 완벽 균형 시 30점 만점, 동성 4인은 20점)
         males = sum(1 for c in group if c.gender == 'M')
         females = sum(1 for c in group if c.gender == 'F')
-        ratio_score = 30.0 if (males == 2 and females == 2) else 15.0
+        ratio_score = 30.0 if (males == 2 and females == 2) else 20.0
 
         # 공통 관심사 점수 (20점 만점)
         all_interests = [set(c.interests) for c in group]
@@ -120,12 +120,12 @@ def match_candidates(req: MatchRequest):
         best_score = -1.0
         best_common = []
 
-        # 최대 150개 조합 샘플링 탐색
+        # 조합 탐색
         combos = itertools.combinations(unmatched, 4)
         checked_count = 0
         for combo in combos:
             checked_count += 1
-            if checked_count > 200:
+            if checked_count > 500:
                 break
             group = list(combo)
             if is_valid_group(group):
@@ -135,7 +135,7 @@ def match_candidates(req: MatchRequest):
                     best_combo = group
                     best_common = common
 
-        if best_combo and best_score >= 60.0:
+        if best_combo and best_score >= 45.0:
             males = sum(1 for c in best_combo if c.gender == 'M')
             females = sum(1 for c in best_combo if c.gender == 'F')
             ages = [c.birthYear for c in best_combo]

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { getHomeStatsApi } from '../api/slot';
+import ApplyModal from '../components/common/ApplyModal';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { userState, matchResult } = useApp();
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
 
   const [stats, setStats] = useState({
     cumulativeParticipants: 1700,
@@ -168,7 +170,7 @@ export default function HomePage() {
           <div className="w-full">
             <button
               type="button"
-              onClick={() => navigate('/information-input')}
+              onClick={() => setIsApplyModalOpen(true)}
               className="w-full py-3.5 px-4 rounded-2xl bg-primary text-white font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-2"
             >
               <span className="material-symbols-outlined text-[18px]">restaurant</span>
@@ -177,6 +179,11 @@ export default function HomePage() {
             </button>
           </div>
         )}
+
+        <ApplyModal
+          isOpen={isApplyModalOpen}
+          onClose={() => setIsApplyModalOpen(false)}
+        />
 
         {/* 3 Safe Promises Banner */}
         <section className="p-4 rounded-3xl bg-surface-container-low border border-surface-container flex flex-col gap-3">

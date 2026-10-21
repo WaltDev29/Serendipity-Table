@@ -124,7 +124,8 @@ export function AdminProvider({ children }) {
       try {
         const tables = await getAdminTablesApi();
         if (Array.isArray(tables)) {
-          const formattedTables = tables.map((t, idx) => {
+          const validTables = tables.filter((t) => t.status !== 'CANCELLED' && t.members && t.members.length > 0);
+          const formattedTables = validTables.map((t, idx) => {
             const mems = (t.members || []).map((m, mIdx) => ({
               id: m.userId || `m-${mIdx}`,
               name: m.nickname,

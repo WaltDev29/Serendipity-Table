@@ -136,7 +136,10 @@ public class AdminService {
                 ? diningTableRepository.findByEventSlotId(slotId)
                 : diningTableRepository.findAll();
 
-        return tables.stream().map(table -> {
+        return tables.stream()
+                .filter(table -> !"CANCELLED".equalsIgnoreCase(table.getStatus()))
+                .filter(table -> !tableMemberRepository.findByDiningTable(table).isEmpty())
+                .map(table -> {
             var allMembers = tableMemberRepository.findByDiningTable(table);
             var memberInfos = allMembers.stream().map(m -> ActiveTableResponse.MemberInfo.builder()
                     .userId(m.getUser().getId())

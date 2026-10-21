@@ -381,9 +381,13 @@ public class MatchingLifecycleService {
         for (DiningTable table : matchedTables) {
             table.updateStatus("CONFIRMED");
 
-            // 1. 식당 배정 및 예약
+            // 1. 식당 배정 및 예약 (권역 일치 식당 우선 배정)
+            String targetRegKey = table.getRegion() != null ? table.getRegion().replaceAll("\\s+", "") : "";
             Venue venue = activeVenues.stream()
-                    .filter(v -> v.getRegion().contains(table.getRegion().split(" ")[0]))
+                    .filter(v -> {
+                        String vKey = v.getRegion() != null ? v.getRegion().replaceAll("\\s+", "") : "";
+                        return targetRegKey.contains(vKey) || vKey.contains(targetRegKey) || targetRegKey.startsWith(vKey.split("/")[0]);
+                    })
                     .findFirst()
                     .orElseGet(() -> !activeVenues.isEmpty() ? activeVenues.get(0) : null);
 

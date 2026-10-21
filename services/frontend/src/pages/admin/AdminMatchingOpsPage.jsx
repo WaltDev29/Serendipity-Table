@@ -283,11 +283,11 @@ export default function AdminMatchingOpsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { id: 'ALL', label: '전체 (38개 조)' },
-              { id: '홍대', label: '홍대/합정' },
-              { id: '잠실', label: '잠실/송파' },
-              { id: '강남', label: '강남/신논현' },
-              { id: '을지로', label: '을지로/종로' }
+              { id: 'ALL', name: '전체', count: matchingTables.length },
+              { id: '홍대', name: '홍대/합정', count: matchingTables.filter((t) => (t.region || '').includes('홍대')).length },
+              { id: '잠실', name: '잠실/송파', count: matchingTables.filter((t) => (t.region || '').includes('잠실')).length },
+              { id: '강남', name: '강남/신논현', count: matchingTables.filter((t) => (t.region || '').includes('강남')).length },
+              { id: '을지로', name: '을지로/종로', count: matchingTables.filter((t) => (t.region || '').includes('을지로')).length }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -299,7 +299,7 @@ export default function AdminMatchingOpsPage() {
                     : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
                 }`}
               >
-                {tab.label}
+                {tab.name} ({tab.count}개 조)
               </button>
             ))}
           </div>

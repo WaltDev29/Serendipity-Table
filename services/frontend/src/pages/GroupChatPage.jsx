@@ -308,18 +308,18 @@ export default function GroupChatPage() {
 
         </div>
 
-          {/* Drawer Backdrop on mobile */}
+          {/* Drawer Backdrop */}
           {isDrawerOpen && (
             <div
               onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden"
+              className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs"
             />
           )}
 
-          {/* Slide-Out Drawer / Desktop Companion Panel (대화방 메뉴) */}
+          {/* Slide-Out Drawer (대화방 메뉴: 메뉴 버튼 클릭 시에만 오픈) */}
           <div
-            className={`fixed inset-y-0 left-0 z-50 w-[320px] max-w-[85vw] bg-surface-container-lowest shadow-2xl p-space-md flex flex-col gap-space-md transition-transform duration-300 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:w-80 lg:shadow-xl lg:rounded-2xl lg:translate-x-0 ${
-              isDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:flex'
+            className={`fixed inset-y-0 right-0 z-50 w-[320px] max-w-[85vw] bg-surface-container-lowest shadow-2xl p-space-md flex flex-col gap-space-md transition-transform duration-300 overflow-y-auto ${
+              isDrawerOpen ? 'translate-x-0' : 'translate-x-full'
             }`}
           >
             {/* Drawer Header */}
@@ -395,39 +395,7 @@ export default function GroupChatPage() {
               </div>
             </div>
 
-            {/* Section 2: 신고하기 및 안심 보호 */}
-            <div className="p-3.5 rounded-xl bg-error-container/20 border border-error/20 flex flex-col gap-2">
-              <div className="flex items-center gap-1.5 text-error font-bold text-xs">
-                <span className="material-symbols-outlined text-[17px]">gavel</span>
-                <span>에티켓 및 안심 보호</span>
-              </div>
-              <p className="text-[11px] text-on-surface-variant leading-relaxed">
-                쾌적한 식탁 문화를 위해 무례한 행동이나 불쾌한 언행은 즉시 신고해주세요.
-              </p>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setReportTargetNickname('민트초코');
-                  setIsReportModalOpen(true);
-                }}
-                className="w-full py-2.5 rounded-xl bg-error text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs hover:bg-error/90 active:scale-[0.99] transition-all"
-              >
-                <span className="material-symbols-outlined text-[15px]">campaign</span>
-                <span>비매너 참가자 신고하기</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/blocked-users')}
-                className="w-full py-2 rounded-xl bg-surface-container-lowest text-on-surface text-xs font-semibold flex items-center justify-center gap-1 hover:bg-surface-container transition-colors border border-surface-container"
-              >
-                <span className="material-symbols-outlined text-[15px] text-secondary">shield</span>
-                <span>차단 관리 목록 가기</span>
-              </button>
-            </div>
-
-            {/* Section 3: 바로가기 메뉴 */}
+            {/* Section 2: 바로가기 메뉴 (식당 정보 및 고객센터 문의) */}
             <div className="space-y-1 pt-2 border-t border-surface-container text-xs">
               <button
                 type="button"
@@ -437,18 +405,6 @@ export default function GroupChatPage() {
                 <span className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-[17px] text-secondary">store</span>
                   <span>배정 식당 정보 및 지도</span>
-                </span>
-                <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/feedback')}
-                className="w-full p-2.5 rounded-xl hover:bg-surface-container-low flex items-center justify-between text-on-surface font-medium transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[17px] text-primary">rate_review</span>
-                  <span>모임 후기 남기기</span>
                 </span>
                 <span className="material-symbols-outlined text-[16px] text-outline">chevron_right</span>
               </button>

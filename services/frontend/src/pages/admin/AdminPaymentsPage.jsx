@@ -110,18 +110,6 @@ export default function AdminPaymentsPage() {
             참가권 결제 및 환불 내역을 조회합니다. 결제 행을 우클릭하여 환불 처리를 진행할 수 있습니다.
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            총 {paymentList.length}건
-          </span>
-          <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-xs font-bold">
-            결제 완료 {paidCount}건
-          </span>
-          <span className="px-3 py-1 rounded-full bg-error-container text-error text-xs font-bold">
-            환불 {refundCount}건
-          </span>
-        </div>
       </div>
 
       {/* Summary KPI Cards */}

@@ -100,6 +100,18 @@ export async function replyInquiryApi(inquiryId, answer, operatorName = '총괄�
   });
 }
 
+export async function resolveInquiryApi(inquiryId) {
+  return await apiFetch(`/admin/cs/inquiries/${inquiryId}/resolve`, {
+    method: 'POST'
+  });
+}
+
+export async function deleteInquiryApi(inquiryId) {
+  return await apiFetch(`/admin/cs/inquiries/${inquiryId}`, {
+    method: 'DELETE'
+  });
+}
+
 export async function updateSlotStatusApi(slotId, status) {
   return await apiFetch(`/admin/slots/${slotId}/status?status=${encodeURIComponent(status)}`, {
     method: 'PATCH'

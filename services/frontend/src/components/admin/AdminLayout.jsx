@@ -42,7 +42,7 @@ export default function AdminLayout() {
         { to: '/admin/payments', icon: 'payments', label: '결제 내역' },
         { to: '/admin/matching', icon: 'smart_toy', label: 'AI 매칭 & 개입' },
         { to: '/admin/venues', icon: 'storefront', label: '식당 POOL & 배정' },
-        { to: '/admin/chat-ops', icon: 'forum', label: '채팅 관제 & 공지' },
+        { to: '/admin/chat-ops', icon: 'forum', label: '모임 채팅 관리' },
         { to: '/admin/users', icon: 'groups', label: '회원목록' },
         { to: '/admin/cs', icon: 'support_agent', label: '고객센터' },
         { to: '/admin/analytics', icon: 'query_stats', label: '피드백 & 정산 통계' },
@@ -150,14 +150,14 @@ export default function AdminLayout() {
 
           {/* Header Right: Actions & Tools */}
           <div className="flex items-center gap-space-sm">
-            {/* Quick Emergency Broadcast Action */}
+            {/* Quick Notice Broadcast Action (사용자 앱 전체/공지 발송) */}
             <button
               type="button"
               onClick={() => setIsNoticeModalOpen(true)}
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-primary-container text-on-primary hover:bg-on-primary-fixed-variant transition-colors font-label-md text-label-md shadow-sm"
             >
-              <span className="material-symbols-outlined text-[18px]">notification_add</span>
-              <span>긴급 공지 발송</span>
+              <span className="material-symbols-outlined text-[18px]">campaign</span>
+              <span>공지 발송</span>
             </button>
 
             <div className="h-5 w-px bg-surface-variant mx-space-xxs"></div>
@@ -272,10 +272,10 @@ export default function AdminLayout() {
                 </div>
                 <div>
                   <h3 className="font-title-md text-base font-bold text-on-surface">
-                    운영자 긴급 공지 발송 (Admin Notice)
+                    사용자 앱 전체 공지 발송 (User App Notice)
                   </h3>
                   <p className="font-body-sm text-[12px] text-on-surface-variant">
-                    테이블 단체방에 상단 핀 배너 및 알림톡을 동시 발송합니다.
+                    사용자 앱의 모든 회원에게 공지 알림을 발송합니다.
                   </p>
                 </div>
               </div>
@@ -294,11 +294,10 @@ export default function AdminLayout() {
                 <label className="block text-xs font-bold text-on-surface mb-1">
                   발송 대상 범위
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: 'ALL', label: '금주 전체 (38개 방)' },
-                    { id: 'HONGDAE', label: '홍대/합정 권역' },
-                    { id: 'ACTIVE', label: '현재 관제 중인 방' }
+                    { id: 'ALL', label: '사용자 전체 회원' },
+                    { id: 'ACTIVE', label: '최근 활동 회원' }
                   ].map((t) => (
                     <button
                       key={t.id}

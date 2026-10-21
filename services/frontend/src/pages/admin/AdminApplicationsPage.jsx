@@ -54,17 +54,24 @@ export default function AdminApplicationsPage() {
     return true;
   });
 
-  const totalCount = applications.length;
-  const matchedCount = applications.filter((a) => a.matchingStatus === 'CONFIRMED' || a.status === 'MATCHED').length;
-  const waitingCount = applications.filter((a) => a.matchingStatus !== 'CONFIRMED' && a.status !== 'MATCHED' && a.status !== 'CANCELLED').length;
+  // 권역 및 성별 필터가 적용된 기준 집계 (요구사항: 권역별, 성별 선택 필터가 상단 총 참가자수, 매칭완료수, 대기신청수에도 반영될 것)
+  const baseFilteredApps = applications.filter((app) => {
+    if (selectedRegion !== 'ALL' && !(app.region || '').includes(selectedRegion)) return false;
+    if (selectedGender !== 'ALL' && app.gender !== selectedGender) return false;
+    return true;
+  });
 
-  // 권역별 신청 수 카운트
+  const totalCount = baseFilteredApps.length;
+  const matchedCount = baseFilteredApps.filter((a) => a.matchingStatus === 'CONFIRMED' || a.status === 'MATCHED').length;
+  const waitingCount = baseFilteredApps.filter((a) => a.matchingStatus !== 'CONFIRMED' && a.status !== 'MATCHED' && a.status !== 'CANCELLED').length;
+
+  // 권역별 신청 수 카운트 (성별 필터 조건 반영)
   const regionCounts = {
-    ALL: applications.length,
-    '홍대': applications.filter((a) => (a.region || '').includes('홍대')).length,
-    '잠실': applications.filter((a) => (a.region || '').includes('잠실')).length,
-    '강남': applications.filter((a) => (a.region || '').includes('강남')).length,
-    '을지로': applications.filter((a) => (a.region || '').includes('을지로')).length
+    ALL: applications.filter((a) => selectedGender === 'ALL' || a.gender === selectedGender).length,
+    '홍대': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('홍대')).length,
+    '잠실': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('잠실')).length,
+    '강남': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('강남')).length,
+    '을지로': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('을지로')).length
   };
 
   return (
@@ -80,21 +87,9 @@ export default function AdminApplicationsPage() {
             참가자의 6대 도메인 취향 설문 응답과 권역별 매칭 배정 현황을 실시간으로 관리합니다.
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full bg-surface-container text-xs font-bold text-on-surface">
-            총 {totalCount}명 신청
-          </span>
-          <span className="px-3 py-1 rounded-full bg-tertiary-fixed text-tertiary text-xs font-bold">
-            매칭 완료 {matchedCount}명
-          </span>
-          <span className="px-3 py-1 rounded-full bg-secondary-fixed text-secondary text-xs font-bold">
-            대기 신청 {waitingCount}명
-          </span>
-        </div>
       </div>
 
-      {/* Summary KPI Cards (결제 내역 페이지와 동일 스타일) */}
+      {/* Summary KPI Cards (권역 및 성별 필터 조건 반영) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs">
           <span className="text-xs text-on-surface-variant font-medium">총 참가 신청 수</span>

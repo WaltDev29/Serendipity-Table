@@ -136,6 +136,22 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.ok("답변이 등록되었습니다.", null));
     }
 
+    @PostMapping("/cs/inquiries/{inquiryId}/resolve")
+    public ResponseEntity<ApiResponse<Void>> resolveInquiry(
+            @PathVariable UUID inquiryId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.resolveInquiry(inquiryId, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("문의가 해결 처리되었습니다.", null));
+    }
+
+    @DeleteMapping("/cs/inquiries/{inquiryId}")
+    public ResponseEntity<ApiResponse<Void>> deleteInquiry(
+            @PathVariable UUID inquiryId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        adminService.deleteInquiry(inquiryId, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("문의가 삭제되었습니다.", null));
+    }
+
     @GetMapping("/audit-logs")
     public ResponseEntity<ApiResponse<List<AdminAuditLog>>> getAuditLogs() {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getAuditLogs()));

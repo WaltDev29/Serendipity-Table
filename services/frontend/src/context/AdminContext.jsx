@@ -14,6 +14,8 @@ import {
   removeFromBlacklistApi,
   getAdminInquiriesApi,
   replyInquiryApi,
+  resolveInquiryApi,
+  deleteInquiryApi,
   getAdminAuditLogsApi,
   refundApplicationApi,
   getAdminOrdersApi,
@@ -208,9 +210,13 @@ export function AdminProvider({ children }) {
               subway: '지하철역 인근',
               menu: v.representativeMenu,
               avgPrice: v.avgPrice ? `1인 약 ${v.avgPrice.toLocaleString()}원` : '1인 약 25,000원',
-              isReserved: v.reserved || false,
+              avgBudget: v.avgPrice || 25000,
+              isReserved: v.reserved || v.isReserved || false,
               phone: v.phone,
-              rating: v.rating || 4.8
+              rating: v.rating || 4.8,
+              image: v.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80',
+              tables: '4인 프라이빗 룸 2개, 4인 테이블 3개',
+              benefits: '웰컴 드링크 1잔 제공'
             }))
           );
         }
@@ -554,6 +560,28 @@ export function AdminProvider({ children }) {
     }
   };
 
+  // 11-1) CS 문의 해결 처리
+  const resolveInquiry = async (inquiryId) => {
+    try {
+      await resolveInquiryApi(inquiryId);
+      await refreshAdminData();
+      addAuditLog('CS_RESOLVE', '총괄관리자', `1:1 문의 ${inquiryId} 해결 완료`);
+    } catch (e) {
+      alert('문의 해결 처리 실패: ' + e.message);
+    }
+  };
+
+  // 11-2) CS 문의 삭제
+  const deleteInquiry = async (inquiryId) => {
+    try {
+      await deleteInquiryApi(inquiryId);
+      await refreshAdminData();
+      addAuditLog('CS_DELETE', '총괄관리자', `1:1 문의 ${inquiryId} 삭제 완료`);
+    } catch (e) {
+      alert('문의 삭제 실패: ' + e.message);
+    }
+  };
+
   // 12) 감사 로그 추가
   const addAuditLog = (action, operator, detail) => {
     const newLog = {
@@ -608,6 +636,8 @@ export function AdminProvider({ children }) {
         downloadCsv,
         toggleVenueReservation,
         replyInquiry,
+        resolveInquiry,
+        deleteInquiry,
         addAuditLog
       }}
     >

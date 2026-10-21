@@ -322,6 +322,37 @@ public class AdminService {
     }
 
     @Transactional
+    public void resolveInquiry(UUID inquiryId, String operatorName) {
+        CsInquiry inquiry = csInquiryRepository.findById(inquiryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "문의를 찾을 수 없습니다."));
+
+        inquiry.markAsAnswered();
+        csInquiryRepository.save(inquiry);
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("CS_RESOLVE")
+                .operatorName(operatorName)
+                .detail(String.format("CS 문의 %s 해결 완료 처리", inquiryId))
+                .targetId(inquiryId.toString())
+                .build());
+    }
+
+    @Transactional
+    public void deleteInquiry(UUID inquiryId, String operatorName) {
+        CsInquiry inquiry = csInquiryRepository.findById(inquiryId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "문의를 찾을 수 없습니다."));
+
+        csInquiryRepository.delete(inquiry);
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("CS_DELETE")
+                .operatorName(operatorName)
+                .detail(String.format("CS 문의 %s 삭제 완료", inquiryId))
+                .targetId(inquiryId.toString())
+                .build());
+    }
+
+    @Transactional
     public void updateSlotStatus(Long slotId, String status, String operatorName) {
         EventSlot slot = eventSlotRepository.findById(slotId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "슬롯을 찾을 수 없습니다."));

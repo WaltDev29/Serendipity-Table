@@ -115,9 +115,13 @@ export default function AdminVenuesPage() {
               {/* Photo & Badge */}
               <div className="relative h-44 w-full overflow-hidden bg-surface-container">
                 <img
-                  src={venue.image}
+                  src={venue.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80'}
                   alt={venue.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80';
+                  }}
                 />
                 <div className="absolute top-3 left-3 flex gap-1.5">
                   <span className="px-2.5 py-1 rounded-full bg-black/60 text-white backdrop-blur-sm text-[11px] font-bold">

@@ -2,17 +2,27 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
 
 export default function AdminCustomerServicePage() {
-  const { csInquiries, setCsInquiries, replyInquiry } = useAdmin();
+  const { csInquiries, setCsInquiries, replyInquiry, resolveInquiry, deleteInquiry } = useAdmin();
 
-  // 상단 필터: 'ALL' (전체), 'OPEN' (미답변), 'RESOLVED' (답변 완료)
+  // 상단 필터: 'ALL' (전체), 'OPEN' (미답변), 'RESOLVED' (완료 문의)
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  // 우클릭 컨텍스트 메뉴 상태
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, room }
 
   // 선택된 상담 세션 (회원 단위 또는 문의 단위)
   const [selectedUserKey, setSelectedUserKey] = useState(null);
   const [replyInput, setReplyInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const chatBottomRef = useRef(null);
+
+  // 컨텍스트 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // 문의 목록을 최신순으로 정렬
   const sortedInquiries = [...csInquiries].sort((a, b) => {
@@ -138,29 +148,6 @@ export default function AdminCustomerServicePage() {
     setIsSending(true);
     try {
       await replyInquiry(targetInquiry.id, replyInput.trim());
-
-      // 로컬 state 즉시 반영
-      setCsInquiries((prev) =>
-        prev.map((q) =>
-          q.id === targetInquiry.id
-            ? {
-                ...q,
-                status: 'RESOLVED',
-                reply: replyInput.trim(),
-                answer: replyInput.trim(),
-                replies: [
-                  ...(q.replies || []),
-                  {
-                    id: Date.now(),
-                    operatorName: '운영팀',
-                    replyContent: replyInput.trim(),
-                    createdAt: new Date().toISOString()
-                  }
-                ]
-              }
-            : q
-        )
-      );
       setReplyInput('');
     } catch (err) {
       alert('답변 전송 실패: ' + err.message);
@@ -210,7 +197,7 @@ export default function AdminCustomerServicePage() {
               {[
                 { id: 'ALL', label: `전체 (${totalCount})` },
                 { id: 'OPEN', label: `미답변 (${openCount})` },
-                { id: 'RESOLVED', label: `답변 완료 (${resolvedCount})` }
+                { id: 'RESOLVED', label: `완료 문의 (${resolvedCount})` }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -254,7 +241,15 @@ export default function AdminCustomerServicePage() {
                   <article
                     key={room.userKey}
                     onClick={() => setSelectedUserKey(room.userKey)}
-                    className={`p-3 cursor-pointer transition-colors flex items-start gap-3 select-none ${
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        room
+                      });
+                    }}
+                    className={`p-3 cursor-pointer transition-colors flex items-start gap-3 select-none relative ${
                       isSelected
                         ? 'bg-primary/10 border-l-4 border-primary font-semibold'
                         : 'hover:bg-surface-container-low/60'
@@ -292,7 +287,7 @@ export default function AdminCustomerServicePage() {
                               : 'bg-tertiary-fixed text-tertiary'
                           }`}
                         >
-                          {room.status === 'OPEN' ? '미답변' : '완료'}
+                          {room.status === 'OPEN' ? '미답변' : '완료 문의'}
                         </span>
                       </div>
                     </div>
@@ -427,6 +422,71 @@ export default function AdminCustomerServicePage() {
           )}
         </div>
       </div>
+
+      {/* 우클릭 컨텍스트 메뉴 (문의 해결, 문의 삭제) */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-surface-container-lowest rounded-xl shadow-xl border border-surface-container py-1 w-40 text-xs font-medium animate-fade-in"
+          style={{
+            top: Math.min(contextMenu.y, window.innerHeight - 100),
+            left: Math.min(contextMenu.x, window.innerWidth - 180)
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={async () => {
+              const targetInq = contextMenu.room.inquiries.find((q) => q.status === 'OPEN') || contextMenu.room.inquiries[0];
+              const room = contextMenu.room;
+              setContextMenu(null);
+              if (!targetInq) return;
+
+              if (window.confirm(`'${room.userName}' 님의 문의를 '해결' 처리하시겠습니까?`)) {
+                await resolveInquiry(targetInq.id);
+                // 로컬 상태 즉시 반영하여 완료 문의로 전환
+                setCsInquiries((prev) =>
+                  prev.map((q) =>
+                    room.inquiries.some((rq) => rq.id === q.id)
+                      ? { ...q, status: 'RESOLVED' }
+                      : q
+                  )
+                );
+              }
+            }}
+            className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-surface-container text-on-surface hover:text-primary transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px] text-tertiary">check_circle</span>
+            <span>문의 해결</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              const targetInq = contextMenu.room.inquiries[0];
+              const room = contextMenu.room;
+              setContextMenu(null);
+              if (!targetInq) return;
+
+              if (window.confirm(`'${room.userName}' 님의 문의를 삭제하시겠습니까? 삭제 시 복구할 수 없습니다.`)) {
+                // 해당 룸의 모든 문의 삭제 처리
+                for (const inq of room.inquiries) {
+                  await deleteInquiry(inq.id);
+                }
+                setCsInquiries((prev) =>
+                  prev.filter((q) => !room.inquiries.some((rq) => rq.id === q.id))
+                );
+                if (selectedUserKey === room.userKey) {
+                  setSelectedUserKey(null);
+                }
+              }
+            }}
+            className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-error-container/20 text-error transition-colors border-t border-surface-container-low"
+          >
+            <span className="material-symbols-outlined text-[16px]">delete</span>
+            <span>문의 삭제</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

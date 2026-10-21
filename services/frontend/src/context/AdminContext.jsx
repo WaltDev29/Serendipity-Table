@@ -161,6 +161,8 @@ export function AdminProvider({ children }) {
               femaleCount,
               targetSize: 4,
               isBalanced: maleCount === 2 && femaleCount === 2,
+              eventDate: t.eventDate ? t.eventDate.split('T')[0] : (t.eventDate || '2026-10-22'),
+              eventTime: t.eventTime || '19:30',
               venue: {
                 id: t.venue?.id,
                 name: t.venue?.name || '미배정',
@@ -181,6 +183,8 @@ export function AdminProvider({ children }) {
             id: t.chatRoomId || t.id || `room-${tIdx + 1}`,
             roomName: `${t.tableNo} 단체방`,
             venueName: t.venue?.name || '배정 대기',
+            eventDate: t.eventDate || '2026-10-22',
+            eventTime: t.eventTime || '19:30',
             memberCount: t.members?.length || 4,
             unreadCount: 0,
             lastMessage: '우연한 식탁에 오신 것을 환영합니다! 서로를 존중하는 따뜻한 식탁을 만들어가요.',
@@ -379,7 +383,8 @@ export function AdminProvider({ children }) {
               paymentMethod: o.paymentMethod || 'CARD',
               paymentStatus: o.status || 'PAID',
               status: o.status || 'PAID',
-              createdAt: o.paidAt || o.createdAt ? new Date(o.paidAt || o.createdAt).toLocaleString() : '-'
+              paidAt: o.paidAt || o.createdAt,
+              createdAt: o.createdAt || o.paidAt
             }))
           );
         }

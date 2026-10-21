@@ -183,6 +183,20 @@ export const AppProvider = ({ children }) => {
       } else {
         // 활성 식탁이 없는 경우 신청 목록 확인
         setMatchResult(null);
+        let adminNotices = [];
+        try {
+          const stored = localStorage.getItem('global_notices');
+          if (stored) {
+            adminNotices = JSON.parse(stored);
+          }
+        } catch (e) {
+          console.warn('Failed to parse global notices:', e);
+        }
+        setNotifications((prev) => {
+          const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
+          return [...adminNotices, ...nonNotices];
+        });
+
         try {
           const apps = await getMyApplicationsApi();
           const activeApp = (apps || []).find(a => a.status === 'APPLIED' || a.status === 'WAITING');

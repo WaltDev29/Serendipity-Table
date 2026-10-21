@@ -39,6 +39,25 @@ export default function AdminPaymentsPage() {
     return () => window.removeEventListener('click', handleOutsideClick);
   }, [contextMenu.visible]);
 
+  // Date Formatter Helper
+  const formatDate = (val) => {
+    if (!val || val === '-') return '-';
+    if (typeof val === 'string' && val.includes(':') && (val.includes('오전') || val.includes('오후') || val.length > 20)) {
+      return val;
+    }
+    const d = new Date(val);
+    if (isNaN(d.getTime())) {
+      return typeof val === 'string' ? val : '-';
+    }
+    return d.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const toggleMask = (id) => {
     setUnmaskedSet((prev) => {
       const next = new Set(prev);
@@ -273,8 +292,8 @@ export default function AdminPaymentsPage() {
                           {isRefunded ? '환불 완료' : '결제 완료'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-on-surface-variant">
-                        {app.paidAt ? new Date(app.paidAt).toLocaleString() : (app.createdAt ? new Date(app.createdAt).toLocaleString() : '-')}
+                      <td className="py-3.5 px-4 text-on-surface-variant font-mono">
+                        {formatDate(app.paidAt || app.createdAt)}
                       </td>
                     </tr>
                   );

@@ -5,18 +5,10 @@ import { useApp } from '../context/AppContext';
 export default function NotificationsPage() {
   const navigate = useNavigate();
   const { notifications, setNotifications } = useApp();
-  const [filterType, setFilterType] = useState('ALL'); // ALL, NOTICE, MATCH, SYSTEM
 
   const markAllRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
-
-  const filtered = notifications.filter((item) => {
-    if (filterType === 'ALL') return true;
-    if (filterType === 'NOTICE') return item.type === 'NOTICE';
-    if (filterType === 'MATCH') return item.type === 'MATCH';
-    return item.type !== 'NOTICE' && item.type !== 'MATCH';
-  });
 
   return (
     <div className="min-h-screen bg-background pb-20 font-body-md text-on-surface">
@@ -43,31 +35,8 @@ export default function NotificationsPage() {
 
       {/* Main Container */}
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
-        {/* Category Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {[
-            { id: 'ALL', label: '전체' },
-            { id: 'NOTICE', label: '공지사항' },
-            { id: 'MATCH', label: '매칭 알림' },
-            { id: 'SYSTEM', label: '활동/안내' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilterType(tab.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                filterType === tab.id
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
         {/* Notification List */}
-        {filtered.length === 0 ? (
+        {notifications.length === 0 ? (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-2">
             <span className="material-symbols-outlined text-4xl text-outline-variant">notifications_off</span>
             <p className="text-sm font-semibold text-on-surface-variant">수신된 알림이 없습니다.</p>
@@ -75,7 +44,7 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((item) => (
+            {notifications.map((item) => (
               <div
                 key={item.id}
                 className={`p-4 rounded-2xl border transition-all ${

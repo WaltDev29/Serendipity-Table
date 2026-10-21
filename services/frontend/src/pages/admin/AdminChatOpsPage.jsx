@@ -14,20 +14,69 @@ export default function AdminChatOpsPage() {
   const [adminInput, setAdminInput] = useState('');
   const [kickTargetUser, setKickTargetUser] = useState(null);
 
+  const [chatFilterTab, setChatFilterTab] = useState('ACTIVE'); // 'ACTIVE' (모임 진행 중) | 'PAST' (지난 모임)
+  const [selectedPastDate, setSelectedPastDate] = useState('ALL'); // 'ALL' or specific date YYYY-MM-DD
+
+  // 현재 날짜 기준 모임 다음날까지 '진행 중'으로 판정 (테스트 날짜 2026-10-21 기준)
+  const todayStr = '2026-10-21';
+  const isRoomActiveMeeting = (room) => {
+    const roomDate = room.eventDate || '2026-10-22';
+    // 모임 당일 및 모임 다음날까지 활성 상태로 간주
+    const meetingDate = new Date(roomDate);
+    const expireDate = new Date(meetingDate);
+    expireDate.setDate(expireDate.getDate() + 1); // 다음날 23:59까지
+    expireDate.setHours(23, 59, 59, 999);
+    const now = new Date(todayStr);
+    return now <= expireDate;
+  };
+
+  // 지난 모임에 속하는 채팅방들의 고유 날짜 목록 (내림차순)
+  const pastDates = Array.from(
+    new Set(
+      chatRooms
+        .filter((r) => !isRoomActiveMeeting(r))
+        .map((r) => r.eventDate || '2026-10-15')
+    )
+  ).sort((a, b) => new Date(b) - new Date(a));
+
+  // 탭 및 날짜 필터링 적용된 채팅방 목록
+  const filteredChatRooms = chatRooms
+    .filter((room) => {
+      const isActive = isRoomActiveMeeting(room);
+      if (chatFilterTab === 'ACTIVE') {
+        return isActive;
+      } else {
+        if (isActive) return false;
+        if (selectedPastDate !== 'ALL') {
+          return (room.eventDate || '2026-10-15') === selectedPastDate;
+        }
+        return true;
+      }
+    })
+    .sort((a, b) => {
+      if (chatFilterTab === 'PAST') {
+        // 지난 모임 날짜별 내림차순 정렬
+        const dateA = new Date(a.eventDate || '2026-10-01');
+        const dateB = new Date(b.eventDate || '2026-10-01');
+        return dateB - dateA;
+      }
+      return 0;
+    });
+
   const defaultRoom = {
     id: 'placeholder',
     roomName: '개설된 채팅방 없음',
     venueName: '미배정',
     memberCount: 0,
     unreadCount: 0,
-    lastMessage: '현재 활성화된 단체방이 없습니다.',
+    lastMessage: '선택된 필터에 해당하는 단체방이 없습니다.',
     lastMessageTime: '-',
     messages: [],
     members: []
   };
 
-  const activeRoom = (chatRooms && chatRooms.length > 0)
-    ? (chatRooms.find((r) => r.id === activeChatRoomId) || chatRooms[0])
+  const activeRoom = (filteredChatRooms && filteredChatRooms.length > 0)
+    ? (filteredChatRooms.find((r) => r.id === activeChatRoomId) || filteredChatRooms[0])
     : defaultRoom;
 
   // 운영자 직접 메시지 전송
@@ -200,15 +249,70 @@ export default function AdminChatOpsPage() {
         {/* 1. LEFT PANEL (3 cols): 채팅방 목록                       */}
         {/* ========================================================= */}
         <div className="col-span-3 border-r border-surface-container flex flex-col min-h-0 bg-surface-container-low/40">
-          <div className="p-3 border-b border-surface-container flex items-center justify-between">
-            <span className="font-title-md text-xs font-bold text-on-surface">
-              테이블 단체방 ({chatRooms.length})
-            </span>
-            <span className="text-[10px] text-outline font-semibold">10/22 회차</span>
+          {/* Filter Tabs */}
+          <div className="p-2.5 border-b border-surface-container space-y-2">
+            <div className="grid grid-cols-2 gap-1 bg-surface-container p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setChatFilterTab('ACTIVE')}
+                className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all ${
+                  chatFilterTab === 'ACTIVE'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                모임 진행 중
+              </button>
+              <button
+                type="button"
+                onClick={() => setChatFilterTab('PAST')}
+                className={`py-1.5 text-center text-xs font-bold rounded-lg transition-all ${
+                  chatFilterTab === 'PAST'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                지난 모임
+              </button>
+            </div>
+
+            {/* Date Filter Dropdown for Past Meetings */}
+            {chatFilterTab === 'PAST' && (
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[15px] text-outline">calendar_today</span>
+                <select
+                  value={selectedPastDate}
+                  onChange={(e) => setSelectedPastDate(e.target.value)}
+                  className="flex-1 h-8 px-2 rounded-lg bg-surface-container-lowest text-xs font-medium border border-surface-container text-on-surface focus:outline-none focus:border-primary"
+                >
+                  <option value="ALL">전체 날짜 (최신순)</option>
+                  {pastDates.map((date) => (
+                    <option key={date} value={date}>
+                      {date} 모임
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-0.5">
+              <span className="font-title-md text-[11px] font-bold text-on-surface">
+                {chatFilterTab === 'ACTIVE' ? '진행 중인 모임' : '지난 모임 기록'} ({filteredChatRooms.length})
+              </span>
+              <span className="text-[10px] text-outline font-semibold">
+                {chatFilterTab === 'ACTIVE' ? 'D+1 활성 유지' : '기록 보관'}
+              </span>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto divide-y divide-surface-container-low">
-            {chatRooms.map((room) => {
+            {filteredChatRooms.length === 0 ? (
+              <div className="py-8 text-center text-xs text-on-surface-variant px-3">
+                <span className="material-symbols-outlined text-2xl text-outline block mb-1">forum</span>
+                해당 조건의 채팅방이 없습니다.
+              </div>
+            ) : (
+              filteredChatRooms.map((room) => {
               const isActive = room.id === activeRoom.id;
               return (
                 <div
@@ -234,7 +338,8 @@ export default function AdminChatOpsPage() {
                   </p>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         </div>
 
@@ -426,35 +531,48 @@ export default function AdminChatOpsPage() {
 
             {/* Participants Status & Kick Action */}
             <div className="space-y-2 pt-3 border-t border-surface-container">
-              <span className="font-bold text-xs text-on-surface block">
-                참가자 명단
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-on-surface block">
+                  참가자 명단 ({activeRoom.members?.length || 0}명)
+                </span>
+                <span className="text-[10px] text-outline font-medium">실시간 참여 현황</span>
+              </div>
               <div className="space-y-1.5">
-                {[
-                  { name: '김서연', age: 29 },
-                  { name: '이도현', age: 31 },
-                  { name: '박지민', age: 28 },
-                  { name: '최원우', age: 30 }
-                ].map((member) => (
-                  <div
-                    key={member.name}
-                    className="p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-on-surface">{member.name}</span>
-                      <span className="text-[10px] text-outline font-mono">({member.age}세)</span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setKickTargetUser(member.name)}
-                      className="px-2 py-0.5 rounded bg-error-container text-error hover:bg-error hover:text-white text-[10px] font-bold transition-colors"
-                      title="비매너/폭언 시 강제 퇴장"
-                    >
-                      강퇴
-                    </button>
+                {(!activeRoom.members || activeRoom.members.length === 0) ? (
+                  <div className="py-4 text-center text-xs text-on-surface-variant bg-surface-container-low rounded-xl">
+                    배정된 참가자가 없습니다.
                   </div>
-                ))}
+                ) : (
+                  activeRoom.members.map((member) => {
+                    const memberName = member.name || member.nickname || '참가자';
+                    const memberAge = member.age ? `${member.age}세` : (member.gender === 'F' ? '여성' : '남성');
+                    return (
+                      <div
+                        key={member.id || memberName}
+                        className="p-2.5 rounded-xl bg-surface-container-low flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-on-surface">{memberName}</span>
+                          <span className="text-[10px] text-outline font-mono">({memberAge})</span>
+                          {member.job && (
+                            <span className="text-[10px] text-on-surface-variant truncate max-w-[70px]">
+                              · {member.job}
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setKickTargetUser(memberName)}
+                          className="px-2 py-0.5 rounded bg-error-container text-error hover:bg-error hover:text-white text-[10px] font-bold transition-colors"
+                          title="비매너/폭언 시 강제 퇴장"
+                        >
+                          강퇴
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

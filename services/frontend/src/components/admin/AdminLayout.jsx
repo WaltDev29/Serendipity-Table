@@ -17,10 +17,8 @@ export default function AdminLayout() {
   } = useAdmin();
 
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
-  const [noticeTarget, setNoticeTarget] = useState('ALL'); // ALL, HONGDAE, ACTIVE
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
-  const [isPinNotice, setIsPinNotice] = useState(true);
 
   const [isNotiDropdownOpen, setIsNotiDropdownOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
@@ -30,20 +28,14 @@ export default function AdminLayout() {
   const urgentCs = csInquiries.filter((c) => c.status === 'PENDING' || !c.isResolved);
   const totalUrgentCount = urgentTables.length + urgentCs.length;
 
-  // 공지 프리셋 템플릿
-  const noticePresets = [
-    { label: '식당 룸 위치 안내', title: '식당 룸 위치 안내', text: '매장 2층 안쪽 "우연한 식탁" 전용 룸으로 오시면 테이블별 자리 안내를 도와드립니다.' },
-    { label: '지각/도착 체크인 안내', title: '모임 시작 10분 전 안내', text: '모임 시작 10분 전입니다! 현장 도착 시 채팅방의 [도착 체크인] 버튼을 눌러주세요.' },
-    { label: '주차 및 길찾기 안내', title: '매장 주차 및 길찾기 유의사항', text: '매장 건물 주차가 불가하오니 도보 3분 거리의 인근 공영주차장을 이용해주시기 바랍니다.' }
-  ];
-
   const handleSendNotice = (e) => {
     e.preventDefault();
     if (!noticeMessage.trim()) return;
-    sendEmergencyNotice(noticeTarget, noticeTitle || '🚨 운영자 긴급 공지', noticeMessage, isPinNotice);
+    sendEmergencyNotice('ALL', noticeTitle || '📢 전체 공지사항', noticeMessage, false);
     setIsNoticeModalOpen(false);
     setNoticeTitle('');
     setNoticeMessage('');
+    alert('전체 회원에게 공지사항이 성공적으로 발송되었습니다.');
   };
 
   const navGroups = [
@@ -325,53 +317,16 @@ export default function AdminLayout() {
               </button>
             </div>
 
-            <form onSubmit={handleSendNotice} className="space-y-3">
-              {/* Target Range */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  발송 대상 범위
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'ALL', label: '사용자 전체 회원' },
-                    { id: 'ACTIVE', label: '최근 활동 회원' }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setNoticeTarget(t.id)}
-                      className={`h-9 rounded-xl text-xs font-semibold transition-all ${
-                        noticeTarget === t.id
-                          ? 'bg-primary text-white shadow-xs font-bold'
-                          : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Presets */}
-              <div>
-                <label className="block text-xs font-bold text-on-surface mb-1">
-                  자주 쓰는 템플릿 프리셋
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {noticePresets.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setNoticeTitle(preset.title);
-                        setNoticeMessage(preset.text);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-surface-container-low hover:bg-surface-container text-on-surface-variant text-[11px] font-medium border border-outline-variant/30 transition-colors"
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
+            <form onSubmit={handleSendNotice} className="space-y-4">
+              {/* Target Notice Info */}
+              <div className="p-3 rounded-xl bg-surface-container-low border border-surface-container flex items-center justify-between text-xs">
+                <span className="font-semibold text-on-surface flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-[16px]">groups</span>
+                  발송 대상
+                </span>
+                <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full text-[11px]">
+                  전체 회원 일괄 발송
+                </span>
               </div>
 
               {/* Title & Body */}
@@ -383,35 +338,23 @@ export default function AdminLayout() {
                   type="text"
                   value={noticeTitle}
                   onChange={(e) => setNoticeTitle(e.target.value)}
-                  placeholder="예: [안내] 매장 룸 위치 및 도착 체크인"
+                  placeholder="예: [공지] 모임 시작 안내 및 주의사항"
                   className="w-full h-10 px-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-on-surface mb-1">
-                  공지 본문 내용 (최대 200자)
+                  공지 본문 내용 <span className="text-error">*</span>
                 </label>
                 <textarea
-                  rows={3}
+                  rows={4}
+                  required
                   value={noticeMessage}
                   onChange={(e) => setNoticeMessage(e.target.value)}
-                  placeholder="참가자들에게 전달할 명확하고 긴급한 운영 공지사항을 입력하세요."
-                  className="w-full p-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                  placeholder="회원들에게 전달할 공지사항 내용을 입력하세요. 사용자 앱 알림함과 상단 알림에 즉시 표시됩니다."
+                  className="w-full p-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-outline-variant/30 focus:outline-none focus:ring-1 focus:ring-primary resize-none leading-relaxed"
                 />
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="pinNotice"
-                  checked={isPinNotice}
-                  onChange={(e) => setIsPinNotice(e.target.checked)}
-                  className="accent-primary w-4 h-4 rounded"
-                />
-                <label htmlFor="pinNotice" className="text-xs text-on-surface font-semibold cursor-pointer">
-                  채팅방 상단에 핀 배너로 영구 고정 및 카카오 알림톡 동시 발송
-                </label>
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-surface-container">
@@ -428,7 +371,7 @@ export default function AdminLayout() {
                   className="flex-1 h-10 rounded-xl bg-primary text-white text-xs font-bold shadow-md hover:bg-primary-container disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
                 >
                   <span className="material-symbols-outlined text-[16px]">send</span>
-                  <span>즉시 일괄 발송</span>
+                  <span>전체 공지 발송</span>
                 </button>
               </div>
             </form>

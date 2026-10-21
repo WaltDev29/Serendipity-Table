@@ -90,6 +90,10 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        if ("WITHDRAWN".equalsIgnoreCase(user.getStatus())) {
+            throw new CustomException(ErrorCode.USER_WITHDRAWN);
+        }
+
         if (userBlacklistRepository.existsByUser(user)) {
             throw new CustomException(ErrorCode.USER_BLACKLISTED);
         }

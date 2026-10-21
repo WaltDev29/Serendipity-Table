@@ -44,6 +44,15 @@ import BlockedUsersPage from './pages/BlockedUsersPage';
 import CustomerServicePage from './pages/CustomerServicePage';
 import InquiryChatPage from './pages/InquiryChatPage';
 
+// 비로그인 사용자 보호 라우트 가드
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
 export default function App() {
   const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   const [showSplash, setShowSplash] = React.useState(!isAdminPath);
@@ -88,47 +97,47 @@ export default function App() {
                 <Route path="/" element={<div className="pt-14"><HomePage /></div>} />
 
                 {/* 매칭 탭 (대기/확정식당/후기 등 상태 스마트 허브) */}
-                <Route path="/matching" element={<div className="pt-14"><MatchingHubPage /></div>} />
+                <Route path="/matching" element={<ProtectedRoute><div className="pt-14"><MatchingHubPage /></div></ProtectedRoute>} />
 
                 {/* 정보 입력 페이지 (회원가입 직후 설정 및 마이페이지 수정) */}
-                <Route path="/information-input" element={<div className="pt-14"><InformationInputPage /></div>} />
-                <Route path="/apply" element={<div className="pt-14"><InformationInputPage /></div>} />
-                <Route path="/survey" element={<div className="pt-14"><InformationInputPage /></div>} />
-                <Route path="/booking" element={<div className="pt-14"><InformationInputPage /></div>} />
+                <Route path="/information-input" element={<ProtectedRoute><div className="pt-14"><InformationInputPage /></div></ProtectedRoute>} />
+                <Route path="/apply" element={<ProtectedRoute><div className="pt-14"><InformationInputPage /></div></ProtectedRoute>} />
+                <Route path="/survey" element={<ProtectedRoute><div className="pt-14"><InformationInputPage /></div></ProtectedRoute>} />
+                <Route path="/booking" element={<ProtectedRoute><div className="pt-14"><InformationInputPage /></div></ProtectedRoute>} />
 
                 {/* 매칭 대기 현황 및 D-Day 타이머 */}
-                <Route path="/matching-waiting" element={<div className="pt-14"><MatchingWaitingPage /></div>} />
-                <Route path="/match/status" element={<div className="pt-14"><MatchingWaitingPage /></div>} />
+                <Route path="/matching-waiting" element={<ProtectedRoute><div className="pt-14"><MatchingWaitingPage /></div></ProtectedRoute>} />
+                <Route path="/match/status" element={<ProtectedRoute><div className="pt-14"><MatchingWaitingPage /></div></ProtectedRoute>} />
 
                 {/* P-07: 매칭 확정 & 식당 및 4인 익명 멤버 소개 */}
-                <Route path="/match/result" element={<div className="pt-14"><VenueMembersPage /></div>} />
+                <Route path="/match/result" element={<ProtectedRoute><div className="pt-14"><VenueMembersPage /></div></ProtectedRoute>} />
 
                 {/* P-08: 실시간 단체 채팅방 (7대 메시지 타입) */}
-                <Route path="/chat" element={<div className="pt-14"><GroupChatPage /></div>} />
-                <Route path="/chat/inquiry" element={<div className="pt-14"><InquiryChatPage /></div>} />
+                <Route path="/chat" element={<ProtectedRoute><div className="pt-14"><GroupChatPage /></div></ProtectedRoute>} />
+                <Route path="/chat/inquiry" element={<ProtectedRoute><div className="pt-14"><InquiryChatPage /></div></ProtectedRoute>} />
 
                 {/* P-13: 채팅 목록 */}
-                <Route path="/chats" element={<div className="pt-14"><ChatListPage /></div>} />
+                <Route path="/chats" element={<ProtectedRoute><div className="pt-14"><ChatListPage /></div></ProtectedRoute>} />
 
                 {/* P-10: 사후 3대 별점 피드백 & 1초 재신청 리텐션 카드 */}
-                <Route path="/feedback" element={<div className="pt-14"><FeedbackPage /></div>} />
+                <Route path="/feedback" element={<ProtectedRoute><div className="pt-14"><FeedbackPage /></div></ProtectedRoute>} />
 
                 {/* P-09: 매칭 실패 시 무료이월/환불 대안 선택 */}
-                <Route path="/match/fallback" element={<div className="pt-14"><FallbackPage /></div>} />
-                <Route path="/fallback" element={<div className="pt-14"><FallbackPage /></div>} />
+                <Route path="/match/fallback" element={<ProtectedRoute><div className="pt-14"><FallbackPage /></div></ProtectedRoute>} />
+                <Route path="/fallback" element={<ProtectedRoute><div className="pt-14"><FallbackPage /></div></ProtectedRoute>} />
 
                 {/* P-11 ~ P-12: 마이페이지 프로필 & 1:1 고객센터 실시간 문의 */}
-                <Route path="/mypage" element={<div className="pt-14"><MyPageAndCS /></div>} />
-                <Route path="/my" element={<div className="pt-14"><MyPageAndCS /></div>} />
+                <Route path="/mypage" element={<ProtectedRoute><div className="pt-14"><MyPageAndCS /></div></ProtectedRoute>} />
+                <Route path="/my" element={<ProtectedRoute><div className="pt-14"><MyPageAndCS /></div></ProtectedRoute>} />
 
                 {/* 신규 추가: 회원가입 및 로그인 (자체 풀스크린 레이아웃) */}
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/login" element={<LoginPage />} />
 
                 {/* 신규 추가: 지난 식탁 다이어리 & 안심 차단 관리 & 고객센터 */}
-                <Route path="/past-tables" element={<div className="pt-14"><PastTablesPage /></div>} />
-                <Route path="/blocked-users" element={<div className="pt-14"><BlockedUsersPage /></div>} />
-                <Route path="/cs" element={<div className="pt-14"><CustomerServicePage /></div>} />
+                <Route path="/past-tables" element={<ProtectedRoute><div className="pt-14"><PastTablesPage /></div></ProtectedRoute>} />
+                <Route path="/blocked-users" element={<ProtectedRoute><div className="pt-14"><BlockedUsersPage /></div></ProtectedRoute>} />
+                <Route path="/cs" element={<ProtectedRoute><div className="pt-14"><CustomerServicePage /></div></ProtectedRoute>} />
 
                 {/* Fallback Redirect */}
                 <Route path="*" element={<Navigate to="/" replace />} />

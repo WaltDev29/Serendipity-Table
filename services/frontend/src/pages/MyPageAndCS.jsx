@@ -438,7 +438,7 @@ export default function MyPageAndCS() {
                       await withdrawApi();
                       await showAlert('회원 탈퇴 처리가 완료되었습니다. 그동안 우연한 식탁을 이용해 주셔서 감사합니다.', '탈퇴 완료');
                       logout();
-                      navigate('/');
+                      navigate('/login');
                     } catch (err) {
                       await showAlert('탈퇴 처리 실패: ' + err.message, '오류');
                     }

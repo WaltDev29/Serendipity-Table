@@ -173,6 +173,7 @@ public class ApplicationService {
         }
 
         application.cancel();
+        applicationRepository.save(application);
 
         // 참가권 복구
         if (application.getTicket() != null) {

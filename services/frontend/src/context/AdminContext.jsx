@@ -246,34 +246,38 @@ export function AdminProvider({ children }) {
         const appList = await getAdminApplicationsApi();
         if (Array.isArray(appList)) {
           setApplications(
-            appList.map((a) => ({
-              id: a.id,
-              userId: a.userId,
-              name: a.name,
-              gender: a.gender,
-              age: a.age,
-              phone: a.phone || '-',
-              instagramId: a.instagramId ? `@${a.instagramId.replace(/^@/, '')}` : '-',
-              job: a.job || '직장인',
-              mbti: a.mbti || 'ENFP',
-              region: a.region || '홍대/합정',
-              regions: a.regions || [a.region || '홍대/합정'],
-              ticketType: a.ticketType || '1_TICKET',
-              paymentStatus: a.paymentStatus || 'PAID',
-              matchingStatus: a.matchStatus || 'WAITING',
-              assignedTable: a.assignedTable || '미배정',
-              interests: a.interests || [],
-              myTendencies: a.myTendencies || [],
-              preferredTendencies: a.preferredTendencies || [],
-              budget: (a.budgetRanges && a.budgetRanges.length > 0) ? a.budgetRanges[0] : '20,000~30,000원',
-              budgetRanges: a.budgetRanges || [],
-              foodRestrictions: Array.isArray(a.foodRestrictions)
-                ? a.foodRestrictions
-                : (a.foodRestrictions && a.foodRestrictions !== '없음' && a.foodRestrictions !== 'null')
-                ? [a.foodRestrictions]
-                : [],
-              createdAt: a.createdAt ? new Date(a.createdAt).toLocaleString() : '-'
-            }))
+            appList.map((a) => {
+              const isCancelled = a.status === 'CANCELLED' || a.matchStatus === 'CANCELLED' || a.assignedTable === '참가 취소';
+              return {
+                id: a.id,
+                userId: a.userId,
+                name: a.name,
+                gender: a.gender,
+                age: a.age,
+                phone: a.phone || '-',
+                instagramId: a.instagramId ? `@${a.instagramId.replace(/^@/, '')}` : '-',
+                job: a.job || '직장인',
+                mbti: a.mbti || 'ENFP',
+                region: a.region || '홍대/합정',
+                regions: a.regions || [a.region || '홍대/합정'],
+                ticketType: a.ticketType || '1_TICKET',
+                paymentStatus: isCancelled ? 'REFUNDED' : (a.paymentStatus || 'PAID'),
+                status: a.status || (isCancelled ? 'CANCELLED' : 'APPLIED'),
+                matchingStatus: isCancelled ? 'CANCELLED' : (a.matchStatus || 'WAITING'),
+                assignedTable: isCancelled ? '참가 취소' : (a.assignedTable || '미배정'),
+                interests: a.interests || [],
+                myTendencies: a.myTendencies || [],
+                preferredTendencies: a.preferredTendencies || [],
+                budget: (a.budgetRanges && a.budgetRanges.length > 0) ? a.budgetRanges[0] : '20,000~30,000원',
+                budgetRanges: a.budgetRanges || [],
+                foodRestrictions: Array.isArray(a.foodRestrictions)
+                  ? a.foodRestrictions
+                  : (a.foodRestrictions && a.foodRestrictions !== '없음' && a.foodRestrictions !== 'null')
+                  ? [a.foodRestrictions]
+                  : [],
+                createdAt: a.createdAt ? new Date(a.createdAt).toLocaleString() : '-'
+              };
+            })
           );
         }
       } catch (e) {

@@ -642,6 +642,66 @@ public class MatchingLifecycleService {
         return result;
     }
 
+    /**
+     * 10. 매칭 정보 초기화 (테이블, 멤버, 채팅방/메시지 삭제 및 신청 상태 APPLIED 복구)
+     */
+    @Transactional
+    public Map<String, Object> resetMatchingData(Long slotId) {
+        EventSlot slot = resolveSlot(slotId);
+        log.info("[매칭 라이프사이클] 10. 매칭 정보 초기화 실행 - 슬롯 #{}", slot.getId());
+
+        List<DiningTable> tables = diningTableRepository.findByEventSlot(slot);
+        int deletedTablesCount = tables.size();
+        int deletedMembersCount = 0;
+        int deletedChatRoomsCount = 0;
+
+        for (DiningTable table : tables) {
+            // 1. 단체 채팅방 및 메시지 삭제
+            var chatRoomOpt = chatRoomRepository.findByDiningTable(table);
+            if (chatRoomOpt.isPresent()) {
+                ChatRoom room = chatRoomOpt.get();
+                chatMessageRepository.deleteByChatRoom(room);
+                chatRoomRepository.delete(room);
+                deletedChatRoomsCount++;
+            }
+
+            // 2. 테이블 멤버 삭제
+            List<TableMember> members = tableMemberRepository.findByDiningTable(table);
+            deletedMembersCount += members.size();
+            tableMemberRepository.deleteAll(members);
+
+            // 3. 다이닝 테이블 삭제
+            diningTableRepository.delete(table);
+        }
+
+        // 4. 해당 슬롯의 신청자 상태 초기화 (CANCELLED가 아닌 MATCHED/CONFIRMED를 APPLIED로 롤백)
+        List<Application> apps = applicationRepository.findByEventSlot(slot);
+        int resetAppsCount = 0;
+        for (Application app : apps) {
+            if ("MATCHED".equals(app.getStatus()) || "CONFIRMED".equals(app.getStatus())) {
+                app.resetToApplied();
+                applicationRepository.save(app);
+                resetAppsCount++;
+            }
+        }
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("MATCHING_RESET")
+                .operatorName("관리자")
+                .detail(String.format("매칭 정보 초기화 완료: 슬롯 #%d, 삭제 테이블 %d개, 삭제 멤버 %d명, 초기화 신청건 %d건",
+                        slot.getId(), deletedTablesCount, deletedMembersCount, resetAppsCount))
+                .targetId(String.valueOf(slot.getId()))
+                .build());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("step", "RESET");
+        result.put("deletedTables", deletedTablesCount);
+        result.put("deletedMembers", deletedMembersCount);
+        result.put("deletedChatRooms", deletedChatRoomsCount);
+        result.put("resetApplications", resetAppsCount);
+        return result;
+    }
+
     // -------------------------------------------------------------
     // 내부 헬퍼 함수들
     // -------------------------------------------------------------

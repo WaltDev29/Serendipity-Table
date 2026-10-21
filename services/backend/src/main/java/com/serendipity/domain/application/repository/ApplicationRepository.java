@@ -15,4 +15,5 @@ public interface ApplicationRepository extends JpaRepository<Application, UUID> 
     List<Application> findByUserOrderByCreatedAtDesc(User user);
     List<Application> findByEventSlot(EventSlot eventSlot);
     List<Application> findByEventSlotId(Long eventSlotId);
+    long countByStatusNot(String status);
 }

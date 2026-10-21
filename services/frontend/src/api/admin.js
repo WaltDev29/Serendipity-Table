@@ -167,3 +167,10 @@ export async function getAdminFeedbackAnalyticsApi() {
   return await apiFetch('/admin/analytics/feedback');
 }
 
+export async function executeSimulationActionApi(action, userIds = []) {
+  return await apiFetch('/admin/simulation/action', {
+    method: 'POST',
+    body: JSON.stringify({ action, userIds })
+  });
+}
+

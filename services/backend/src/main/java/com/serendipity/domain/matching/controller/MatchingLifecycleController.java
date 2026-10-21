@@ -60,6 +60,10 @@ public class MatchingLifecycleController {
             case "9":
                 result = lifecycleService.sendNextDayFeedbackRequest(slotId);
                 break;
+            case "reset":
+            case "10":
+                result = lifecycleService.resetMatchingData(slotId);
+                break;
             default:
                 throw new IllegalArgumentException("지원되지 않는 라이프사이클 단계입니다: " + step);
         }

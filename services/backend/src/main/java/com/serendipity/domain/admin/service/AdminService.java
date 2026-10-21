@@ -65,7 +65,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public AdminDashboardResponse getDashboard() {
         long totalUsers = userRepository.count();
-        long currentApps = applicationRepository.count();
+        long currentApps = applicationRepository.countByStatusNot("CANCELLED");
         long activeTables = diningTableRepository.count();
         long totalVenues = venueRepository.count();
         long pendingCs = csInquiryRepository.findAll().stream()
@@ -396,6 +396,8 @@ public class AdminService {
                     ? a.getPreferredRegions().get(0)
                     : "홍대/합정";
 
+            boolean isCancelled = "CANCELLED".equals(a.getStatus());
+
             return AdminApplicationResponse.builder()
                     .id(a.getId())
                     .userId(u.getId())
@@ -409,10 +411,10 @@ public class AdminService {
                     .regions(a.getPreferredRegions())
                     .region(firstRegion)
                     .ticketType(a.getTicket() != null ? a.getTicket().getTicketType() : "1_TICKET")
-                    .paymentStatus("CANCELLED".equals(a.getStatus()) ? "REFUNDED" : "PAID")
-                    .matchStatus(a.getStatus())
+                    .paymentStatus(isCancelled ? "REFUNDED" : "PAID")
+                    .matchStatus(isCancelled ? "CANCELLED" : a.getStatus())
                     .status(a.getStatus())
-                    .assignedTable(a.getStatus().equals("MATCHED") ? "테이블 배정완료" : "미배정")
+                    .assignedTable(isCancelled ? "참가 취소" : (a.getStatus().equals("MATCHED") ? "테이블 배정완료" : "미배정"))
                     .interests(u.getInterests())
                     .myTendencies(u.getMyTendencies())
                     .preferredTendencies(u.getPreferredTendencies())

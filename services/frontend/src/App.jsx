@@ -9,7 +9,6 @@ import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
 import NotificationDrawer from './components/common/NotificationDrawer';
 import EtiquetteModal from './components/common/EtiquetteModal';
-import DemoSwitcher from './components/common/DemoSwitcher';
 import SplashScreen from './components/common/SplashScreen';
 
 // Admin Layout & Pages
@@ -25,6 +24,7 @@ import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
 import AdminExceptionsPage from './pages/admin/AdminExceptionsPage';
 import AdminCustomerServicePage from './pages/admin/AdminCustomerServicePage';
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
+import AdminFlowTestPage from './pages/admin/AdminFlowTestPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 
 // User Pages
@@ -119,6 +119,7 @@ export default function App() {
                   <Route path="cs" element={<AdminCustomerServicePage />} />
                   <Route path="analytics" element={<AdminAnalyticsPage />} />
                   <Route path="exceptions" element={<AdminExceptionsPage />} />
+                  <Route path="flow-test" element={<AdminFlowTestPage />} />
                 </Route>
 
                 {/* ========================================= */}
@@ -182,9 +183,6 @@ export default function App() {
 
             {/* Mobile Bottom Navigation Bar (Hidden on /admin) */}
             <BottomNav />
-
-            {/* Fast QA / Demo Switcher for Evaluation */}
-            <DemoSwitcher />
           </div>
         </BrowserRouter>
         </ModalProvider>

@@ -9,8 +9,13 @@ export default function AdminApplicationsPage() {
   // Filters
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [selectedGender, setSelectedGender] = useState('ALL');
+  const [selectedMatchingStatus, setSelectedMatchingStatus] = useState('ALL');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('ALL');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  // 취소 판별 헬퍼
+  const isCancelled = (app) =>
+    app.status === 'CANCELLED' || app.matchingStatus === 'CANCELLED' || app.assignedTable === '참가 취소';
 
   useEffect(() => {
     const phoneQuery = searchParams.get('phone') || searchParams.get('search');
@@ -52,35 +57,41 @@ export default function AdminApplicationsPage() {
     if (selectedRegion !== 'ALL' && !app.region.includes(selectedRegion)) return false;
     if (selectedGender !== 'ALL' && app.gender !== selectedGender) return false;
     if (selectedPaymentStatus !== 'ALL' && app.paymentStatus !== selectedPaymentStatus) return false;
+    if (selectedMatchingStatus !== 'ALL') {
+      if (selectedMatchingStatus === 'CANCELLED' && !isCancelled(app)) return false;
+      if (selectedMatchingStatus === 'CONFIRMED' && (isCancelled(app) || (app.matchingStatus !== 'CONFIRMED' && app.status !== 'MATCHED'))) return false;
+      if (selectedMatchingStatus === 'WAITING' && (isCancelled(app) || app.matchingStatus === 'CONFIRMED' || app.status === 'MATCHED')) return false;
+    }
     if (searchKeyword) {
       const q = searchKeyword.toLowerCase();
-      const matchName = app.name.toLowerCase().includes(q);
-      const matchPhone = app.phone.includes(q);
-      const matchInsta = app.instagramId.toLowerCase().includes(q);
-      const matchId = app.id.toLowerCase().includes(q);
+      const matchName = (app.name || '').toLowerCase().includes(q);
+      const matchPhone = (app.phone || '').includes(q);
+      const matchInsta = (app.instagramId || '').toLowerCase().includes(q);
+      const matchId = (app.id || '').toLowerCase().includes(q);
       if (!matchName && !matchPhone && !matchInsta && !matchId) return false;
     }
     return true;
   });
 
-  // 권역 및 성별 필터가 적용된 기준 집계 (요구사항: 권역별, 성별 선택 필터가 상단 총 참가자수, 매칭완료수, 대기신청수에도 반영될 것)
+  // 권역 및 성별 필터가 적용된 기준 집계 (참가 취소 상태의 사용자는 총 참가 신청 수에 카운트하지 않음)
   const baseFilteredApps = applications.filter((app) => {
     if (selectedRegion !== 'ALL' && !(app.region || '').includes(selectedRegion)) return false;
     if (selectedGender !== 'ALL' && app.gender !== selectedGender) return false;
     return true;
   });
 
-  const totalCount = baseFilteredApps.length;
-  const matchedCount = baseFilteredApps.filter((a) => a.matchingStatus === 'CONFIRMED' || a.status === 'MATCHED').length;
-  const waitingCount = baseFilteredApps.filter((a) => a.matchingStatus !== 'CONFIRMED' && a.status !== 'MATCHED' && a.status !== 'CANCELLED').length;
+  const activeFilteredApps = baseFilteredApps.filter((a) => !isCancelled(a));
+  const totalCount = activeFilteredApps.length;
+  const matchedCount = activeFilteredApps.filter((a) => a.matchingStatus === 'CONFIRMED' || a.status === 'MATCHED').length;
+  const waitingCount = activeFilteredApps.filter((a) => a.matchingStatus !== 'CONFIRMED' && a.status !== 'MATCHED').length;
 
-  // 권역별 신청 수 카운트 (성별 필터 조건 반영)
+  // 권역별 신청 수 카운트 (성별 필터 조건 반영, 참가 취소자 제외)
   const regionCounts = {
-    ALL: applications.filter((a) => selectedGender === 'ALL' || a.gender === selectedGender).length,
-    '홍대': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('홍대')).length,
-    '잠실': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('잠실')).length,
-    '강남': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('강남')).length,
-    '을지로': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && (a.region || '').includes('을지로')).length
+    ALL: applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && !isCancelled(a)).length,
+    '홍대': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && !isCancelled(a) && (a.region || '').includes('홍대')).length,
+    '잠실': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && !isCancelled(a) && (a.region || '').includes('잠실')).length,
+    '강남': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && !isCancelled(a) && (a.region || '').includes('강남')).length,
+    '을지로': applications.filter((a) => (selectedGender === 'ALL' || a.gender === selectedGender) && !isCancelled(a) && (a.region || '').includes('을지로')).length
   };
 
   return (
@@ -98,7 +109,7 @@ export default function AdminApplicationsPage() {
         </div>
       </div>
 
-      {/* Summary KPI Cards (권역 및 성별 필터 조건 반영) */}
+      {/* Summary KPI Cards (권역 및 성별 필터 조건 반영, 참가 취소 제외) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs">
           <span className="text-xs text-on-surface-variant font-medium">총 참가 신청 수</span>
@@ -150,6 +161,18 @@ export default function AdminApplicationsPage() {
             <option value="F">여성</option>
             <option value="M">남성</option>
           </select>
+
+          {/* Assignment/Match Status Filter Dropdown */}
+          <select
+            value={selectedMatchingStatus}
+            onChange={(e) => setSelectedMatchingStatus(e.target.value)}
+            className="h-9 ml-1 px-3 rounded-xl bg-surface-container-low text-xs font-semibold text-on-surface border border-outline-variant/30 focus:outline-none"
+          >
+            <option value="ALL">전체 배정 상태</option>
+            <option value="CONFIRMED">테이블 배정완료</option>
+            <option value="WAITING">배정 대기</option>
+            <option value="CANCELLED">참가 취소</option>
+          </select>
         </div>
 
         {/* Search Input on Right */}
@@ -173,12 +196,14 @@ export default function AdminApplicationsPage() {
           <table className="w-full text-left text-xs">
             <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-surface-container">
               <tr>
-                <th className="py-3 px-3.5">실명 (인증)</th>
-                <th className="py-3 px-3.5">성별 / 나이</th>
+                <th className="py-3 px-3.5">이름</th>
+                <th className="py-3 px-3.5">성별</th>
+                <th className="py-3 px-3.5">나이</th>
                 <th className="py-3 px-3.5">연락처</th>
                 <th className="py-3 px-3.5">인스타그램</th>
                 <th className="py-3 px-3.5">신청 권역</th>
-                <th className="py-3 px-3.5">예산 & 식이 제한</th>
+                <th className="py-3 px-3.5">예산</th>
+                <th className="py-3 px-3.5">식이 제한</th>
                 <th className="py-3 px-3.5">배정 상태</th>
                 <th className="py-3 px-3.5">신청 일시</th>
                 <th className="py-3 px-3.5 text-center">프로필 상세</th>
@@ -201,8 +226,10 @@ export default function AdminApplicationsPage() {
                     <td className="py-3 px-3.5">
                       <span className={app.gender === 'F' ? 'text-primary font-bold' : 'text-blue-600 font-bold'}>
                         {app.gender === 'F' ? '여' : '남'}
-                      </span>{' '}
-                      / {app.age}세 ({app.birthYear})
+                      </span>
+                    </td>
+                    <td className="py-3 px-3.5 font-medium text-on-surface">
+                      {app.age ? `${app.age}세` : '-'}
                     </td>
                     <td className="py-3 px-3.5 font-mono">
                       <div className="flex items-center gap-1">
@@ -230,31 +257,38 @@ export default function AdminApplicationsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-3.5">
-                      <div className="text-[11px] text-on-surface">{app.budget || '20,000~30,000원'}</div>
+                      <span className="text-[11px] text-on-surface font-medium">{app.budget || '20,000~30,000원'}</span>
+                    </td>
+                    <td className="py-3 px-3.5">
                       {Array.isArray(app.foodRestrictions) && app.foodRestrictions.length > 0 ? (
-                        <div className="flex gap-1 mt-0.5 flex-wrap">
+                        <div className="flex gap-1 flex-wrap">
                           {app.foodRestrictions.map((r) => (
-                            <span key={r} className="px-1.5 py-0.2 rounded bg-error-container text-error text-[10px] font-bold">
+                            <span key={r} className="px-1.5 py-0.5 rounded bg-error-container text-error text-[10px] font-bold">
                               제외: {r}
                             </span>
                           ))}
                         </div>
                       ) : (
                         <span className="text-[10px] text-on-surface-variant">
-                          {typeof app.foodRestrictions === 'string' && app.foodRestrictions !== '없음' ? `제외: ${app.foodRestrictions}` : '제한 없음'}
+                          {typeof app.foodRestrictions === 'string' && app.foodRestrictions !== '없음' && app.foodRestrictions !== 'null' ? `제외: ${app.foodRestrictions}` : '제한 없음'}
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-3.5 font-medium">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          app.matchingStatus === 'CONFIRMED'
-                            ? 'bg-tertiary-fixed text-tertiary'
-                            : 'bg-primary-fixed text-primary'
-                        }`}
-                      >
-                        {app.assignedTable || '배정 대기'}
-                      </span>
+                      {isCancelled(app) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-error-container text-error border border-error/20">
+                          <span className="material-symbols-outlined text-[12px]">cancel</span>
+                          참가 취소
+                        </span>
+                      ) : app.matchingStatus === 'CONFIRMED' || app.status === 'MATCHED' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-tertiary-fixed text-tertiary">
+                          {app.assignedTable || '테이블 배정완료'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-fixed text-primary">
+                          {app.assignedTable || '배정 대기'}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-3.5 text-on-surface-variant text-[11px]">
                       {app.createdAt || '-'}
@@ -394,12 +428,18 @@ export default function AdminApplicationsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-on-surface-variant">배정 상태:</span>
+                  <span className={`font-bold ${isCancelled(activeAppDrawer) ? 'text-error' : 'text-primary'}`}>
+                    {isCancelled(activeAppDrawer) ? '참가 취소' : (activeAppDrawer.assignedTable || '배정 대기')}
+                  </span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-on-surface-variant">결제 티켓:</span>
                   <span className="font-bold text-secondary">{activeAppDrawer.ticketType}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-on-surface-variant">신청 일시:</span>
-                  <span className="font-mono text-outline">{activeAppDrawer.appliedAt}</span>
+                  <span className="font-mono text-outline">{activeAppDrawer.appliedAt || activeAppDrawer.createdAt || '-'}</span>
                 </div>
               </div>
             </div>

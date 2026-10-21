@@ -25,6 +25,9 @@ export async function apiFetch(endpoint, options = {}) {
     if (isAdmin) {
       localStorage.removeItem('admin_token');
       localStorage.removeItem('admin_user');
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+        window.location.href = '/admin/login?expired=true';
+      }
     } else {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

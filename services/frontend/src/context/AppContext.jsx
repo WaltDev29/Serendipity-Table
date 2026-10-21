@@ -117,7 +117,35 @@ export const AppProvider = ({ children }) => {
 
       const activeUserId = profile?.id;
 
-      // 2. 활성 식탁 조회
+      // 2. 관리자 공지 및 서버 알림 목록 조회 (활성 식탁 여부와 무관하게 공통 로드)
+      let adminNotices = [];
+      try {
+        const stored = localStorage.getItem('global_notices');
+        if (stored) {
+          adminNotices = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn('Failed to parse global notices:', e);
+      }
+
+      let serverNotices = [];
+      try {
+        const sNotices = await getMyNotificationsApi();
+        if (Array.isArray(sNotices)) serverNotices = sNotices;
+      } catch (e) {
+        console.warn('Failed to fetch server notices:', e);
+      }
+
+      setNotifications((prev) => {
+        const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
+        return [
+          ...adminNotices,
+          ...serverNotices,
+          ...nonNotices.filter(n => !serverNotices.some(sn => sn.id === n.id))
+        ];
+      });
+
+      // 3. 활성 식탁 조회
       let activeTable = null;
       try {
         activeTable = await getMyActiveTableApi();
@@ -129,30 +157,6 @@ export const AppProvider = ({ children }) => {
         const formatted = formatTableResponse(activeTable, activeUserId);
         setMatchResult(formatted);
         setUserState(activeTable.status === 'MATCHED' ? 'MATCHED' : 'CONFIRMED');
-
-        // 관리자 공지 및 서버 알림 목록 병합
-        let adminNotices = [];
-        try {
-          const stored = localStorage.getItem('global_notices');
-          if (stored) {
-            adminNotices = JSON.parse(stored);
-          }
-        } catch (e) {
-          console.warn('Failed to parse global notices:', e);
-        }
-
-        let serverNotices = [];
-        try {
-          const sNotices = await getMyNotificationsApi();
-          if (Array.isArray(sNotices)) serverNotices = sNotices;
-        } catch (e) {
-          console.warn('Failed to fetch server notices:', e);
-        }
-
-        setNotifications([
-          ...adminNotices,
-          ...serverNotices
-        ]);
 
         // 채팅방 메시지 로드 및 웹소켓 연결
         if (activeTable.chatRoomId) {
@@ -184,18 +188,6 @@ export const AppProvider = ({ children }) => {
       } else {
         // 활성 식탁이 없는 경우 신청 목록 확인
         setMatchResult(null);
-        let serverNotices = [];
-        try {
-          const sNotices = await getMyNotificationsApi();
-          if (Array.isArray(sNotices)) serverNotices = sNotices;
-        } catch (e) {
-          console.warn('Failed to fetch server notices:', e);
-        }
-
-        setNotifications((prev) => {
-          const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
-          return [...adminNotices, ...serverNotices, ...nonNotices.filter(n => !serverNotices.some(sn => sn.id === n.id))];
-        });
 
         try {
           const apps = await getMyApplicationsApi();

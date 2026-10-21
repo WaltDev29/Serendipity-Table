@@ -26,6 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,7 +45,7 @@ public class AdminSimulationService {
 
     // 시뮬레이션 결제 1회권 기본 금액 (실제 PG 결제는 발생하지 않음)
     private static final int SIMULATION_TICKET_PRICE = 8000;
-    private static final String DEFAULT_REGION = "홍대/합정";
+    private static final List<String> REGIONS = List.of("홍대 / 합정", "잠실 / 송파", "강남 / 신논현", "을지로 / 종로");
 
     /**
      * 대상 사용자 목록 확인 (비어있으면 전체 일반 회원)
@@ -137,19 +138,21 @@ public class AdminSimulationService {
     }
 
     /**
-     * 사용자의 권역 결정: 최근 신청 권역 우선, 없으면 해당 회차에서 마감되지 않은 첫 권역
+     * 참가 신청 권역을 4개 권역 중 랜덤 선택.
+     * region_slots의 권역명은 공백/표기가 다를 수 있어(예: '홍대/합정', '잠실') 정규화 후 느슨하게 매칭하고,
+     * 매칭되는 슬롯이 있으면 그 이름을 써서 권역별 인원 카운트가 올바르게 증가하도록 한다.
      */
-    private String resolveRegion(User user, EventSlot slot) {
-        return applicationRepository.findByUserOrderByCreatedAtDesc(user).stream()
-                .map(Application::getPreferredRegions)
-                .filter(r -> r != null && !r.isEmpty())
-                .map(r -> r.get(0))
+    private String resolveRegion(EventSlot slot) {
+        String picked = REGIONS.get(ThreadLocalRandom.current().nextInt(REGIONS.size()));
+        String pickedKey = picked.replaceAll("\\s+", "");
+        return regionSlotRepository.findByIdEventSlotId(slot.getId()).stream()
+                .map(rs -> rs.getId().getRegion())
+                .filter(name -> {
+                    String key = name.replaceAll("\\s+", "");
+                    return key.equals(pickedKey) || pickedKey.startsWith(key) || key.startsWith(pickedKey);
+                })
                 .findFirst()
-                .orElseGet(() -> regionSlotRepository.findByIdEventSlotId(slot.getId()).stream()
-                        .filter(rs -> !Boolean.TRUE.equals(rs.getIsClosed()))
-                        .map(rs -> rs.getId().getRegion())
-                        .findFirst()
-                        .orElse(DEFAULT_REGION));
+                .orElse(picked);
     }
 
     /**
@@ -188,7 +191,7 @@ public class AdminSimulationService {
             ticket.deduct();
             userTicketRepository.save(ticket);
 
-            String region = resolveRegion(user, nearestSlot);
+            String region = resolveRegion(nearestSlot);
 
             Application app = applicationRepository.findByUserAndEventSlot(user, nearestSlot)
                     .map(existing -> {

@@ -101,6 +101,25 @@ public class User extends BaseTimeEntity {
         this.profileImageUrl = url;
     }
 
+    public void rejoin(String passwordHash, String name, String nickname, String job,
+                       String instagramId, String mbti, List<String> interests,
+                       List<String> myTendencies, List<String> preferredTendencies,
+                       List<String> budgetRanges, String foodRestrictions) {
+        this.status = "ACTIVE";
+        this.passwordHash = passwordHash;
+        this.name = name;
+        this.nickname = nickname;
+        this.job = job;
+        this.instagramId = instagramId;
+        this.mbti = mbti;
+        this.interests = interests != null ? interests : new ArrayList<>();
+        this.myTendencies = myTendencies != null ? myTendencies : new ArrayList<>();
+        this.preferredTendencies = preferredTendencies != null ? preferredTendencies : new ArrayList<>();
+        this.budgetRanges = budgetRanges != null ? budgetRanges : new ArrayList<>();
+        this.foodRestrictions = foodRestrictions;
+        this.profileImageUrl = null;
+    }
+
     public void updateProfile(String nickname, String job, String instagramId, String mbti,
                               List<String> interests, List<String> myTendencies,
                               List<String> preferredTendencies, List<String> budgetRanges,

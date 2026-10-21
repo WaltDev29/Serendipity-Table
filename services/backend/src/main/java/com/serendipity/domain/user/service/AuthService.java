@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,40 +32,65 @@ public class AuthService {
 
     @Transactional
     public AuthResponse signup(SignupRequest req) {
-        if (userRepository.existsByPhone(req.getPhone())) {
-            throw new CustomException(ErrorCode.USER_ALREADY_EXISTS);
+        Optional<User> existingUserOpt = userRepository.findByPhone(req.getPhone());
+        User user;
+        if (existingUserOpt.isPresent()) {
+            User existing = existingUserOpt.get();
+            if (!"WITHDRAWN".equalsIgnoreCase(existing.getStatus())) {
+                throw new CustomException(ErrorCode.USER_ALREADY_EXISTS);
+            }
+            // 탈퇴 회원의 재가입: 성별, 출생연도는 기존 가입 정보 유지
+            existing.rejoin(
+                    passwordEncoder.encode(req.getPassword()),
+                    req.getName(),
+                    req.getNickname(),
+                    req.getJob(),
+                    req.getInstagramId(),
+                    req.getMbti(),
+                    req.getInterests(),
+                    req.getMyTendencies(),
+                    req.getPreferredTendencies(),
+                    req.getBudgetRanges(),
+                    req.getFoodRestrictions()
+            );
+            user = existing;
+        } else {
+            user = User.builder()
+                    .phone(req.getPhone())
+                    .passwordHash(passwordEncoder.encode(req.getPassword()))
+                    .name(req.getName())
+                    .nickname(req.getNickname())
+                    .birthYear(req.getBirthYear())
+                    .gender(req.getGender().toUpperCase())
+                    .job(req.getJob())
+                    .instagramId(req.getInstagramId())
+                    .mbti(req.getMbti())
+                    .interests(req.getInterests() != null ? req.getInterests() : new ArrayList<>())
+                    .myTendencies(req.getMyTendencies() != null ? req.getMyTendencies() : new ArrayList<>())
+                    .preferredTendencies(req.getPreferredTendencies() != null ? req.getPreferredTendencies() : new ArrayList<>())
+                    .budgetRanges(req.getBudgetRanges() != null ? req.getBudgetRanges() : new ArrayList<>())
+                    .foodRestrictions(req.getFoodRestrictions())
+                    .mannerTemp(new BigDecimal("36.5"))
+                    .strikeCount(0)
+                    .role("ROLE_USER")
+                    .build();
+            userRepository.save(user);
         }
 
-        User user = User.builder()
-                .phone(req.getPhone())
-                .passwordHash(passwordEncoder.encode(req.getPassword()))
-                .name(req.getName())
-                .nickname(req.getNickname())
-                .birthYear(req.getBirthYear())
-                .gender(req.getGender().toUpperCase())
-                .job(req.getJob())
-                .instagramId(req.getInstagramId())
-                .mbti(req.getMbti())
-                .interests(req.getInterests() != null ? req.getInterests() : new ArrayList<>())
-                .myTendencies(req.getMyTendencies() != null ? req.getMyTendencies() : new ArrayList<>())
-                .preferredTendencies(req.getPreferredTendencies() != null ? req.getPreferredTendencies() : new ArrayList<>())
-                .budgetRanges(req.getBudgetRanges() != null ? req.getBudgetRanges() : new ArrayList<>())
-                .foodRestrictions(req.getFoodRestrictions())
-                .mannerTemp(new BigDecimal("36.5"))
-                .strikeCount(0)
-                .role("ROLE_USER")
-                .build();
-
-        userRepository.save(user);
-
-        // 신규 가입 웰컴 1회 참가권 지급 (유효기간 없음)
-        UserTicket welcomeTicket = UserTicket.builder()
-                .user(user)
-                .ticketType("WELCOME_1")
-                .totalCount(1)
-                .remainingCount(1)
-                .build();
-        userTicketRepository.save(welcomeTicket);
+        // 참가권이 남아있지 않은 경우에만 웰컴 1회 참가권 지급
+        int currentRemainingTickets = userTicketRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .mapToInt(UserTicket::getRemainingCount)
+                .sum();
+        if (currentRemainingTickets == 0) {
+            UserTicket welcomeTicket = UserTicket.builder()
+                    .user(user)
+                    .ticketType("WELCOME_1")
+                    .totalCount(1)
+                    .remainingCount(1)
+                    .build();
+            userTicketRepository.save(welcomeTicket);
+            currentRemainingTickets = 1;
+        }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getPhone(), user.getRole());
 
@@ -77,7 +103,7 @@ public class AuthService {
                 .nickname(user.getNickname())
                 .role(user.getRole())
                 .mannerTemp(user.getMannerTemp())
-                .ticketCount(1)
+                .ticketCount(currentRemainingTickets)
                 .build();
     }
 

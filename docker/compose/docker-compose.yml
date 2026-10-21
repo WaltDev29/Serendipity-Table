@@ -62,6 +62,8 @@ services:
       - ../.env/backend.env
     ports:
       - "${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ../../uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy

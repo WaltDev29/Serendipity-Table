@@ -25,6 +25,7 @@ export default function MyPageAndCS() {
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [isApplying, setIsApplying] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // 회차 목록 및 내 신청 내역 로드
   useEffect(() => {
@@ -170,11 +171,12 @@ export default function MyPageAndCS() {
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex items-center gap-space-md">
                   <div className="relative w-16 h-16 rounded-full overflow-hidden bg-primary-fixed/40 flex items-center justify-center shrink-0 shadow-sm ring-4 ring-surface-container-low">
-                    {currentUser?.profileImageUrl ? (
+                    {currentUser?.profileImageUrl && !imgError ? (
                       <img
                         className="w-full h-full object-cover"
                         src={currentUser.profileImageUrl}
                         alt="프로필"
+                        onError={() => setImgError(true)}
                       />
                     ) : (
                       <span className="material-symbols-outlined text-[38px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>

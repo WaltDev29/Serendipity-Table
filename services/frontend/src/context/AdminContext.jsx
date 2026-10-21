@@ -104,26 +104,33 @@ export function AdminProvider({ children }) {
       try {
         const slots = await getAdminSlotsApi();
         if (Array.isArray(slots)) {
-          const formattedEvents = slots.map((s) => ({
-            id: `EVT-${s.id}`,
-            slotId: s.id,
-            title: `${s.dayOfWeek ? s.dayOfWeek + ' ' : ''}정기 모임`,
-            eventDate: s.eventDate ? s.eventDate.split(' ')[0] : '',
-            deadline: `${s.deadlineDate || s.eventDate} 18:00:00`,
-            totalApplicants: s.totalApplicants || 0,
-            targetCapacity: s.targetCapacity || 192,
-            status: s.status || 'OPEN',
-            regions: (s.regions || []).map((r) => ({
-              id: r.regionName,
-              name: r.regionName,
-              current: r.currentApplicants || 0,
+          const DAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+          const formattedEvents = slots.map((s) => {
+            const regions = (s.regions || []).map((r) => ({
+              id: r.region,
+              name: r.region,
+              current: r.currentCount || 0,
               target: r.targetCapacity || 48,
               status: r.isClosed ? 'CLOSED' : 'OPEN',
-              maleRatio: r.maleRatio || 50,
-              femaleRatio: r.femaleRatio || 50,
+              maleRatio: 50,
+              femaleRatio: 50,
               ageGroup: '20대 중후반'
-            }))
-          }));
+            }));
+            const eventDate = s.eventDate ? s.eventDate.split(/[ T]/)[0] : '';
+            const day = eventDate ? DAY_KO[new Date(`${eventDate}T00:00:00`).getDay()] : '';
+            return {
+              id: `EVT-${s.id}`,
+              slotId: s.id,
+              title: `${day ? day + '요일 ' : ''}정기 모임`,
+              eventDate,
+              eventTime: s.eventTime || '',
+              deadline: s.matchDeadline ? s.matchDeadline.replace('T', ' ') : '-',
+              totalApplicants: regions.reduce((sum, r) => sum + r.current, 0),
+              targetCapacity: regions.reduce((sum, r) => sum + r.target, 0),
+              status: s.status || 'OPEN',
+              regions
+            };
+          });
           setEvents(formattedEvents);
         }
       } catch (e) {
@@ -151,6 +158,7 @@ export function AdminProvider({ children }) {
             return {
               id: t.tableId || `table-${idx + 1}`,
               tableId: t.tableId,
+              slotId: t.eventSlotId,
               number: t.tableNo || (idx + 1),
               tableNo: `${t.region} #${t.tableNo || (idx + 1)}`,
               region: t.region,

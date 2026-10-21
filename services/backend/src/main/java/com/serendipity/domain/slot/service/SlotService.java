@@ -58,26 +58,34 @@ public class SlotService {
 
     @Transactional(readOnly = true)
     public List<SlotResponse> getUpcomingSlots() {
-        List<EventSlot> slots = eventSlotRepository.findByEventDateGreaterThanEqualOrderByEventDateAsc(LocalDate.now());
+        return eventSlotRepository.findByEventDateGreaterThanEqualOrderByEventDateAsc(LocalDate.now())
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
 
-        return slots.stream().map(slot -> {
-            var regionResponses = regionSlotRepository.findByIdEventSlotId(slot.getId()).stream()
-                    .map(rs -> SlotResponse.RegionSlotResponse.builder()
-                            .region(rs.getId().getRegion())
-                            .targetCapacity(rs.getTargetCapacity())
-                            .currentCount(rs.getCurrentCount())
-                            .isClosed(rs.getIsClosed())
-                            .build())
-                    .collect(Collectors.toList());
+    /** 관리자용: 지난 회차를 포함한 전체 회차 (모임 일자 오름차순) */
+    @Transactional(readOnly = true)
+    public List<SlotResponse> getAllSlots() {
+        return eventSlotRepository.findAll(org.springframework.data.domain.Sort.by("eventDate"))
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
 
-            return SlotResponse.builder()
-                    .id(slot.getId())
-                    .eventDate(slot.getEventDate())
-                    .eventTime(slot.getEventTime())
-                    .matchDeadline(slot.getMatchDeadline())
-                    .status(slot.getStatus())
-                    .regions(regionResponses)
-                    .build();
-        }).collect(Collectors.toList());
+    private SlotResponse toResponse(EventSlot slot) {
+        var regionResponses = regionSlotRepository.findByIdEventSlotId(slot.getId()).stream()
+                .map(rs -> SlotResponse.RegionSlotResponse.builder()
+                        .region(rs.getId().getRegion())
+                        .targetCapacity(rs.getTargetCapacity())
+                        .currentCount(rs.getCurrentCount())
+                        .isClosed(rs.getIsClosed())
+                        .build())
+                .collect(Collectors.toList());
+
+        return SlotResponse.builder()
+                .id(slot.getId())
+                .eventDate(slot.getEventDate())
+                .eventTime(slot.getEventTime())
+                .matchDeadline(slot.getMatchDeadline())
+                .status(slot.getStatus())
+                .regions(regionResponses)
+                .build();
     }
 }

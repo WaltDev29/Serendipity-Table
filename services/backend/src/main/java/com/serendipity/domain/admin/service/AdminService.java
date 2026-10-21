@@ -103,7 +103,7 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<SlotResponse> getSlots() {
-        return slotService.getUpcomingSlots();
+        return slotService.getAllSlots();
     }
 
     @Transactional

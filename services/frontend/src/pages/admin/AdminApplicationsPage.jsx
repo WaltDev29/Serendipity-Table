@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
 
 export default function AdminApplicationsPage() {
   const { applications, processRefund } = useAdmin();
+  const [searchParams] = useSearchParams();
 
   // Filters
   const [selectedRegion, setSelectedRegion] = useState('ALL');
   const [selectedGender, setSelectedGender] = useState('ALL');
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('ALL');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  useEffect(() => {
+    const phoneQuery = searchParams.get('phone') || searchParams.get('search');
+    if (phoneQuery) {
+      setSearchKeyword(phoneQuery);
+    }
+  }, [searchParams]);
 
   // Contact Masking Toggle state (set of unmasked application IDs)
   const [unmaskedSet, setUnmaskedSet] = useState(new Set());

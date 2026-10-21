@@ -77,20 +77,9 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        // 참가권이 남아있지 않은 경우에만 웰컴 1회 참가권 지급
         int currentRemainingTickets = userTicketRepository.findByUserOrderByCreatedAtDesc(user).stream()
                 .mapToInt(UserTicket::getRemainingCount)
                 .sum();
-        if (currentRemainingTickets == 0) {
-            UserTicket welcomeTicket = UserTicket.builder()
-                    .user(user)
-                    .ticketType("WELCOME_1")
-                    .totalCount(1)
-                    .remainingCount(1)
-                    .build();
-            userTicketRepository.save(welcomeTicket);
-            currentRemainingTickets = 1;
-        }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getPhone(), user.getRole());
 

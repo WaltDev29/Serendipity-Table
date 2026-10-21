@@ -1,8 +1,12 @@
+# implements files
 *.md
 *.pdf
 web_design/
 basic_assets/
 *.xlsx
+
+# Upload files
+uploads/
 
 # Node / Frontend
 node_modules/

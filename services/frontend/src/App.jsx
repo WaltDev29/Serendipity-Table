@@ -25,6 +25,7 @@ import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
 import AdminExceptionsPage from './pages/admin/AdminExceptionsPage';
 import AdminCustomerServicePage from './pages/admin/AdminCustomerServicePage';
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 
 // User Pages
 import HomePage from './pages/HomePage';
@@ -53,6 +54,27 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// 관리자 권한 전용 라우트 가드
+function AdminProtectedRoute({ children }) {
+  const adminToken = localStorage.getItem('admin_token');
+  let isAdmin = false;
+  if (adminToken) {
+    try {
+      const savedUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+      if (savedUser?.role === 'ROLE_ADMIN') {
+        isAdmin = true;
+      }
+    } catch {
+      isAdmin = false;
+    }
+  }
+
+  if (!adminToken || !isAdmin) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  return children;
+}
+
 export default function App() {
   const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   const [showSplash, setShowSplash] = React.useState(!isAdminPath);
@@ -75,7 +97,15 @@ export default function App() {
                 {/* ========================================= */}
                 {/* ADMIN CONSOLE ROUTES (/admin/*)           */}
                 {/* ========================================= */}
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout />
+                    </AdminProtectedRoute>
+                  }
+                >
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboardPage />} />
                   <Route path="slots" element={<AdminSlotsPage />} />

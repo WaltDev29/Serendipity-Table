@@ -5,10 +5,19 @@ export async function adminLoginApi(phone, password) {
     method: 'POST',
     body: JSON.stringify({ phone, password })
   });
+  if (data?.role !== 'ROLE_ADMIN') {
+    throw new Error('관리자 권한이 없는 계정입니다.');
+  }
   if (data?.accessToken) {
     localStorage.setItem('admin_token', data.accessToken);
+    localStorage.setItem('admin_user', JSON.stringify(data));
   }
   return data;
+}
+
+export function adminLogoutApi() {
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('admin_user');
 }
 
 export async function getAdminDashboardApi() {

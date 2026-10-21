@@ -22,8 +22,13 @@ export async function apiFetch(endpoint, options = {}) {
 
   if (res.status === 401) {
     // 토큰 만료 또는 인증 실패
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    if (isAdmin) {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+    } else {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   }
 
   const json = await res.json().catch(() => null);

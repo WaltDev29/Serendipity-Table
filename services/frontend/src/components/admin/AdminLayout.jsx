@@ -5,7 +5,7 @@ import { useAdmin } from '../../context/AdminContext';
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { pinnedNotice, setPinnedNotice, sendEmergencyNotice, auditLogs } = useAdmin();
+  const { pinnedNotice, setPinnedNotice, sendEmergencyNotice, auditLogs, adminUser, logoutAdmin } = useAdmin();
 
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
   const [noticeTarget, setNoticeTarget] = useState('ALL'); // ALL, HONGDAE, ACTIVE
@@ -118,24 +118,37 @@ export default function AdminLayout() {
           <div className="flex items-center justify-between gap-space-xs">
             <div className="flex items-center gap-space-xs min-w-0">
               <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary font-bold text-xs ring-1 ring-inverse-surface">
-                김
+                {adminUser?.name ? adminUser.name.slice(0, 1) : '관'}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-label-md text-label-md text-surface truncate font-semibold">
-                  운영자 김관리
+                  {adminUser?.name || '운영자'}
                 </span>
                 <span className="font-label-sm text-[10px] text-outline-variant">
-                  Super Admin
+                  {adminUser?.role === 'ROLE_ADMIN' ? 'Super Admin' : 'Admin'}
                 </span>
               </div>
             </div>
-            <Link
-              to="/"
-              className="p-1.5 rounded text-outline-variant hover:text-surface hover:bg-inverse-surface transition-colors flex items-center justify-center"
-              title="모바일 사용자 웹으로 이동"
-            >
-              <span className="material-symbols-outlined text-[18px]">smartphone</span>
-            </Link>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  logoutAdmin();
+                  navigate('/admin/login', { replace: true });
+                }}
+                className="p-1.5 rounded text-outline-variant hover:text-error hover:bg-inverse-surface transition-colors flex items-center justify-center"
+                title="관리자 로그아웃"
+              >
+                <span className="material-symbols-outlined text-[18px]">logout</span>
+              </button>
+              <Link
+                to="/"
+                className="p-1.5 rounded text-outline-variant hover:text-surface hover:bg-inverse-surface transition-colors flex items-center justify-center"
+                title="모바일 사용자 웹으로 이동"
+              >
+                <span className="material-symbols-outlined text-[18px]">smartphone</span>
+              </Link>
+            </div>
           </div>
         </div>
       </aside>

@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
 
 export default function AdminPaymentsPage() {
   const { orders, applications, processRefund } = useAdmin();
+  const [searchParams] = useSearchParams();
 
   // Filters: 'ALL' (결제 전체), 'REFUND_REQUEST' (환불 요청), 'REFUNDED' (환불완료)
   const [filterTab, setFilterTab] = useState('ALL');
   const [searchKeyword, setSearchKeyword] = useState('');
+
+  useEffect(() => {
+    const phoneQuery = searchParams.get('phone') || searchParams.get('search');
+    if (phoneQuery) {
+      setSearchKeyword(phoneQuery);
+    }
+  }, [searchParams]);
 
   // Right-click Context Menu State
   const [contextMenu, setContextMenu] = useState({

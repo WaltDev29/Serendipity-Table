@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext';
 import { updateUserByAdminApi, sendDirectMessageApi } from '../../api/admin';
 
 export default function AdminUsersPage() {
+  const navigate = useNavigate();
   const { users, banUser, unbanUser, addStrikeUser, addAuditLog, refreshAdminData } = useAdmin();
+
+  useEffect(() => {
+    refreshAdminData();
+  }, [refreshAdminData]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -300,6 +306,34 @@ export default function AdminUsersPage() {
           <div className="px-3 py-1.5 text-[11px] text-outline font-bold border-b border-surface-container">
             {contextMenu.user.name} ({contextMenu.user.phone})
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const targetPhone = contextMenu.user.phone || '';
+              navigate(`/admin/applications?phone=${encodeURIComponent(targetPhone)}`);
+              closeContextMenu();
+            }}
+            className="w-full px-3 py-2 text-left hover:bg-surface-container flex items-center gap-2 text-on-surface"
+          >
+            <span className="material-symbols-outlined text-[15px] text-tertiary">how_to_reg</span>
+            <span>참가 신청 기록</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const targetPhone = contextMenu.user.phone || '';
+              navigate(`/admin/payments?phone=${encodeURIComponent(targetPhone)}`);
+              closeContextMenu();
+            }}
+            className="w-full px-3 py-2 text-left hover:bg-surface-container flex items-center gap-2 text-on-surface"
+          >
+            <span className="material-symbols-outlined text-[15px] text-secondary">payments</span>
+            <span>결제 내역</span>
+          </button>
+
+          <div className="border-t border-surface-container my-1"></div>
 
           <button
             type="button"

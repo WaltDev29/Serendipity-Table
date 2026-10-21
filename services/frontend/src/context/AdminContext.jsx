@@ -20,12 +20,23 @@ import {
   refundApplicationApi,
   getAdminOrdersApi,
   refundOrderApi,
-  adminLoginApi
+  adminLoginApi,
+  adminLogoutApi
 } from '../api/admin';
 
 const AdminContext = createContext();
 
 export function AdminProvider({ children }) {
+  // 관리자 인증 정보
+  const [adminUser, setAdminUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('admin_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   // 0. 결제 주문 목록 (Orders)
   const [orders, setOrders] = useState([]);
 
@@ -378,19 +389,26 @@ export function AdminProvider({ children }) {
     }
   }, []);
 
-  // 마운트 시 관리자 경로(/admin)일 때만 관리자 로그인 및 데이터 로드
+  const loginAdmin = async (phone, password) => {
+    const res = await adminLoginApi(phone, password);
+    setAdminUser(res);
+    await refreshAdminData();
+    return res;
+  };
+
+  const logoutAdmin = () => {
+    adminLogoutApi();
+    setAdminUser(null);
+  };
+
+  // 마운트 시 관리자 경로(/admin)이고 이미 로그인되어 있는 경우에만 데이터 로드
   useEffect(() => {
     const initAdmin = async () => {
       const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-      if (!isAdminPath) {
-        return;
+      const token = localStorage.getItem('admin_token');
+      if (isAdminPath && token) {
+        await refreshAdminData();
       }
-      try {
-        await adminLoginApi('01000000000', 'password123!');
-      } catch (e) {
-        console.warn('Admin auto login note:', e);
-      }
-      await refreshAdminData();
     };
 
     initAdmin();
@@ -623,6 +641,9 @@ export function AdminProvider({ children }) {
         setPinnedNotice,
         dashboardStats,
         refreshAdminData,
+        adminUser,
+        loginAdmin,
+        logoutAdmin,
         // Actions
         triggerAiMatching,
         swapMembers,

@@ -167,10 +167,19 @@ export async function getAdminFeedbackAnalyticsApi() {
   return await apiFetch('/admin/analytics/feedback');
 }
 
+export async function getAdminPreferenceEvaluationsApi() {
+  return await apiFetch('/admin/analytics/preferences');
+}
+
+export async function getAdminReviewsApi() {
+  return await apiFetch('/admin/analytics/reviews');
+}
+
 export async function executeSimulationActionApi(action, userIds = []) {
   return await apiFetch('/admin/simulation/action', {
     method: 'POST',
     body: JSON.stringify({ action, userIds })
   });
 }
+
 

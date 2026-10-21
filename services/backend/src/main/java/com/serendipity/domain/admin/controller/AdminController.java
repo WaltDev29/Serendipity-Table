@@ -204,4 +204,15 @@ public class AdminController {
     public ResponseEntity<ApiResponse<AdminFeedbackResponse>> getFeedbackAnalytics() {
         return ResponseEntity.ok(ApiResponse.ok(adminService.getFeedbackAnalytics()));
     }
+
+    @GetMapping("/analytics/preferences")
+    public ResponseEntity<ApiResponse<List<AdminPreferenceEvaluationResponse>>> getPreferenceEvaluations() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getPreferenceEvaluations()));
+    }
+
+    @GetMapping("/analytics/reviews")
+    public ResponseEntity<ApiResponse<List<AdminReviewResponse>>> getReviews() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getReviews()));
+    }
 }
+

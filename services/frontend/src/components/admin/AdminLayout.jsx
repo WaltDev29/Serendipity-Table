@@ -50,7 +50,15 @@ export default function AdminLayout() {
         { to: '/admin/venues', icon: 'storefront', label: '식당 Pool' },
         { to: '/admin/chat-ops', icon: 'forum', label: '모임 채팅 관리' },
         { to: '/admin/cs', icon: 'support_agent', label: '고객센터' },
-        { to: '/admin/analytics', icon: 'query_stats', label: '피드백' },
+        {
+          to: '/admin/analytics',
+          icon: 'query_stats',
+          label: '피드백',
+          subItems: [
+            { to: '/admin/analytics/preferences', icon: 'thumb_up_down', label: '선호&비선호 평가' },
+            { to: '/admin/analytics/reviews', icon: 'rate_review', label: '리뷰' }
+          ]
+        },
         { to: '/admin/exceptions', icon: 'download', label: '예외 큐' },
         { to: '/admin/flow-test', icon: 'science', label: '전체 흐름 테스트', isHighlight: true }
       ]
@@ -97,47 +105,71 @@ export default function AdminLayout() {
                   </div>
                 )}
                 <nav className="space-y-space-xs">
-                  {group.items.map((item) =>
-                    item.isHighlight ? (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        className={({ isActive }) =>
-                          `group relative flex items-center justify-between px-space-sm py-2 rounded-xl transition-all duration-300 font-label-lg text-label-lg font-bold shadow-md mt-2 ${
-                            isActive
-                              ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white ring-2 ring-amber-300/80 shadow-lg scale-[1.02]'
-                              : 'bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-red-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 hover:border-amber-400'
-                          }`
-                        }
-                      >
-                        <div className="flex items-center gap-space-sm min-w-0">
-                          <span className="material-symbols-outlined text-[19px] text-amber-400">science</span>
+                  {group.items.map((item) => (
+                    <React.Fragment key={item.to}>
+                      {item.isHighlight ? (
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) =>
+                            `group relative flex items-center justify-between px-space-sm py-2 rounded-xl transition-all duration-300 font-label-lg text-label-lg font-bold shadow-md mt-2 ${
+                              isActive
+                                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white ring-2 ring-amber-300/80 shadow-lg scale-[1.02]'
+                                : 'bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-red-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 hover:border-amber-400'
+                            }`
+                          }
+                        >
+                          <div className="flex items-center gap-space-sm min-w-0">
+                            <span className="material-symbols-outlined text-[19px] text-amber-400">science</span>
+                            <span className="truncate">{item.label}</span>
+                          </div>
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-400 text-stone-900 shadow-xs">
+                            TEST
+                          </span>
+                        </NavLink>
+                      ) : (
+                        <NavLink
+                          to={item.to}
+                          end={item.to === '/admin/analytics'}
+                          className={({ isActive }) =>
+                            `group flex items-center gap-space-sm px-space-sm py-2 rounded-lg transition-colors font-label-lg text-label-lg ${
+                              isActive
+                                ? 'bg-primary-container text-on-primary font-semibold shadow-xs'
+                                : 'text-surface-variant hover:bg-inverse-surface hover:text-surface'
+                            }`
+                          }
+                        >
+                          <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
                           <span className="truncate">{item.label}</span>
+                        </NavLink>
+                      )}
+
+                      {/* Sub-items (하단 들여쓰기 배치) */}
+                      {item.subItems && (
+                        <div className="pl-6 space-y-1 mt-1 mb-1 border-l-2 border-surface-variant/30 ml-3">
+                          {item.subItems.map((sub) => (
+                            <NavLink
+                              key={sub.to}
+                              to={sub.to}
+                              className={({ isActive }) =>
+                                `group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium ${
+                                  isActive
+                                    ? 'bg-primary/20 text-primary-container font-bold border-l-2 border-primary -ml-[2px]'
+                                    : 'text-surface-variant/80 hover:bg-inverse-surface/60 hover:text-surface'
+                                }`
+                              }
+                            >
+                              <span className="material-symbols-outlined text-[15px]">{sub.icon}</span>
+                              <span className="truncate">{sub.label}</span>
+                            </NavLink>
+                          ))}
                         </div>
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-400 text-stone-900 shadow-xs">
-                          TEST
-                        </span>
-                      </NavLink>
-                    ) : (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        className={({ isActive }) =>
-                          `group flex items-center gap-space-sm px-space-sm py-2 rounded-lg transition-colors font-label-lg text-label-lg ${
-                            isActive
-                              ? 'bg-primary-container text-on-primary font-semibold shadow-xs'
-                              : 'text-surface-variant hover:bg-inverse-surface hover:text-surface'
-                          }`
-                        }
-                      >
-                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                        <span className="truncate">{item.label}</span>
-                      </NavLink>
-                    )
-                  )}
+                      )}
+                    </React.Fragment>
+                  ))}
                 </nav>
               </div>
             ))}
+
           </div>
         </div>
 

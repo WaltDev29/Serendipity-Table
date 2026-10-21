@@ -21,6 +21,8 @@ import AdminVenuesPage from './pages/admin/AdminVenuesPage';
 import AdminChatOpsPage from './pages/admin/AdminChatOpsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminAnalyticsPage from './pages/admin/AdminAnalyticsPage';
+import AdminPreferencesPage from './pages/admin/AdminPreferencesPage';
+import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminExceptionsPage from './pages/admin/AdminExceptionsPage';
 import AdminCustomerServicePage from './pages/admin/AdminCustomerServicePage';
 import AdminPaymentsPage from './pages/admin/AdminPaymentsPage';
@@ -118,6 +120,8 @@ export default function App() {
                   <Route path="users" element={<AdminUsersPage />} />
                   <Route path="cs" element={<AdminCustomerServicePage />} />
                   <Route path="analytics" element={<AdminAnalyticsPage />} />
+                  <Route path="analytics/preferences" element={<AdminPreferencesPage />} />
+                  <Route path="analytics/reviews" element={<AdminReviewsPage />} />
                   <Route path="exceptions" element={<AdminExceptionsPage />} />
                   <Route path="flow-test" element={<AdminFlowTestPage />} />
                 </Route>

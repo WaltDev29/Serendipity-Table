@@ -14,13 +14,19 @@ import {
   removeFromBlacklistApi,
   getAdminInquiriesApi,
   replyInquiryApi,
-  getAdminAuditLogsApi
+  getAdminAuditLogsApi,
+  refundApplicationApi,
+  getAdminOrdersApi,
+  refundOrderApi,
+  adminLoginApi
 } from '../api/admin';
-import { loginApi } from '../api/auth';
 
 const AdminContext = createContext();
 
 export function AdminProvider({ children }) {
+  // 0. 결제 주문 목록 (Orders)
+  const [orders, setOrders] = useState([]);
+
   // 1. 회차 및 슬롯 목록 (A-02)
   const [events, setEvents] = useState([
     {
@@ -263,7 +269,7 @@ export function AdminProvider({ children }) {
               phone: u.phone || '-',
               mannerTemp: u.mannerTemp || 36.5,
               strikeCount: u.strikeCount || 0,
-              status: u.status === 'BANNED' ? 'BANNED' : (u.strikeCount > 0 ? 'WARNING' : 'CLEAN'),
+              status: u.status === 'WITHDRAWN' || u.status === 'DELETED' || u.isWithdrawn ? 'WITHDRAWN' : (u.status === 'BANNED' ? 'BANNED' : (u.strikeCount > 0 ? 'WARNING' : 'CLEAN')),
               rawStatus: u.status,
               banReason: u.banReason,
               bannedAt: u.bannedAt ? new Date(u.bannedAt).toLocaleString() : '-',
@@ -331,19 +337,46 @@ export function AdminProvider({ children }) {
       } catch (e) {
         console.warn('Admin audit logs fetch error:', e);
       }
+
+      // 8) 실제 DB 결제 주문 목록 (Orders)
+      try {
+        const orderList = await getAdminOrdersApi();
+        if (Array.isArray(orderList)) {
+          setOrders(
+            orderList.map((o) => ({
+              id: o.id,
+              orderNo: o.orderNo,
+              userId: o.userId,
+              name: o.userName || '고객',
+              phone: o.userPhone || '-',
+              itemName: o.itemName || '우연한 식탁 참가권',
+              ticketType: o.ticketType || '1_TICKET',
+              paidAmount: o.amount || 8000,
+              amount: o.amount || 8000,
+              paymentMethod: o.paymentMethod || 'CARD',
+              paymentStatus: o.status || 'PAID',
+              status: o.status || 'PAID',
+              createdAt: o.paidAt || o.createdAt ? new Date(o.paidAt || o.createdAt).toLocaleString() : '-'
+            }))
+          );
+        }
+      } catch (e) {
+        console.warn('Admin orders fetch error:', e);
+      }
     } catch (err) {
       console.error('refreshAdminData error:', err);
     }
   }, []);
 
-  // 마운트 시 관리자 로그인 및 데이터 로드
+  // 마운트 시 관리자 경로(/admin)일 때만 관리자 로그인 및 데이터 로드
   useEffect(() => {
     const initAdmin = async () => {
+      const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+      if (!isAdminPath) {
+        return;
+      }
       try {
-        const loginRes = await loginApi('01000000000', 'password123!');
-        if (loginRes?.accessToken) {
-          localStorage.setItem('admin_token', loginRes.accessToken);
-        }
+        await adminLoginApi('01000000000', 'password123!');
       } catch (e) {
         console.warn('Admin auto login note:', e);
       }
@@ -389,16 +422,21 @@ export function AdminProvider({ children }) {
     addAuditLog('CONFIRM_MATCHING', '총괄관리자', '금주 테이블 최종 매칭 확정 및 알림톡 일괄 발송 완료');
   };
 
-  // 4) 수동 환불 처리
-  const processRefund = (applicationId, reason) => {
-    setApplications((prev) =>
-      prev.map((app) =>
-        app.id === applicationId
-          ? { ...app, paymentStatus: 'REFUNDED', matchingStatus: 'CANCELLED' }
-          : app
-      )
-    );
-    addAuditLog('MANUAL_REFUND', '총괄관리자', `신청 건 ${applicationId} 즉시 전액 환불 완료 (사유: ${reason})`);
+  // 4) 수동 환불 처리 (주문 ID 또는 신청서 ID 자동 판별)
+  const processRefund = async (targetId, reason = '고객 단순 변심') => {
+    try {
+      const isOrder = orders.some((o) => o.id === targetId || o.orderNo === targetId);
+      if (isOrder) {
+        await refundOrderApi(targetId, reason);
+      } else {
+        await refundApplicationApi(targetId, reason);
+      }
+      await refreshAdminData();
+      addAuditLog('MANUAL_REFUND', '총괄관리자', `결제/신청 건 ${targetId} 즉시 전액 환불 완료 (사유: ${reason})`);
+    } catch (e) {
+      console.error('Refund failed:', e);
+      alert('환불 처리 실패: ' + (e.message || '알 수 없는 오류'));
+    }
   };
 
   // 5) 긴급 공지 발송 (Admin Notice)
@@ -530,6 +568,8 @@ export function AdminProvider({ children }) {
       value={{
         events,
         setEvents,
+        orders,
+        setOrders,
         applications,
         setApplications,
         matchingTables,

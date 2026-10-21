@@ -53,6 +53,12 @@ public class Application extends BaseTimeEntity {
         this.status = "CANCELLED";
     }
 
+    public void reapply(List<String> preferredRegions, UserTicket ticket) {
+        this.preferredRegions = preferredRegions;
+        this.ticket = ticket;
+        this.status = "APPLIED";
+    }
+
     public void matched() {
         this.status = "MATCHED";
     }

@@ -55,3 +55,18 @@ export async function unblockUserApi(targetUserId) {
     method: 'DELETE'
   });
 }
+
+export async function withdrawApi() {
+  return await apiFetch('/users/me/withdraw', {
+    method: 'POST'
+  });
+}
+
+export async function uploadProfileImageApi(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  return await apiFetch('/users/me/profile-image', {
+    method: 'POST',
+    body: formData
+  });
+}

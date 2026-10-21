@@ -42,16 +42,20 @@ import LoginPage from './pages/LoginPage';
 import PastTablesPage from './pages/PastTablesPage';
 import BlockedUsersPage from './pages/BlockedUsersPage';
 import CustomerServicePage from './pages/CustomerServicePage';
+import InquiryChatPage from './pages/InquiryChatPage';
 
 export default function App() {
-  const [showSplash, setShowSplash] = React.useState(true);
+  const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  const [showSplash, setShowSplash] = React.useState(!isAdminPath);
 
   return (
     <AppProvider>
       <AdminProvider>
         <ModalProvider>
           <BrowserRouter>
-            {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+            {showSplash && !window.location.pathname.startsWith('/admin') && (
+              <SplashScreen onFinish={() => setShowSplash(false)} />
+            )}
             <div className="min-h-screen bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col selection:bg-primary-fixed selection:text-primary">
               {/* Universal Sticky Header (Hidden on /admin) */}
               <Header />
@@ -101,6 +105,7 @@ export default function App() {
 
                 {/* P-08: 실시간 단체 채팅방 (7대 메시지 타입) */}
                 <Route path="/chat" element={<div className="pt-14"><GroupChatPage /></div>} />
+                <Route path="/chat/inquiry" element={<div className="pt-14"><InquiryChatPage /></div>} />
 
                 {/* P-13: 채팅 목록 */}
                 <Route path="/chats" element={<div className="pt-14"><ChatListPage /></div>} />

@@ -26,10 +26,12 @@ export default function AdminDashboardPage() {
   const activeTablesCount = matchingTables.length > 0 ? matchingTables.length : (dashboardStats?.activeTables || 0);
   const pendingCsCount = csInquiries.filter((q) => q.status === 'OPEN').length || (dashboardStats?.pendingInquiries || 0);
 
-  // 모의 결제 완료액 계산 (1회권 8,000원, 3회권 15,000원)
+  // 결제 완료액 계산 (백엔드 DB 실제 Order 금액 우선, 없을 시 계산)
   const ticket1Count = applications.filter((a) => a.ticketType === '1_TICKET').length || Math.round(totalAppsCount * 0.7);
   const ticket3Count = applications.filter((a) => a.ticketType === '3_TICKETS').length || Math.round(totalAppsCount * 0.3);
-  const totalPaymentAmount = (ticket1Count * 8000) + (ticket3Count * 15000);
+  const totalPaymentAmount = (dashboardStats?.totalRevenue !== undefined && dashboardStats?.totalRevenue !== null)
+    ? dashboardStats.totalRevenue
+    : ((ticket1Count * 8000) + (ticket3Count * 15000));
 
   // 빠른 참가자 명단 CSV 다운로드
   const handleQuickCsv = () => {

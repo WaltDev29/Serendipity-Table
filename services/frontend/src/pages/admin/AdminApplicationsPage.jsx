@@ -29,10 +29,10 @@ export default function AdminApplicationsPage() {
     });
   };
 
-  const handleRefundSubmit = (e) => {
+  const handleRefundSubmit = async (e) => {
     e.preventDefault();
     if (!refundTargetApp) return;
-    processRefund(refundTargetApp.id, refundReason);
+    await processRefund(refundTargetApp.id, refundReason);
     setRefundTargetApp(null);
     if (activeAppDrawer && activeAppDrawer.id === refundTargetApp.id) {
       setActiveAppDrawer(null);

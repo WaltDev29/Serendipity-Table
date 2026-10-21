@@ -1,6 +1,5 @@
 package com.serendipity.domain.admin.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,9 +9,20 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AdminCsReplyRequest {
 
-    @NotBlank(message = "답변 작성자명은 필수입니다.")
     private String operatorName;
 
-    @NotBlank(message = "답변 내용은 필수입니다.")
     private String replyContent;
+
+    private String answer;
+
+    public String getEffectiveReplyContent() {
+        if (replyContent != null && !replyContent.trim().isEmpty()) {
+            return replyContent.trim();
+        }
+        return (answer != null) ? answer.trim() : "";
+    }
+
+    public String getEffectiveOperatorName() {
+        return (operatorName != null && !operatorName.trim().isEmpty()) ? operatorName.trim() : "총괄관리자";
+    }
 }

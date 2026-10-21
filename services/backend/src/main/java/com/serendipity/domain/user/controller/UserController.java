@@ -34,6 +34,20 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok("프로필이 수정되었습니다.", response));
     }
 
+    @PostMapping("/withdraw")
+    public ResponseEntity<ApiResponse<Void>> withdraw(@AuthenticationPrincipal UserPrincipal principal) {
+        userService.withdraw(principal.getId());
+        return ResponseEntity.ok(ApiResponse.ok("회원 탈퇴 처리가 완료되었습니다.", null));
+    }
+
+    @PostMapping(value = "/profile-image", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<String>> uploadProfileImage(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        String imageUrl = userService.uploadProfileImage(principal.getId(), file);
+        return ResponseEntity.ok(ApiResponse.ok("프로필 사진이 저장되었습니다.", imageUrl));
+    }
+
     @GetMapping("/tickets")
     public ResponseEntity<ApiResponse<List<UserTicketResponse>>> getMyTickets(@AuthenticationPrincipal UserPrincipal principal) {
         List<UserTicketResponse> tickets = userService.getMyTickets(principal.getId());

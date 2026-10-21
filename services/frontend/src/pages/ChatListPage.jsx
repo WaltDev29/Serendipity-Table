@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { getMyInquiriesApi } from '../api/cs';
 
 export default function ChatListPage() {
   const navigate = useNavigate();
   const { matchResult, pastTables } = useApp();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [inquiries, setInquiries] = useState([]);
+
+  useEffect(() => {
+    getMyInquiriesApi()
+      .then((data) => {
+        if (Array.isArray(data)) setInquiries(data);
+      })
+      .catch((err) => console.warn('Failed to load inquiries for chat list:', err));
+  }, []);
 
   const chatRooms = [];
 
@@ -29,6 +39,47 @@ export default function ChatListPage() {
           bg: bgColors[idx % 4]
         };
       })
+    });
+  }
+
+  if (inquiries.length > 0) {
+    const latestInq = inquiries[0]; // Assuming newest or first
+    const hasReplies = latestInq.replies && latestInq.replies.length > 0;
+    const latestReply = hasReplies ? latestInq.replies[latestInq.replies.length - 1] : null;
+    const lastMsgText = latestReply ? `[답변] ${latestReply.replyContent}` : latestInq.content;
+    const timeText = latestInq.createdAt ? latestInq.createdAt.substring(5, 10) : '최근';
+
+    chatRooms.push({
+      id: 'cs-inquiry-room',
+      title: '우연한 식탁 고객센터 (1:1 상담)',
+      isActive: latestInq.status === 'WAITING' || latestInq.category === '운영자 1:1 안내',
+      statusText: latestInq.status === 'ANSWERED' ? '답변완료' : (latestInq.category === '운영자 1:1 안내' ? '운영자 알림' : '답변대기'),
+      venue: '고객지원팀',
+      timeDisplay: timeText,
+      lastMessage: lastMsgText || '1:1 문의 및 운영자 안내 내역을 확인해보세요.',
+      unreadCount: latestInq.status === 'ANSWERED' ? 1 : 0,
+      path: '/chat/inquiry',
+      isCs: true,
+      members: [
+        { name: 'CS 매니저', initial: 'CS', bg: 'bg-primary-fixed text-primary' }
+      ]
+    });
+  } else {
+    // 기본 안내방
+    chatRooms.push({
+      id: 'cs-inquiry-room',
+      title: '우연한 식탁 고객센터 (1:1 문의)',
+      isActive: false,
+      statusText: '상담 운영중',
+      venue: '고객지원팀',
+      timeDisplay: '상시',
+      lastMessage: '궁금한 점이 있으시면 언제든 1:1 문의를 남겨주세요.',
+      unreadCount: 0,
+      path: '/chat/inquiry',
+      isCs: true,
+      members: [
+        { name: 'CS 매니저', initial: 'CS', bg: 'bg-primary-fixed text-primary' }
+      ]
     });
   }
 

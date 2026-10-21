@@ -15,4 +15,5 @@ public class AdminDashboardResponse {
     private long activeTables;
     private long totalVenues;
     private long pendingInquiries;
+    private Long totalRevenue;
 }

@@ -3,6 +3,7 @@ import { getMyProfileApi, loginApi, signupApi } from '../api/auth';
 import { getMyActiveTableApi, getMyPastTablesApi } from '../api/table';
 import { getMyApplicationsApi, applySlotApi, cancelApplicationApi } from '../api/application';
 import { getRoomMessagesApi, createStompChatClient, publishChatMessage } from '../api/chat';
+import { getMyInquiriesApi } from '../api/cs';
 
 const AppContext = createContext();
 
@@ -207,10 +208,12 @@ export const AppProvider = ({ children }) => {
           profile = await getMyProfileApi();
         } catch (e) {
           token = null;
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       }
 
-      if (token) {
+      if (token && profile) {
         await refreshAppData();
       }
       setIsAuthInitialized(true);

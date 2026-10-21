@@ -32,5 +32,7 @@ public class UserProfileResponse {
     private BigDecimal mannerTemp;
     private Integer strikeCount;
     private String role;
+    private String status;
+    private String profileImageUrl;
     private int ticketCount;
 }

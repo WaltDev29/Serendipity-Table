@@ -63,13 +63,18 @@ public class ApplicationService {
             regionSlotRepository.findById(regionId).ifPresent(RegionSlot::incrementCount);
         }
 
-        Application application = Application.builder()
-                .user(user)
-                .eventSlot(slot)
-                .preferredRegions(req.getPreferredRegions())
-                .status("APPLIED")
-                .ticket(ticket)
-                .build();
+        Application application = applicationRepository.findByUserAndEventSlot(user, slot)
+                .map(existing -> {
+                    existing.reapply(req.getPreferredRegions(), ticket);
+                    return existing;
+                })
+                .orElseGet(() -> Application.builder()
+                        .user(user)
+                        .eventSlot(slot)
+                        .preferredRegions(req.getPreferredRegions())
+                        .status("APPLIED")
+                        .ticket(ticket)
+                        .build());
 
         applicationRepository.save(application);
 

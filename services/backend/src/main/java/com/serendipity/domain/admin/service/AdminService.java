@@ -16,6 +16,7 @@ import com.serendipity.domain.dining.entity.TableMember;
 import com.serendipity.domain.dining.repository.DiningTableRepository;
 import com.serendipity.domain.dining.repository.TableMemberRepository;
 import com.serendipity.domain.slot.dto.SlotResponse;
+import com.serendipity.domain.slot.entity.EventSlot;
 import com.serendipity.domain.slot.entity.RegionSlot;
 import com.serendipity.domain.slot.entity.RegionSlotId;
 import com.serendipity.domain.slot.repository.EventSlotRepository;
@@ -56,6 +57,9 @@ public class AdminService {
     private final RegionSlotRepository regionSlotRepository;
     private final SlotService slotService;
     private final CsService csService;
+    private final com.serendipity.domain.chat.repository.ChatMessageRepository chatMessageRepository;
+    private final com.serendipity.domain.chat.repository.ChatRoomRepository chatRoomRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public AdminDashboardResponse getDashboard() {
@@ -67,12 +71,18 @@ public class AdminService {
                 .filter(i -> "PENDING".equals(i.getStatus()))
                 .count();
 
+        long totalRevenue = orderRepository.findAll().stream()
+                .filter(o -> "PAID".equals(o.getStatus()))
+                .mapToLong(o -> o.getAmount() != null ? o.getAmount() : 0)
+                .sum();
+
         return AdminDashboardResponse.builder()
                 .totalUsers(totalUsers)
                 .currentApplications(currentApps)
                 .activeTables(activeTables)
                 .totalVenues(totalVenues)
                 .pendingInquiries(pendingCs)
+                .totalRevenue(totalRevenue)
                 .build();
     }
 
@@ -291,10 +301,13 @@ public class AdminService {
         CsInquiry inquiry = csInquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "문의를 찾을 수 없습니다."));
 
+        String content = req.getEffectiveReplyContent();
+        String op = req.getEffectiveOperatorName() != null ? req.getEffectiveOperatorName() : operatorName;
+
         CsInquiryReply reply = CsInquiryReply.builder()
                 .inquiry(inquiry)
-                .operatorName(req.getOperatorName() != null ? req.getOperatorName() : operatorName)
-                .replyContent(req.getReplyContent())
+                .operatorName(op)
+                .replyContent(content)
                 .build();
 
         csInquiryReplyRepository.save(reply);
@@ -302,9 +315,25 @@ public class AdminService {
 
         adminAuditLogRepository.save(AdminAuditLog.builder()
                 .actionType("CS_REPLY")
-                .operatorName(operatorName)
+                .operatorName(op)
                 .detail(String.format("CS 문의 %s 답변 완료", inquiryId))
                 .targetId(inquiryId.toString())
+                .build());
+    }
+
+    @Transactional
+    public void updateSlotStatus(Long slotId, String status, String operatorName) {
+        EventSlot slot = eventSlotRepository.findById(slotId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "슬롯을 찾을 수 없습니다."));
+
+        slot.updateStatus(status);
+        eventSlotRepository.save(slot);
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("SLOT_STATUS_UPDATE")
+                .operatorName(operatorName)
+                .detail(String.format("슬롯 %d 상태 변경 -> %s", slotId, status))
+                .targetId(slotId.toString())
                 .build());
     }
 
@@ -335,7 +364,7 @@ public class AdminService {
                     .regions(a.getPreferredRegions())
                     .region(firstRegion)
                     .ticketType(a.getTicket() != null ? a.getTicket().getTicketType() : "1_TICKET")
-                    .paymentStatus("PAID")
+                    .paymentStatus("CANCELLED".equals(a.getStatus()) ? "REFUNDED" : "PAID")
                     .matchStatus(a.getStatus())
                     .status(a.getStatus())
                     .assignedTable(a.getStatus().equals("MATCHED") ? "테이블 배정완료" : "미배정")
@@ -387,7 +416,7 @@ public class AdminService {
                     .totalSpend(totalSpend)
                     .attendanceCount(attendanceCount)
                     .role(u.getRole())
-                    .status(isBanned ? "BANNED" : "ACTIVE")
+                    .status(isBanned ? "BANNED" : ("WITHDRAWN".equalsIgnoreCase(u.getStatus()) ? "WITHDRAWN" : ((u.getStrikeCount() != null && u.getStrikeCount() > 0) ? "WARNING" : "ACTIVE")))
                     .banReason(blacklistOpt.map(UserBlacklist::getReason).orElse(null))
                     .bannedAt(blacklistOpt.map(UserBlacklist::getCreatedAt).orElse(null))
                     .createdAt(u.getCreatedAt())
@@ -398,5 +427,183 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<AdminAuditLog> getAuditLogs() {
         return adminAuditLogRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    @Transactional
+    public void updateUserByAdmin(UUID userId, AdminUserUpdateRequest req, String operatorName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        user.updateIdentityByAdmin(req.getPhone(), req.getBirthYear(), req.getGender());
+
+        if (req.getPassword() != null && !req.getPassword().trim().isEmpty()) {
+            user.updatePassword(passwordEncoder.encode(req.getPassword()));
+        }
+
+        userRepository.save(user);
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("USER_ADMIN_UPDATE")
+                .operatorName(operatorName)
+                .detail(String.format("관리자 회원정보 수정 [ID: %s] 전화번호: %s, 출생연도: %s, 성별: %s, 비밀번호 변경여부: %s",
+                        user.getId(), req.getPhone(), req.getBirthYear(), req.getGender(), (req.getPassword() != null && !req.getPassword().trim().isEmpty())))
+                .targetId(user.getId().toString())
+                .build());
+    }
+
+    @Transactional
+    public void sendDirectMessage(UUID userId, AdminDirectMessageRequest req, String operatorName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        String contentWithTitle = (req.getTitle() != null && !req.getTitle().trim().isEmpty())
+                ? "[" + req.getTitle() + "]\n" + req.getContent()
+                : req.getContent();
+
+        CsInquiry inquiry = CsInquiry.builder()
+                .user(user)
+                .category("운영자 1:1 안내")
+                .content(contentWithTitle)
+                .status("ANSWERED")
+                .build();
+        csInquiryRepository.save(inquiry);
+
+        CsInquiryReply reply = CsInquiryReply.builder()
+                .inquiry(inquiry)
+                .operatorName(operatorName)
+                .replyContent(req.getContent())
+                .build();
+        csInquiryReplyRepository.save(reply);
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("ADMIN_DM_SEND")
+                .operatorName(operatorName)
+                .detail(String.format("회원 %s(%s)에게 1:1 메시지 발송: [%s] %s", user.getName(), user.getPhone(), req.getTitle(), req.getContent()))
+                .targetId(user.getId().toString())
+                .build());
+
+        // 활성 채팅방이 있으면 채팅방에도 운영자 1:1 메시지 등록
+        tableMemberRepository.findByUser(user).stream()
+                .map(TableMember::getDiningTable)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .flatMap(chatRoomRepository::findByDiningTable)
+                .ifPresent(room -> {
+                    com.serendipity.domain.chat.entity.ChatMessage chatMessage = com.serendipity.domain.chat.entity.ChatMessage.builder()
+                            .chatRoom(room)
+                            .senderRole("ADMIN")
+                            .messageType("ADMIN_NOTICE")
+                            .content(String.format("📢 [운영자 1:1 안내]\n%s\n%s", req.getTitle(), req.getContent()))
+                            .build();
+                    chatMessageRepository.save(chatMessage);
+                });
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminOrderResponse> getOrders() {
+        return orderRepository.findAll().stream().map(o -> {
+            User u = o.getUser();
+            return AdminOrderResponse.builder()
+                    .id(o.getId())
+                    .orderNo(o.getOrderNo())
+                    .userId(u != null ? u.getId() : null)
+                    .userName(u != null ? u.getName() : "-")
+                    .userPhone(u != null ? u.getPhone() : "-")
+                    .itemName(o.getItemName())
+                    .ticketType(o.getTicketType())
+                    .amount(o.getAmount())
+                    .paymentMethod(o.getPaymentMethod())
+                    .status(o.getStatus())
+                    .paidAt(o.getCreatedAt())
+                    .createdAt(o.getCreatedAt())
+                    .build();
+        }).sorted((a, b) -> {
+            if (a.getPaidAt() == null || b.getPaidAt() == null) return 0;
+            return b.getPaidAt().compareTo(a.getPaidAt());
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void refundOrder(UUID orderId, String reason, String operatorName) {
+        com.serendipity.domain.application.entity.Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "주문 내역을 찾을 수 없습니다."));
+
+        order.updateStatus("REFUNDED");
+        orderRepository.save(order);
+
+        // 환불 시 주문에 해당하는 티켓 수량만큼 차감 (3_TICKETS: 3회, 1_TICKET: 1회)
+        int deductCount = "3_TICKETS".equalsIgnoreCase(order.getTicketType()) ? 3 : 1;
+        User user = order.getUser();
+        if (user != null) {
+            List<com.serendipity.domain.user.entity.UserTicket> tickets = userTicketRepository.findByUserOrderByCreatedAtDesc(user);
+            int remainingToDeduct = deductCount;
+            for (com.serendipity.domain.user.entity.UserTicket ticket : tickets) {
+                if (remainingToDeduct <= 0) break;
+                int currentRem = ticket.getRemainingCount();
+                if (currentRem > 0) {
+                    int toSubtract = Math.min(currentRem, remainingToDeduct);
+                    for (int i = 0; i < toSubtract; i++) {
+                        ticket.deduct();
+                    }
+                    userTicketRepository.save(ticket);
+                    remainingToDeduct -= toSubtract;
+                }
+            }
+        }
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("ADMIN_ORDER_REFUND")
+                .operatorName(operatorName)
+                .detail(String.format("주문 %s (금액: %d) 환불 처리 완료 (사유: %s)", order.getOrderNo(), order.getAmount(), reason))
+                .targetId(order.getId().toString())
+                .build());
+    }
+
+    @Transactional
+    public void refundApplication(UUID applicationId, String reason, String operatorName) {
+        com.serendipity.domain.application.entity.Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND, "신청 내역을 찾을 수 없습니다."));
+
+        app.cancel(); // status = "CANCELLED"
+        applicationRepository.save(app);
+
+        User user = app.getUser();
+
+        // 1) 해당 사용자의 남은 참가권 1회 차감 (환불 처리로 참가권 회수)
+        userTicketRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .filter(t -> t.getRemainingCount() > 0)
+                .findFirst()
+                .ifPresent(t -> {
+                    t.deduct();
+                    userTicketRepository.save(t);
+                });
+
+        // 2) 최근 주문 건이 있다면 환불 상태로 변경
+        orderRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .filter(o -> "PAID".equals(o.getStatus()))
+                .findFirst()
+                .ifPresent(o -> {
+                    // Order 상태 환불로 갱신
+                    orderRepository.save(com.serendipity.domain.application.entity.Order.builder()
+                            .id(o.getId())
+                            .orderNo(o.getOrderNo())
+                            .user(o.getUser())
+                            .itemName(o.getItemName())
+                            .ticketType(o.getTicketType())
+                            .amount(o.getAmount())
+                            .paymentMethod(o.getPaymentMethod())
+                            .status("REFUNDED")
+                            .pgTid(o.getPgTid())
+                            .createdAt(o.getCreatedAt())
+                            .build());
+                });
+
+        adminAuditLogRepository.save(AdminAuditLog.builder()
+                .actionType("MANUAL_REFUND")
+                .operatorName(operatorName)
+                .detail(String.format("신청건 %s 환불 완료 (회원 %s, 사유: %s) - 참가권 1회 차감 및 결제 환불",
+                        applicationId, user.getName(), reason))
+                .targetId(applicationId.toString())
+                .build());
     }
 }

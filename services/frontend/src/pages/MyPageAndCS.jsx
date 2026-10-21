@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { getUpcomingSlotsApi } from '../api/slot';
-import { checkoutOrderApi, applySlotApi } from '../api/application';
+import { checkoutOrderApi, applySlotApi, getMyApplicationsApi } from '../api/application';
+import { withdrawApi } from '../api/auth';
 
 export default function MyPageAndCS() {
   const navigate = useNavigate();
@@ -18,13 +19,14 @@ export default function MyPageAndCS() {
   const [buyTicketType, setBuyTicketType] = useState('1_TICKET'); // '1_TICKET' or '3_TICKETS'
   const [isBuying, setIsBuying] = useState(false);
 
-  // 참가 신청 선택
+  // 참가 신청 선택 및 기존 신청 내역
   const [slots, setSlots] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedRegion, setSelectedRegion] = useState('');
   const [isApplying, setIsApplying] = useState(false);
 
-  // 회차 목록 로드
+  // 회차 목록 및 내 신청 내역 로드
   useEffect(() => {
     getUpcomingSlotsApi()
       .then((data) => {
@@ -35,6 +37,16 @@ export default function MyPageAndCS() {
       })
       .catch((err) => {
         console.warn('Failed to load slots:', err);
+      });
+
+    getMyApplicationsApi()
+      .then((apps) => {
+        if (Array.isArray(apps)) {
+          setMyApplications(apps);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load my applications:', err);
       });
   }, []);
 
@@ -50,9 +62,18 @@ export default function MyPageAndCS() {
 
   // 참가권 구매 처리
   const handleBuyTicket = async () => {
+    const isThree = buyTicketType === '3_TICKETS';
+    const itemName = isThree ? '우연한 식탁 3회 참가권 (₩15,000)' : '우연한 식탁 1회 참가권 (₩8,000)';
+    const ok = await showConfirm(
+      `${itemName}을(를) 결제하시겠습니까?`,
+      '참가권 결제 확인'
+    );
+    if (!ok) {
+      return;
+    }
+
     try {
       setIsBuying(true);
-      const isThree = buyTicketType === '3_TICKETS';
       await checkoutOrderApi({
         ticketType: buyTicketType,
         ticketCount: isThree ? 3 : 1,
@@ -79,6 +100,11 @@ export default function MyPageAndCS() {
       }
       return;
     }
+    // 내 신청 내역 최신화
+    try {
+      const apps = await getMyApplicationsApi();
+      if (Array.isArray(apps)) setMyApplications(apps);
+    } catch (e) {}
     setIsApplyModalOpen(true);
   };
 
@@ -90,6 +116,15 @@ export default function MyPageAndCS() {
     }
     if (!selectedRegion) {
       await showAlert('참여하실 권역을 선택해주세요.', '입력 필요');
+      return;
+    }
+
+    // 중복 신청 방지 검증: 이미 신청한 슬롯인지 확인
+    const alreadyApplied = myApplications.some(
+      (app) => app.eventSlotId === selectedSlotId && app.status !== 'CANCELLED'
+    );
+    if (alreadyApplied) {
+      await showAlert('이미 신청하신 모임(회차)입니다. 동일한 회차에는 중복으로 신청할 수 없습니다.', '중복 신청 불가');
       return;
     }
 
@@ -134,12 +169,18 @@ export default function MyPageAndCS() {
               {/* 상단 프로필 및 테이블 매너(온도만 우측 정렬) */}
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex items-center gap-space-md">
-                  <div className="relative">
-                    <img
-                      className="w-16 h-16 rounded-full object-cover shadow-sm ring-4 ring-surface-container-low"
-                      src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'}
-                      alt="프로필"
-                    />
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-primary-fixed/40 flex items-center justify-center shrink-0 shadow-sm ring-4 ring-surface-container-low">
+                    {currentUser?.profileImageUrl ? (
+                      <img
+                        className="w-full h-full object-cover"
+                        src={currentUser.profileImageUrl}
+                        alt="프로필"
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-[38px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        person
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-space-xs">
@@ -179,7 +220,7 @@ export default function MyPageAndCS() {
                   className="w-full py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-xs font-bold flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/30 active:scale-[0.98]"
                 >
                   <span className="material-symbols-outlined text-[17px] text-primary">edit_note</span>
-                  <span>내 정보 및 취향 수정하기</span>
+                  <span>회원정보 수정</span>
                 </button>
               </div>
             </div>
@@ -326,8 +367,8 @@ export default function MyPageAndCS() {
               </button>
             </div>
 
-            {/* 6. LOGOUT BUTTON */}
-            <div className="pt-3">
+            {/* 6. LOGOUT & WITHDRAW BUTTON */}
+            <div className="pt-3 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={async () => {
@@ -337,10 +378,34 @@ export default function MyPageAndCS() {
                     navigate('/login');
                   }
                 }}
-                className="w-full py-3.5 rounded-2xl bg-surface-container-low hover:bg-error-container/30 text-on-surface-variant hover:text-error transition-all flex items-center justify-center gap-2 text-xs font-semibold border border-outline-variant/30"
+                className="w-full py-3.5 rounded-2xl bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant transition-all flex items-center justify-center gap-2 text-xs font-semibold border border-outline-variant/30"
               >
                 <span className="material-symbols-outlined text-[18px]">logout</span>
                 <span>로그아웃</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = await showConfirm(
+                    '정말 우연한 식탁을 탈퇴하시겠습니까?\n\n탈퇴 시 보유 중인 참가권 및 계정 이용이 제한되며, 서비스 악용 방지를 위해 기존 활동 이력은 보존됩니다.',
+                    '회원 탈퇴 확인'
+                  );
+                  if (ok) {
+                    try {
+                      await withdrawApi();
+                      await showAlert('회원 탈퇴 처리가 완료되었습니다. 그동안 우연한 식탁을 이용해 주셔서 감사합니다.', '탈퇴 완료');
+                      logout();
+                      navigate('/');
+                    } catch (err) {
+                      await showAlert('탈퇴 처리 실패: ' + err.message, '오류');
+                    }
+                  }
+                }}
+                className="w-full py-2.5 rounded-2xl text-outline hover:text-error transition-colors flex items-center justify-center gap-1.5 text-[11px] font-medium"
+              >
+                <span className="material-symbols-outlined text-[15px]">person_off</span>
+                <span>회원 탈퇴하기</span>
               </button>
             </div>
 
@@ -450,37 +515,32 @@ export default function MyPageAndCS() {
               보유하신 참가권 1회를 사용하여 식탁 모임을 신청합니다.
             </p>
 
-            {/* 1. 날짜 선택 (데이터베이스 연동 모집 중인 날짜) */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-on-surface flex items-center gap-1">
-                <span className="material-symbols-outlined text-[16px] text-primary">calendar_today</span>
-                <span>모집 중인 모임 날짜 (매주 목요일)</span>
-              </label>
-              <select
-                value={selectedSlotId || ''}
-                onChange={(e) => setSelectedSlotId(Number(e.target.value))}
-                className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                {slots.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.eventDate} ({s.eventTime ? s.eventTime.substring(0, 5) : '19:30'}) - {s.status === 'OPEN' ? '모집 중' : s.status}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* 2. 권역 선택 (사용자 선호 권역 기본 자동 선택) */}
+            {/* 1. 지역(권역) 선택 */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-on-surface flex items-center gap-1">
                 <span className="material-symbols-outlined text-[16px] text-primary">location_on</span>
-                <span>참석 희망 권역</span>
+                <span>1. 참석 희망 지역</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {['홍대 / 합정', '잠실 / 송파', '강남 / 신논현', '을지로 / 종로'].map((reg) => (
                   <button
                     key={reg}
                     type="button"
-                    onClick={() => setSelectedRegion(reg)}
+                    onClick={() => {
+                      setSelectedRegion(reg);
+                      const filtered = slots.filter((s) => {
+                        if (!s.regions || s.regions.length === 0) return true;
+                        const matched = s.regions.find((r) =>
+                          r.region === reg ||
+                          reg.includes(r.region) ||
+                          (reg.split(' ')[0] && r.region.includes(reg.split(' ')[0]))
+                        );
+                        return matched ? !matched.isClosed : true;
+                      });
+                      if (filtered.length > 0 && !filtered.some((s) => s.id === selectedSlotId)) {
+                        setSelectedSlotId(filtered[0].id);
+                      }
+                    }}
                     className={`p-2.5 rounded-xl text-xs font-semibold border transition-all ${
                       selectedRegion === reg
                         ? 'border-primary bg-primary-fixed/40 text-primary font-bold shadow-xs'
@@ -491,6 +551,52 @@ export default function MyPageAndCS() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* 2. 시간(모임 일정) 선택 (선택한 지역에 따라 모집 중인 모임 표시, '모집 중' 텍스트 제거) */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-on-surface flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px] text-primary">calendar_today</span>
+                <span>2. 모임 일정 및 시간</span>
+              </label>
+              {(() => {
+                const availableSlots = slots.filter((s) => {
+                  if (!s.regions || s.regions.length === 0) return true;
+                  const matched = s.regions.find((r) =>
+                    r.region === selectedRegion ||
+                    selectedRegion.includes(r.region) ||
+                    (selectedRegion.split(' ')[0] && r.region.includes(selectedRegion.split(' ')[0]))
+                  );
+                  return matched ? !matched.isClosed : true;
+                });
+
+                if (availableSlots.length === 0) {
+                  return (
+                    <div className="p-3 rounded-xl bg-surface-container text-xs text-on-surface-variant text-center">
+                      선택하신 권역에 현재 모집 중인 모임 일정이 없습니다.
+                    </div>
+                  );
+                }
+
+                return (
+                  <select
+                    value={selectedSlotId || ''}
+                    onChange={(e) => setSelectedSlotId(Number(e.target.value))}
+                    className="w-full h-11 px-3 rounded-xl bg-surface-container-low text-on-surface text-xs border border-surface-container focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {availableSlots.map((s) => {
+                      const isApplied = myApplications.some(
+                        (app) => app.eventSlotId === s.id && app.status !== 'CANCELLED'
+                      );
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.eventDate} ({s.eventTime ? s.eventTime.substring(0, 5) : '19:30'}){isApplied ? ' [신청 완료]' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                );
+              })()}
             </div>
 
             {/* 잔여 참가권 확인 안내 */}

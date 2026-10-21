@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../../context/AdminContext';
+import { toggleRegionCloseApi, updateSlotStatusApi } from '../../api/admin';
 
 export default function AdminSlotsPage() {
-  const { events, setEvents, addAuditLog } = useAdmin();
+  const { events, setEvents, addAuditLog, refreshAdminData } = useAdmin();
 
-  const [selectedEventId, setSelectedEventId] = useState(events[0]?.id || '');
+  const [selectedEventId, setSelectedEventId] = useState(null);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -30,25 +31,63 @@ export default function AdminSlotsPage() {
     return dt.split(' ')[0];
   };
 
-  const activeEvent = events.find((e) => e.id === selectedEventId) || events[0] || {
+  // 현재 선택된 회차 슬롯 (선택된 ID가 유효하면 해당 슬롯, 아니면 첫 번째 슬롯)
+  const currentSelectedId = selectedEventId && events.some((e) => e.id === selectedEventId)
+    ? selectedEventId
+    : events[0]?.id || '';
+
+  const activeEvent = events.find((e) => e.id === currentSelectedId) || events[0] || {
     id: 'EVT-FALLBACK',
     regions: []
   };
 
-  // 권역 슬롯 상태 토글 (OPEN <-> CLOSED)
-  const toggleRegionStatus = (regionId) => {
-    setEvents((prev) =>
-      prev.map((ev) => {
-        if (ev.id !== activeEvent.id) return ev;
-        const updatedRegions = ev.regions.map((reg) =>
-          reg.id === regionId
-            ? { ...reg, status: reg.status === 'OPEN' ? 'CLOSED' : 'OPEN' }
-            : reg
+  // 회차 슬롯 자체 상태 토글 (OPEN <-> CLOSED)
+  const toggleSlotStatus = async (e, ev) => {
+    e.stopPropagation();
+    const nextStatus = ev.status === 'OPEN' ? 'CLOSED' : 'OPEN';
+    try {
+      if (ev.slotId) {
+        await updateSlotStatusApi(ev.slotId, nextStatus);
+        await refreshAdminData();
+      } else {
+        setEvents((prev) =>
+          prev.map((item) =>
+            item.id === ev.id ? { ...item, status: nextStatus } : item
+          )
         );
-        return { ...ev, regions: updatedRegions };
-      })
-    );
-    addAuditLog('SLOT_STATUS_TOGGLE', '운영자 김관리', `${activeEvent.id} ${regionId} 권역 오픈/마감 상태 토글`);
+      }
+      addAuditLog('SLOT_STATUS_UPDATE', '총괄관리자', `${ev.title || ev.id} 상태 변경 -> ${nextStatus}`);
+    } catch (err) {
+      console.error('Update slot status failed:', err);
+      alert('슬롯 상태 변경 실패: ' + (err.message || '오류 발생'));
+    }
+  };
+
+  // 권역 슬롯 상태 토글 (OPEN <-> CLOSED)
+  const toggleRegionStatus = async (regionId, regionName, currentStatus) => {
+    const nextClosed = currentStatus === 'OPEN';
+    try {
+      if (activeEvent.slotId) {
+        await toggleRegionCloseApi(activeEvent.slotId, regionName || regionId, nextClosed);
+        await refreshAdminData();
+      } else {
+        setEvents((prev) =>
+          prev.map((ev) => {
+            if (ev.id !== activeEvent.id) return ev;
+            const updatedRegions = ev.regions.map((reg) =>
+              reg.id === regionId
+                ? { ...reg, status: nextClosed ? 'CLOSED' : 'OPEN' }
+                : reg
+            );
+            return { ...ev, regions: updatedRegions };
+          })
+        );
+      }
+      addAuditLog('SLOT_STATUS_TOGGLE', '총괄관리자', `${activeEvent.id} ${regionName || regionId} 권역 ${nextClosed ? '마감' : '모집'}`);
+    } catch (e) {
+      console.error('Toggle region failed:', e);
+      alert('권역 마감 상태 변경 실패: ' + (e.message || '오류 발생'));
+    }
   };
 
   // 신규 회차 생성 제출
@@ -176,7 +215,8 @@ export default function AdminSlotsPage() {
                 return (
                   <tr
                     key={ev.id}
-                    className={`hover:bg-surface-container-low/60 transition-colors ${
+                    onClick={() => setSelectedEventId(ev.id)}
+                    className={`hover:bg-surface-container-low/60 transition-colors cursor-pointer ${
                       isSelected ? 'bg-primary/5 font-semibold' : ''
                     }`}
                   >
@@ -200,22 +240,26 @@ export default function AdminSlotsPage() {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSlotStatus(e, ev)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all ${
                           ev.status === 'OPEN'
-                            ? 'bg-tertiary-fixed text-tertiary'
-                            : ev.status === 'MATCHING'
-                            ? 'bg-secondary-fixed text-secondary'
-                            : 'bg-primary-container text-white'
+                            ? 'bg-tertiary-fixed text-tertiary hover:bg-tertiary hover:text-white'
+                            : 'bg-error-container text-error hover:bg-error hover:text-white'
                         }`}
+                        title="클릭 시 모집 여부 전환"
                       >
-                        {ev.status === 'OPEN' ? '모집 중' : ev.status === 'MATCHING' ? '매칭 연산' : '확정 완료'}
-                      </span>
+                        {ev.status === 'OPEN' ? '🟢 모집 중' : '🔴 모집 마감'}
+                      </button>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <button
                         type="button"
-                        onClick={() => setSelectedEventId(ev.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEventId(ev.id);
+                        }}
                         className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                           isSelected
                             ? 'bg-primary text-white shadow-xs'
@@ -268,7 +312,7 @@ export default function AdminSlotsPage() {
                     <span className="font-bold text-sm text-on-surface">{reg.name}</span>
                     <button
                       type="button"
-                      onClick={() => toggleRegionStatus(reg.id)}
+                      onClick={() => toggleRegionStatus(reg.id, reg.name, reg.status)}
                       className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${
                         isClosed
                           ? 'bg-error-container text-error hover:bg-error hover:text-white'

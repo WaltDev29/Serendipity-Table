@@ -77,7 +77,7 @@ export default function AdminLayout() {
             {/* AI Status Badge */}
             <div className="mt-space-sm inline-flex items-center gap-space-xs px-2.5 py-1 rounded-full bg-tertiary-fixed text-tertiary-container font-label-sm text-label-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-              <span className="font-semibold">AI Engine: ONLINE (Zero-Touch)</span>
+              <span className="font-semibold">자동화 활성화 중</span>
             </div>
           </div>
 
@@ -144,34 +144,8 @@ export default function AdminLayout() {
       <div className="pl-[260px] flex-1 flex flex-col min-w-0">
         {/* Top Global Header (64px) */}
         <header className="fixed top-0 left-[260px] right-0 h-16 bg-surface-container-lowest border-b border-surface-variant z-40 px-gutter flex items-center justify-between shadow-[0_1px_8px_rgba(26,27,30,0.04)]">
-          {/* Header Left: Event Countdown Pill */}
           <div className="flex items-center gap-space-md">
-            <div className="inline-flex items-center gap-space-xs px-3 py-1.5 rounded-full bg-secondary-fixed text-on-secondary-container border border-secondary-fixed-dim/40 font-label-sm text-label-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary-container opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-              </span>
-              <span className="font-semibold tracking-tight">
-                🔥 이번 주 목요일 모임 (2026.10.22 19:30) | D-2 (화 18:00 매칭 자동 마감)
-              </span>
-            </div>
-          </div>
-
-          {/* Header Center: Global Search Input */}
-          <div className="relative w-[400px] max-w-full hidden md:block">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-outline">
-              search
-            </span>
-            <input
-              type="text"
-              value={globalSearch}
-              onChange={(e) => setGlobalSearch(e.target.value)}
-              placeholder="이름, 전화번호, 인스타그램 ID, 배정 식당 검색..."
-              className="w-full h-9 pl-9 pr-14 rounded-xl bg-surface-container-low border border-surface-variant font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all"
-            />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-surface-container-high text-on-surface-variant border border-surface-variant">
-              Ctrl + K
-            </kbd>
+            {/* 검색 영역 및 모임 일정 제거 완료 */}
           </div>
 
           {/* Header Right: Actions & Tools */}

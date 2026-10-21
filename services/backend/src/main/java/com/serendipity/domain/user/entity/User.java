@@ -86,6 +86,21 @@ public class User extends BaseTimeEntity {
     @Builder.Default
     private String role = "ROLE_USER";
 
+    @Column(name = "status", length = 20)
+    @Builder.Default
+    private String status = "ACTIVE";
+
+    @Column(name = "profile_image_url", columnDefinition = "TEXT")
+    private String profileImageUrl;
+
+    public void withdraw() {
+        this.status = "WITHDRAWN";
+    }
+
+    public void updateProfileImageUrl(String url) {
+        this.profileImageUrl = url;
+    }
+
     public void updateProfile(String nickname, String job, String instagramId, String mbti,
                               List<String> interests, List<String> myTendencies,
                               List<String> preferredTendencies, List<String> budgetRanges,
@@ -103,6 +118,12 @@ public class User extends BaseTimeEntity {
 
     public void updatePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
+    }
+
+    public void updateIdentityByAdmin(String phone, Integer birthYear, String gender) {
+        if (phone != null && !phone.trim().isEmpty()) this.phone = phone;
+        if (birthYear != null) this.birthYear = birthYear;
+        if (gender != null && !gender.trim().isEmpty()) this.gender = gender;
     }
 
     public void increaseStrike() {

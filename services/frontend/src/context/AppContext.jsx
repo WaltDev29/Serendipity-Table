@@ -4,6 +4,7 @@ import { getMyActiveTableApi, getMyPastTablesApi } from '../api/table';
 import { getMyApplicationsApi, applySlotApi, cancelApplicationApi } from '../api/application';
 import { getRoomMessagesApi, createStompChatClient, publishChatMessage } from '../api/chat';
 import { getMyInquiriesApi } from '../api/cs';
+import { getMyNotificationsApi, markNotificationReadApi, markAllNotificationsReadApi } from '../api/notification';
 
 const AppContext = createContext();
 
@@ -127,9 +128,9 @@ export const AppProvider = ({ children }) => {
       if (activeTable && activeTable.tableId) {
         const formatted = formatTableResponse(activeTable, activeUserId);
         setMatchResult(formatted);
-        setUserState('CONFIRMED');
+        setUserState(activeTable.status === 'MATCHED' ? 'MATCHED' : 'CONFIRMED');
 
-        // 관리자 공지 및 모임 매칭 알림 목록 병합
+        // 관리자 공지 및 서버 알림 목록 병합
         let adminNotices = [];
         try {
           const stored = localStorage.getItem('global_notices');
@@ -140,17 +141,17 @@ export const AppProvider = ({ children }) => {
           console.warn('Failed to parse global notices:', e);
         }
 
+        let serverNotices = [];
+        try {
+          const sNotices = await getMyNotificationsApi();
+          if (Array.isArray(sNotices)) serverNotices = sNotices;
+        } catch (e) {
+          console.warn('Failed to fetch server notices:', e);
+        }
+
         setNotifications([
           ...adminNotices,
-          {
-            id: 'match-1',
-            type: 'MATCH',
-            title: `🎉 ${formatted.tableName} 매칭 완료!`,
-            desc: `배정된 식당(${formatted.venue.name})과 4인의 익명 멤버 카드를 확인해보세요.`,
-            time: '방금 전',
-            read: false,
-            link: '/match/result'
-          }
+          ...serverNotices
         ]);
 
         // 채팅방 메시지 로드 및 웹소켓 연결
@@ -183,18 +184,17 @@ export const AppProvider = ({ children }) => {
       } else {
         // 활성 식탁이 없는 경우 신청 목록 확인
         setMatchResult(null);
-        let adminNotices = [];
+        let serverNotices = [];
         try {
-          const stored = localStorage.getItem('global_notices');
-          if (stored) {
-            adminNotices = JSON.parse(stored);
-          }
+          const sNotices = await getMyNotificationsApi();
+          if (Array.isArray(sNotices)) serverNotices = sNotices;
         } catch (e) {
-          console.warn('Failed to parse global notices:', e);
+          console.warn('Failed to fetch server notices:', e);
         }
+
         setNotifications((prev) => {
           const nonNotices = prev.filter((p) => p.type !== 'NOTICE');
-          return [...adminNotices, ...nonNotices];
+          return [...adminNotices, ...serverNotices, ...nonNotices.filter(n => !serverNotices.some(sn => sn.id === n.id))];
         });
 
         try {
@@ -338,7 +338,12 @@ export const AppProvider = ({ children }) => {
   };
 
   // 알림 읽음 처리 핸들러 (개별 알림 상세 보기 또는 클릭 시)
-  const markNotificationAsRead = (id) => {
+  const markNotificationAsRead = async (id) => {
+    try {
+      await markNotificationReadApi(id);
+    } catch (e) {
+      // ignore
+    }
     setNotifications((prev) => {
       const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
       try {
@@ -355,7 +360,12 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const markAllNotificationsRead = () => {
+  const markAllNotificationsRead = async () => {
+    try {
+      await markAllNotificationsReadApi();
+    } catch (e) {
+      // ignore
+    }
     setNotifications((prev) => {
       const updated = prev.map((n) => ({ ...n, read: true }));
       try {

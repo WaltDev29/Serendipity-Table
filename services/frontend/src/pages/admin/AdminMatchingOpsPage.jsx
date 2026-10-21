@@ -1,13 +1,30 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../../context/AdminContext';
+import { triggerMatchingLifecycleStepApi } from '../../api/matching';
 
 export default function AdminMatchingOpsPage() {
   const {
     matchingTables,
     triggerAiMatching,
     swapMembers,
-    confirmFinalMatching
+    confirmFinalMatching,
+    refreshAdminData
   } = useAdmin();
+
+  const [runningStep, setRunningStep] = useState(null);
+
+  const runLifecycleStep = async (stepKey, label) => {
+    try {
+      setRunningStep(stepKey);
+      const res = await triggerMatchingLifecycleStepApi(stepKey);
+      if (refreshAdminData) await refreshAdminData();
+      alert(`✅ [${label}] 실행 완료!\n결과: ${JSON.stringify(res || {}, null, 2)}`);
+    } catch (e) {
+      alert(`❌ [${label}] 실행 실패: ` + (e.message || '오류 발생'));
+    } finally {
+      setRunningStep(null);
+    }
+  };
 
   // 권역 필터
   const [selectedRegionTab, setSelectedRegionTab] = useState('ALL');
@@ -84,6 +101,115 @@ export default function AdminMatchingOpsPage() {
           >
             <span className="material-symbols-outlined text-[18px]">verified</span>
             <span>최종 확정 및 공표</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 0. Lifecycle Step Runner Toolbar (테스트 & 즉시 검증용) */}
+      <div className="bg-primary-fixed/20 border border-primary/30 p-4 rounded-2xl shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-xl">play_circle</span>
+            <span className="font-title-sm text-sm font-bold text-on-surface">
+              서비스 흐름 단계별 즉시 실행 및 검증 (월/화/목/금 라이프사이클)
+            </span>
+          </div>
+          {runningStep && (
+            <span className="text-xs text-primary font-bold animate-pulse">
+              단계 실행 중: {runningStep}...
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('monday-noon', '1. 월 12:00 1차 AI 매칭')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-primary">① 월 12:00</span>
+            <span className="font-medium text-on-surface">1차 AI 매칭 (식당 미정, 멤버만 공개)</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('monday-night', '2. 월 21:00 2차 재매칭')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-primary">② 월 21:00</span>
+            <span className="font-medium text-on-surface">2차 AI 재매칭 (미매칭자 대상)</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('tuesday-morning', '3. 화 08:00 최종 재매칭 & 실패 참가권 반환')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-primary">③ 화 08:00</span>
+            <span className="font-medium text-on-surface">3차 재매칭 & 실패 참가권 자동반환</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('tuesday-noon', '4. 화 12:00 매칭 확정 & 식당 예약 & 채팅방 개설')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-emerald-600">④ 화 12:00</span>
+            <span className="font-medium text-on-surface">최종 확정 + 식당 예약 + 채팅방 개설</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('tuesday-16', '5. 화 16:00 식당 미예약 예외큐 전송')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-amber-600">⑤ 화 16:00</span>
+            <span className="font-medium text-on-surface">식당 미예약 시 예외큐(Exception) 등록</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('event-day-noon', '6. 목 12:00 모임 당일 리마인드')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-secondary">⑥ 목 12:00</span>
+            <span className="font-medium text-on-surface">당일 전체 리마인드 알림 발송</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('event-day-30m', '7. 목 19:00 30분 전 알림')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-secondary">⑦ 목 19:00</span>
+            <span className="font-medium text-on-surface">모임 30분 전 도착 안내 발송</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('event-day-start', '8. 목 19:30 모임 시작 알림')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95"
+          >
+            <span className="font-bold text-secondary">⑧ 목 19:30</span>
+            <span className="font-medium text-on-surface">식탁 시작 및 환영 알림 발송</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={Boolean(runningStep)}
+            onClick={() => runLifecycleStep('next-day-feedback', '9. 금 12:00 사후 피드백 요청')}
+            className="p-2.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container border border-surface-container text-left flex flex-col gap-1 transition-all active:scale-95 col-span-2 sm:col-span-1"
+          >
+            <span className="font-bold text-purple-600">⑨ 금 12:00</span>
+            <span className="font-medium text-on-surface">사후 피드백/별점/차단 요청 알림</span>
           </button>
         </div>
       </div>

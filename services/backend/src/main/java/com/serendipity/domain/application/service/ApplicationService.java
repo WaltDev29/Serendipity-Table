@@ -33,6 +33,9 @@ public class ApplicationService {
     private final RegionSlotRepository regionSlotRepository;
     private final UserRepository userRepository;
     private final UserTicketRepository userTicketRepository;
+    private final com.serendipity.domain.dining.repository.TableMemberRepository tableMemberRepository;
+    private final com.serendipity.domain.dining.repository.DiningTableRepository diningTableRepository;
+    private final com.serendipity.domain.notification.service.NotificationService notificationService;
 
     @Transactional
     public ApplicationResponse apply(UUID userId, ApplicationRequest req) {
@@ -125,12 +128,48 @@ public class ApplicationService {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        if ("MATCHED".equals(application.getStatus())) {
-            throw new CustomException(ErrorCode.CANNOT_CANCEL_CONFIRMED);
+        // 화요일 정오 확정(CONFIRMED) 이후에는 취소 불가
+        if ("CONFIRMED".equals(application.getStatus())) {
+            throw new CustomException(ErrorCode.CANNOT_CANCEL_CONFIRMED, "화요일 정오 매칭 확정 이후에는 취소가 불가합니다.");
         }
 
         if ("CANCELLED".equals(application.getStatus())) {
             return;
+        }
+
+        // MATCHED 상태(1차 매칭 완료 후 확정 대기 중)에서 취소한 경우:
+        // 해당 다이닝 테이블 취소 및 나머지 멤버들 재매칭 대상으로 복귀
+        List<com.serendipity.domain.dining.entity.TableMember> memberships = tableMemberRepository.findByUser(user);
+        for (com.serendipity.domain.dining.entity.TableMember tm : memberships) {
+            com.serendipity.domain.dining.entity.DiningTable table = tm.getDiningTable();
+            if (table.getEventSlot().getId().equals(application.getEventSlot().getId()) && !"CONFIRMED".equals(table.getStatus())) {
+                List<com.serendipity.domain.dining.entity.TableMember> allTableMembers = tableMemberRepository.findByDiningTable(table);
+                
+                table.updateStatus("CANCELLED");
+                
+                LocalDateTime now = LocalDateTime.now();
+                boolean isBeforeMon21 = (now.getDayOfWeek() == java.time.DayOfWeek.MONDAY && now.getHour() < 21);
+                String rematchNotice = isBeforeMon21 ? "오늘(월) 21:00에 AI 재매칭이 진행됩니다." : "내일(화) 오전 8시에 AI 재매칭이 진행됩니다.";
+
+                for (com.serendipity.domain.dining.entity.TableMember otherTm : allTableMembers) {
+                    if (!otherTm.getUser().getId().equals(user.getId())) {
+                        applicationRepository.findByUserAndEventSlot(otherTm.getUser(), table.getEventSlot())
+                                .ifPresent(otherApp -> {
+                                    otherApp.resetToApplied();
+                                    applicationRepository.save(otherApp);
+                                });
+                        
+                        notificationService.sendToUser(
+                                otherTm.getUser(),
+                                "REMATCH",
+                                "테이블 인원 변동 안내",
+                                "같은 테이블 멤버의 신청 취소로 인해 모임이 재조율됩니다. " + rematchNotice,
+                                "/matching-waiting"
+                        );
+                    }
+                    tableMemberRepository.delete(otherTm);
+                }
+            }
         }
 
         application.cancel();
@@ -146,5 +185,14 @@ public class ApplicationService {
             RegionSlotId regionId = new RegionSlotId(application.getEventSlot().getId(), firstRegion);
             regionSlotRepository.findById(regionId).ifPresent(RegionSlot::decrementCount);
         }
+
+        // 취소 안내 알림 발송
+        notificationService.sendToUser(
+                user,
+                "CANCEL",
+                "참가 신청 취소 완료",
+                "참가 신청이 취소되었으며, 참가권 1회가 보유 참가권으로 반환되었습니다.",
+                "/"
+        );
     }
 }

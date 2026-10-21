@@ -62,4 +62,16 @@ public class Application extends BaseTimeEntity {
     public void matched() {
         this.status = "MATCHED";
     }
+
+    public void confirm() {
+        this.status = "CONFIRMED";
+    }
+
+    public void failFallback() {
+        this.status = "FAILED_FALLBACK";
+    }
+
+    public void resetToApplied() {
+        this.status = "APPLIED";
+    }
 }

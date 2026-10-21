@@ -18,4 +18,9 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations(uploadDir);
     }
+
+    @org.springframework.context.annotation.Bean
+    public org.springframework.web.client.RestTemplate restTemplate() {
+        return new org.springframework.web.client.RestTemplate();
+    }
 }

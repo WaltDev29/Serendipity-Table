@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
+import { getMyApplicationsApi, cancelApplicationApi } from '../api/application';
 
 export default function MatchingWaitingPage() {
   const navigate = useNavigate();
-  const { applicationData, currentUser, setUserState, setMatchResult } = useApp();
+  const { applicationData, currentUser, setUserState, setMatchResult, refreshAppData } = useApp();
   const { showAlert, showConfirm } = useModal();
 
   const [isMatchingNow, setIsMatchingNow] = useState(false);
@@ -188,13 +189,26 @@ export default function MatchingWaitingPage() {
 
   const handleCancelApplication = async () => {
     const ok = await showConfirm(
-      '참가 신청을 취소하시겠습니까?\n(모임 2일 전 확정 이전이므로 사용하신 참가권이 반환됩니다.)',
+      '참가 신청을 취소하시겠습니까?\n(화요일 정오 매칭 확정 이전이므로 사용하신 참가권이 전액 반환됩니다.)',
       '신청 취소 확인'
     );
-    if (ok) {
+    if (!ok) return;
+
+    try {
+      const apps = await getMyApplicationsApi();
+      const activeApp = (apps || []).find(
+        (a) => a.status === 'APPLIED' || a.status === 'WAITING' || a.status === 'MATCHED'
+      );
+      if (activeApp?.id) {
+        await cancelApplicationApi(activeApp.id);
+      }
+      await refreshAppData();
       setUserState('NONE');
       await showAlert('참가 신청이 취소되었으며, 참가권 1회가 보유 참가권으로 반환되었습니다.', '취소 완료');
       navigate('/');
+    } catch (err) {
+      console.error('Cancel application error:', err);
+      await showAlert('신청 취소 중 오류가 발생했습니다: ' + (err.message || '다시 시도해주세요.'), '오류');
     }
   };
 

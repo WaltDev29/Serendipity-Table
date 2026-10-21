@@ -49,6 +49,9 @@ export function AdminProvider({ children }) {
   // 3. 4인 식탁 매칭 테이블 목록 (A-04, A-07)
   const [matchingTables, setMatchingTables] = useState([]);
 
+  // 예외 큐 확인 상태 (예외처리 페이지 확인 시 알림 카운트 초기화용)
+  const [exceptionsAcknowledged, setExceptionsAcknowledged] = useState(false);
+
   // 4. 제휴 식당 및 예약 관리 목록 (A-05)
   const [venues, setVenues] = useState([]);
 
@@ -700,6 +703,8 @@ export function AdminProvider({ children }) {
         adminUser,
         loginAdmin,
         logoutAdmin,
+        exceptionsAcknowledged,
+        acknowledgeExceptions: () => setExceptionsAcknowledged(true),
         // Actions
         triggerAiMatching,
         swapMembers,

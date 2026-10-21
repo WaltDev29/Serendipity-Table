@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAdmin } from '../../context/AdminContext';
+import { sendChatMessageApi, broadcastRoomNoticeApi } from '../../api/chat';
 
 export default function AdminChatOpsPage() {
   const {
@@ -80,25 +81,41 @@ export default function AdminChatOpsPage() {
     : defaultRoom;
 
   // 운영자 직접 메시지 전송
-  const handleSendAdminMessage = (e) => {
+  const handleSendAdminMessage = async (e) => {
     e.preventDefault();
     if (!adminInput.trim()) return;
+
+    const textToSend = adminInput.trim();
+    setAdminInput('');
+
+    // 실제 백엔드에 전송 (DB 저장 및 WebSocket 브로드캐스트)
+    if (activeRoom.id && activeRoom.id !== 'placeholder') {
+      try {
+        await sendChatMessageApi(activeRoom.id, {
+          senderRole: 'ADMIN',
+          messageType: 'ADMIN_NOTICE',
+          content: textToSend
+        });
+      } catch (err) {
+        console.warn('Backend chat send error:', err);
+      }
+    }
 
     setChatRooms((prev) =>
       prev.map((room) =>
         room.id === activeRoom.id
           ? {
               ...room,
-              lastMessage: adminInput,
+              lastMessage: textToSend,
               lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               messages: [
                 ...room.messages,
                 {
                   id: `admin-${Date.now()}`,
-                  type: 'TALK',
-                  sender: '운영자 김관리 (Manager)',
+                  type: 'ADMIN_NOTICE',
+                  sender: '식탁 지킴이(운영자)',
                   avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-                  text: adminInput,
+                  text: textToSend,
                   time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                   isAdmin: true
                 }
@@ -107,7 +124,6 @@ export default function AdminChatOpsPage() {
           : room
       )
     );
-    setAdminInput('');
   };
 
   // 공용 액션 발송 선택 모달 상태 (타입: 'ICEBREAK' | 'VENUE_GUIDE')
@@ -139,9 +155,30 @@ export default function AdminChatOpsPage() {
   };
 
   // 모달에서 발송 범위(현재 채팅방 vs 전체 채팅방) 선택 실행
-  const executeSendScope = (targetScope) => {
+  const executeSendScope = async (targetScope) => {
     if (!sendScopeModal) return;
     const { type, content } = sendScopeModal;
+
+    // 백엔드 연동
+    if (targetScope === 'CURRENT') {
+      if (activeRoom.id && activeRoom.id !== 'placeholder') {
+        try {
+          await sendChatMessageApi(activeRoom.id, {
+            senderRole: 'ADMIN',
+            messageType: type === 'ICEBREAK' ? 'ICEBREAKING_PROMPT' : 'ADMIN_NOTICE',
+            content
+          });
+        } catch (err) {
+          console.warn('Backend send error:', err);
+        }
+      }
+    } else {
+      try {
+        await broadcastRoomNoticeApi('ALL', '', content);
+      } catch (err) {
+        console.warn('Backend broadcast error:', err);
+      }
+    }
 
     setChatRooms((prev) =>
       prev.map((room) => {
@@ -151,8 +188,8 @@ export default function AdminChatOpsPage() {
 
         const newMsg = {
           id: `${type.toLowerCase()}-${Date.now()}-${room.id}`,
-          type: type === 'ICEBREAK' ? 'ICEBREAKING_PROMPT' : 'NOTICE',
-          sender: type === 'ICEBREAK' ? 'AI 매칭 어시스턴트' : '운영팀 공지',
+          type: type === 'ICEBREAK' ? 'ICEBREAKING_PROMPT' : 'ADMIN_NOTICE',
+          sender: type === 'ICEBREAK' ? 'AI 매칭 어시스턴트' : '식탁 지킴이(운영자)',
           text: content,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           isAdmin: true
@@ -177,11 +214,18 @@ export default function AdminChatOpsPage() {
   const [roomNoticeTitle, setRoomNoticeTitle] = useState('');
   const [roomNoticeContent, setRoomNoticeContent] = useState('');
 
-  const handleBroadcastRoomNotice = (e) => {
+  const handleBroadcastRoomNotice = async (e) => {
     e.preventDefault();
     if (!roomNoticeContent.trim()) return;
 
     const targetNoticeText = roomNoticeTitle ? `[공지] ${roomNoticeTitle}\n${roomNoticeContent}` : `[공지] ${roomNoticeContent}`;
+
+    // 실제 백엔드 채팅방 및 웹소켓에 공지 브로드캐스트
+    try {
+      await broadcastRoomNoticeApi(roomNoticeRegion, roomNoticeTitle, roomNoticeContent);
+    } catch (err) {
+      console.warn('Backend broadcastRoomNoticeApi error:', err);
+    }
 
     // 현재 활성화된 모임에만 발송 (권역 필터 조건 반영)
     setChatRooms((prev) =>
@@ -197,8 +241,8 @@ export default function AdminChatOpsPage() {
             ...room.messages,
             {
               id: `room-notice-${Date.now()}-${room.id}`,
-              type: 'NOTICE',
-              sender: '운영팀 공지',
+              type: 'ADMIN_NOTICE',
+              sender: '식탁 지킴이(운영자)',
               text: targetNoticeText,
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               isAdmin: true

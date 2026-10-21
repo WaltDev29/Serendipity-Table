@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdmin } from '../../context/AdminContext';
 
 export default function AdminExceptionsPage() {
-  const { matchingTables, resolveUnderQuorum, downloadCsv, applications, venues } = useAdmin();
+  const { matchingTables, resolveUnderQuorum, downloadCsv, applications, venues, acknowledgeExceptions } = useAdmin();
+
+  // 페이지 진입 시 미확인 예외 알림 카운트 초기화/확인 처리
+  useEffect(() => {
+    if (acknowledgeExceptions) {
+      acknowledgeExceptions();
+    }
+  }, [acknowledgeExceptions]);
 
   // 미달 테이블 타겟
   const [selectedExceptionTable, setSelectedExceptionTable] = useState(null);
   const [resolutionAction, setResolutionAction] = useState('TRANSFER'); // TRANSFER or REFUND
 
-  // 인원 미달 테이블들
-  const underQuorumTables = matchingTables.filter((t) => t.members.length < 4);
+  // 인원 미달 테이블들 (취소된 모임 및 0명 모임 제외)
+  const underQuorumTables = matchingTables.filter((t) => {
+    const memCount = t.members?.length || 0;
+    return memCount > 0 && memCount < 4 && t.status !== 'CANCELLED';
+  });
 
   const handleResolveSubmit = (e) => {
     e.preventDefault();

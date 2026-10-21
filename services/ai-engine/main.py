@@ -57,16 +57,17 @@ def match_candidates(req: MatchRequest):
 
     # 1. 제약 조건 검증 헬퍼 함수들 (MAT-02)
     def is_valid_group(group: List[CandidateProfile]) -> bool:
-        # 하드 제약 1: 4인 테이블
-        if len(group) != 4:
+        # 하드 제약 1: 4~6인 테이블
+        n = len(group)
+        if n < 4 or n > 6:
             return False
 
-        # 하드 제약 2: 나이 차이 8세 이내
+        # 하드 제약 2: 모임 내 최저 나이와 최고 나이 차이 8세 이내
         ages = [c.birthYear for c in group]
         if (max(ages) - min(ages)) > 8:
             return False
 
-        # 하드 제약 3: 성비 1명 고립 방지 (남녀 혼합 시 각 2인 이상, 동성 4인도 허용)
+        # 하드 제약 3: 성비 1명 고립 방지 (1M 또는 1F인 경우 제외, 동성 또는 2명 이상 혼합 허용)
         males = sum(1 for c in group if c.gender == 'M')
         females = sum(1 for c in group if c.gender == 'F')
         if males == 1 or females == 1:
@@ -88,10 +89,15 @@ def match_candidates(req: MatchRequest):
         age_diff = max(ages) - min(ages)
         age_score = max(0.0, 25.0 - (age_diff * 2.5))
 
-        # 성비 점수 (2:2 완벽 균형 시 30점 만점, 동성 4인은 20점)
+        # 성비 점수 (완벽 균형 시 30점 만점, 동성은 20점, 5인 3:2/2:3은 26점)
         males = sum(1 for c in group if c.gender == 'M')
         females = sum(1 for c in group if c.gender == 'F')
-        ratio_score = 30.0 if (males == 2 and females == 2) else 20.0
+        if (males == 2 and females == 2) or (males == 3 and females == 3):
+            ratio_score = 30.0
+        elif (males == 2 and females == 3) or (males == 3 and females == 2) or (males == 2 and females == 4) or (males == 4 and females == 2):
+            ratio_score = 26.0
+        else:
+            ratio_score = 20.0
 
         # 공통 관심사 점수 (20점 만점)
         all_interests = [set(c.interests) for c in group]
@@ -110,7 +116,7 @@ def match_candidates(req: MatchRequest):
         total_score = round(age_score + ratio_score + interest_score + budget_score + tendency_score, 1)
         return total_score, common_interests
 
-    # 3. 그리디 및 조합 탐색으로 최적 테이블 구성
+    # 3. 그리디 및 조합 탐색으로 최적 테이블 구성 (4~6인)
     import itertools
     confirmed_tables: List[ConfirmedTable] = []
     unmatched = list(candidates)
@@ -120,20 +126,33 @@ def match_candidates(req: MatchRequest):
         best_score = -1.0
         best_common = []
 
-        # 조합 탐색
-        combos = itertools.combinations(unmatched, 4)
-        checked_count = 0
-        for combo in combos:
-            checked_count += 1
-            if checked_count > 500:
+        # 4명, 5명, 6명 크기 순차 탐색 (우선 4인, 잔여 인원에 따라 5/6인 고려)
+        target_sizes = [4]
+        if len(unmatched) in [5, 6]:
+            target_sizes = [len(unmatched), 4]
+        elif len(unmatched) in [7, 9, 11]:
+            # 7명 남았을 경우 4인 매칭 시 3명이 남아 버려지므로 4인 또는 5/6인 조합 탐색
+            target_sizes = [4, 5, 6]
+
+        for size in target_sizes:
+            if len(unmatched) < size:
+                continue
+            combos = itertools.combinations(unmatched, size)
+            checked_count = 0
+            for combo in combos:
+                checked_count += 1
+                if checked_count > 300:
+                    break
+                group = list(combo)
+                if is_valid_group(group):
+                    score, common = calculate_group_score(group)
+                    if score > best_score:
+                        best_score = score
+                        best_combo = group
+                        best_common = common
+
+            if best_combo and best_score >= 45.0:
                 break
-            group = list(combo)
-            if is_valid_group(group):
-                score, common = calculate_group_score(group)
-                if score > best_score:
-                    best_score = score
-                    best_combo = group
-                    best_common = common
 
         if best_combo and best_score >= 45.0:
             males = sum(1 for c in best_combo if c.gender == 'M')

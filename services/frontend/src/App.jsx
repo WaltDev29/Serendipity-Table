@@ -79,15 +79,39 @@ function AdminProtectedRoute({ children }) {
   return children;
 }
 
+// 라우트 전환 시 최신 데이터 자동 동기화 컴포넌트
+function RouteSync() {
+  const { pathname } = useLocation();
+  const { refreshAppData } = useApp();
+  const { refreshAdminData } = useAdmin();
+
+  useEffect(() => {
+    if (pathname.startsWith('/admin')) {
+      const adminToken = localStorage.getItem('admin_token');
+      if (adminToken && refreshAdminData) {
+        refreshAdminData();
+      }
+    } else {
+      const token = localStorage.getItem('token');
+      if (token && refreshAppData) {
+        refreshAppData();
+      }
+    }
+  }, [pathname, refreshAppData, refreshAdminData]);
+
+  return null;
+}
+
 export default function App() {
   const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
   const [showSplash, setShowSplash] = React.useState(!isAdminPath);
 
   return (
-    <AppProvider>
-      <AdminProvider>
-        <ModalProvider>
-          <BrowserRouter>
+    <BrowserRouter>
+      <AppProvider>
+        <AdminProvider>
+          <ModalProvider>
+            <RouteSync />
             <PhoneFrame>
             {showSplash && !window.location.pathname.startsWith('/admin') && (
               <SplashScreen onFinish={() => setShowSplash(false)} />
@@ -151,8 +175,8 @@ export default function App() {
                 <Route path="/match/result" element={<ProtectedRoute><div className="pt-14"><VenueMembersPage /></div></ProtectedRoute>} />
 
                 {/* P-08: 실시간 단체 채팅방 (7대 메시지 타입) */}
-                <Route path="/chat" element={<ProtectedRoute><div className="pt-14"><GroupChatPage /></div></ProtectedRoute>} />
-                <Route path="/chat/inquiry" element={<ProtectedRoute><div className="pt-14"><InquiryChatPage /></div></ProtectedRoute>} />
+                <Route path="/chat" element={<ProtectedRoute><GroupChatPage /></ProtectedRoute>} />
+                <Route path="/chat/inquiry" element={<ProtectedRoute><InquiryChatPage /></ProtectedRoute>} />
 
                 {/* P-13: 채팅 목록 */}
                 <Route path="/chats" element={<ProtectedRoute><div className="pt-14"><ChatListPage /></div></ProtectedRoute>} />
@@ -191,9 +215,9 @@ export default function App() {
             <BottomNav />
           </div>
             </PhoneFrame>
-        </BrowserRouter>
-        </ModalProvider>
-      </AdminProvider>
-    </AppProvider>
+          </ModalProvider>
+        </AdminProvider>
+      </AppProvider>
+    </BrowserRouter>
   );
 }

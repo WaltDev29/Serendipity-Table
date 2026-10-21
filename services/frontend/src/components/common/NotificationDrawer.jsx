@@ -30,7 +30,7 @@ export default function NotificationDrawer() {
       />
 
       {/* Floating Center / Top Drawer */}
-      <div className="fixed top-16 lg:top-20 right-4 lg:right-margin z-50 w-full max-w-[380px] bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container overflow-hidden transition-all duration-200">
+      <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[360px] bg-surface-container-lowest rounded-2xl shadow-2xl border border-surface-container overflow-hidden transition-all duration-200">
         <div className="px-space-md py-space-sm bg-surface-container-low flex items-center justify-between border-b border-surface-container">
           <div className="flex items-center gap-space-xs">
             <span className="material-symbols-outlined text-primary text-[20px]">notifications_active</span>

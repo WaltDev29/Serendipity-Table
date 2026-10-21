@@ -13,7 +13,8 @@ export default function AdminLayout() {
     adminUser,
     logoutAdmin,
     matchingTables = [],
-    csInquiries = []
+    csInquiries = [],
+    exceptionsAcknowledged
   } = useAdmin();
 
   const [isNoticeModalOpen, setIsNoticeModalOpen] = useState(false);
@@ -23,9 +24,12 @@ export default function AdminLayout() {
   const [isNotiDropdownOpen, setIsNotiDropdownOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
 
-  // 실시간 긴급 운영 큐: 4인 미달 테이블만 표시 (사용자 CS 문의 제외)
-  const urgentTables = matchingTables.filter((t) => (t.members?.length || 0) < 4);
-  const totalUrgentCount = urgentTables.length;
+  // 실시간 긴급 운영 큐: 4인 미달 테이블만 표시 (취소된 모임 및 0명 모임 제외)
+  const urgentTables = matchingTables.filter((t) => {
+    const memCount = t.members?.length || 0;
+    return memCount > 0 && memCount < 4 && t.status !== 'CANCELLED' && t.status !== 'TRANSFERRED_NEXT_WEEK' && t.status !== 'REFUNDED_ALL';
+  });
+  const totalUrgentCount = exceptionsAcknowledged ? 0 : urgentTables.length;
 
   const handleSendNotice = (e) => {
     e.preventDefault();

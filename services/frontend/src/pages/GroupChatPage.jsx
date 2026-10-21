@@ -93,14 +93,11 @@ export default function GroupChatPage() {
   const chatRoomTitle = `${rawDate} ${matchResult.venue?.name || '식당'}`;
 
   return (
-    <div className="w-full bg-surface min-h-[calc(100vh-5rem)] flex justify-center py-space-xs sm:py-space-md">
-      <div className="w-full max-w-5xl flex flex-col lg:flex-row items-start justify-center gap-space-lg relative px-space-xs sm:px-space-md">
-        
-        {/* Central Chat Container (Max 480px, matches CS page design) */}
-        <div className="w-full max-w-[480px] bg-surface-container-lowest shadow-xl sm:rounded-2xl overflow-hidden flex flex-col relative border border-surface-container">
-          
-          {/* Top Chat Header */}
-          <header className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-surface-container">
+    <div className="w-full h-full bg-surface-container-lowest flex flex-col relative overflow-hidden">
+      {/* Central Chat Container (Full width & height of phone screen) */}
+      <div className="w-full h-full flex flex-col flex-1 min-h-0 relative">
+        {/* Top Chat Header */}
+        <header className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-surface-container shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <button
                 type="button"
@@ -160,8 +157,8 @@ export default function GroupChatPage() {
             </button>
           </div>
 
-          {/* CHAT STREAM (Matches CS stream padding and min/max heights) */}
-          <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto bg-surface-bright min-h-[460px] max-h-[620px]">
+          {/* CHAT STREAM (Full vertical flex fill inside mobile screen) */}
+          <div className="flex-1 p-4 flex flex-col gap-3 overflow-y-auto bg-surface-bright min-h-0">
             {/* System Welcome Card */}
             <div className="flex justify-center my-1">
               <div className="bg-surface-container rounded-2xl p-3 max-w-sm text-center shadow-xs flex flex-col items-center gap-1">
@@ -305,8 +302,6 @@ export default function GroupChatPage() {
               </div>
             )}
           </div>
-
-        </div>
 
           {/* Drawer Backdrop */}
           {isDrawerOpen && (

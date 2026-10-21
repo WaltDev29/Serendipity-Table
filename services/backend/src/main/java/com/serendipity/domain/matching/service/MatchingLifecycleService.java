@@ -779,7 +779,7 @@ public class MatchingLifecycleService {
                                 .map(appMap::get)
                                 .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
-                        if (group.size() == 4) {
+                        if (group.size() >= 4 && group.size() <= 6) {
                             result.add(group);
                         }
                     }
@@ -790,7 +790,7 @@ public class MatchingLifecycleService {
             log.warn("[AI Engine 통신 오류, 내장 휴리스틱 알고리즘으로 전환] {}", e.getMessage());
         }
 
-        // Fallback: 4명 단위 그룹 분할 (남녀 성비 2:2 유지 시도)
+        // Fallback: 4~6명 단위 그룹 분할 (남녀 성비 균형 유지 시도)
         List<List<Application>> fallbackGroups = new ArrayList<>();
         List<Application> males = candidates.stream().filter(c -> "M".equals(c.getUser().getGender())).collect(Collectors.toList());
         List<Application> females = candidates.stream().filter(c -> !"M".equals(c.getUser().getGender())).collect(Collectors.toList());
@@ -804,13 +804,14 @@ public class MatchingLifecycleService {
             fallbackGroups.add(group);
         }
 
-        // 남은 인원 중 4명이 채워질 수 있는 경우 추가 그룹 구성
+        // 남은 인원 중 4~6명이 채워질 수 있는 경우 추가 그룹 구성
         List<Application> leftovers = new ArrayList<>();
         leftovers.addAll(males);
         leftovers.addAll(females);
         while (leftovers.size() >= 4) {
-            fallbackGroups.add(new ArrayList<>(leftovers.subList(0, 4)));
-            leftovers = leftovers.subList(4, leftovers.size());
+            int take = (leftovers.size() == 5 || leftovers.size() == 6) ? leftovers.size() : 4;
+            fallbackGroups.add(new ArrayList<>(leftovers.subList(0, take)));
+            leftovers = leftovers.subList(take, leftovers.size());
         }
 
         return fallbackGroups;

@@ -67,10 +67,10 @@ def match_candidates(req: MatchRequest):
         if (max(ages) - min(ages)) > 8:
             return False
 
-        # 하드 제약 3: 성비 1명 고립 방지 (1M 또는 1F인 경우 제외, 동성 또는 2명 이상 혼합 허용)
+        # 하드 제약 3: 성비 불균형 방지 (동성 테이블 금지, 남녀 각 최소 2명 이상 필수)
         males = sum(1 for c in group if c.gender == 'M')
         females = sum(1 for c in group if c.gender == 'F')
-        if males == 1 or females == 1:
+        if males < 2 or females < 2:
             return False
 
         # 하드 제약 4: 차단/기피 관계 분리

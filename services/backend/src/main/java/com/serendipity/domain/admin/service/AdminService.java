@@ -164,9 +164,9 @@ public class AdminService {
                     .imageUrl(table.getVenue().getImageUrl())
                     .build();
 
-            UUID chatRoomId = "CONFIRMED".equalsIgnoreCase(table.getStatus())
-                    ? chatRoomRepository.findByDiningTable(table).map(com.serendipity.domain.chat.entity.ChatRoom::getId).orElse(null)
-                    : null;
+            UUID chatRoomId = chatRoomRepository.findByDiningTable(table)
+                    .map(com.serendipity.domain.chat.entity.ChatRoom::getId)
+                    .orElse(null);
 
             return ActiveTableResponse.builder()
                     .tableId(table.getId())

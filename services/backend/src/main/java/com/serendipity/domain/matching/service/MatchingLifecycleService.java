@@ -804,14 +804,14 @@ public class MatchingLifecycleService {
             fallbackGroups.add(group);
         }
 
-        // 남은 인원 중 4~6명이 채워질 수 있는 경우 추가 그룹 구성
-        List<Application> leftovers = new ArrayList<>();
-        leftovers.addAll(males);
-        leftovers.addAll(females);
-        while (leftovers.size() >= 4) {
-            int take = (leftovers.size() == 5 || leftovers.size() == 6) ? leftovers.size() : 4;
-            fallbackGroups.add(new ArrayList<>(leftovers.subList(0, take)));
-            leftovers = leftovers.subList(take, leftovers.size());
+        // 남은 인원 중에서도 남녀 각각 최소 2명 이상이 보장되지 않는 성비 불균형 테이블은 생성하지 않음 (미매칭 처리)
+        while (males.size() >= 2 && females.size() >= 2) {
+            List<Application> group = new ArrayList<>();
+            group.add(males.remove(0));
+            group.add(males.remove(0));
+            group.add(females.remove(0));
+            group.add(females.remove(0));
+            fallbackGroups.add(group);
         }
 
         return fallbackGroups;

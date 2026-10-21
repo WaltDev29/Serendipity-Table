@@ -55,27 +55,43 @@ export default function GroupChatPage() {
     setSelectedGameVote(option);
   };
 
-  if (!matchResult) {
+  const isChatRoomAvailable = matchResult && (matchResult.status === 'CONFIRMED' || matchResult.chatRoomId);
+
+  if (!matchResult || !isChatRoomAvailable) {
     return (
-      <div className="w-full bg-surface min-h-[calc(100vh-5rem)] flex items-center justify-center p-6 text-center">
-        <div className="max-w-sm bg-surface-container-lowest p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col items-center gap-4">
+      <div className="w-full h-full bg-surface-container-lowest flex items-center justify-center p-6 text-center">
+        <div className="max-w-sm bg-surface-container-low p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-primary">
-            <span className="material-symbols-outlined text-3xl">chat</span>
+            <span className="material-symbols-outlined text-3xl">lock_clock</span>
           </div>
           <div>
-            <h3 className="font-headline-sm text-lg font-bold text-on-surface">참여 중인 단체 채팅방이 없습니다</h3>
+            <h3 className="font-headline-sm text-lg font-bold text-on-surface">
+              {matchResult?.status === 'MATCHED' ? '채팅방 오픈 준비 중' : '참여 중인 단체 채팅방이 없습니다'}
+            </h3>
             <p className="font-body-sm text-xs text-on-surface-variant mt-1.5 leading-relaxed">
-              목요일 정기 식탁 매칭이 완료되면 4인 전용 실시간 채팅방이 자동으로 열립니다.
+              {matchResult?.status === 'MATCHED'
+                ? '현재 1~3단계 매칭 진행 중입니다. 4단계(화요일 정오 12:00) 최종 매칭 확정 및 식당 예약 시 4인 단체 채팅방이 정식 개설됩니다.'
+                : '목요일 정기 식탁 매칭이 완료되면 4인 전용 실시간 채팅방이 자동으로 열립니다.'}
             </p>
           </div>
           <div className="w-full flex flex-col gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/booking')}
-              className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
-            >
-              목요일 식탁 신청하기
-            </button>
+            {matchResult?.status === 'MATCHED' ? (
+              <button
+                type="button"
+                onClick={() => navigate('/match/result')}
+                className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
+              >
+                매칭 결과(멤버 리스트) 보기
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/booking')}
+                className="w-full h-11 rounded-2xl bg-primary text-white font-bold text-sm shadow-sm hover:bg-primary-container transition-all"
+              >
+                목요일 식탁 신청하기
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate('/')}
@@ -280,8 +296,8 @@ export default function GroupChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* BOTTOM INPUT BAR (Matches InquiryChatPage UI style) */}
-          <div className="p-3 bg-surface-container-lowest border-t border-surface-container">
+          {/* BOTTOM INPUT BAR (하단 고정 sticky bottom-0) */}
+          <div className="sticky bottom-0 z-30 p-3 bg-surface-container-lowest border-t border-surface-container shrink-0">
             {!isReadOnlyMode ? (
               <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                 <input

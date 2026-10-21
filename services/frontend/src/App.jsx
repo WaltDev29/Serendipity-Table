@@ -116,12 +116,12 @@ export default function App() {
             {showSplash && !window.location.pathname.startsWith('/admin') && (
               <SplashScreen onFinish={() => setShowSplash(false)} />
             )}
-            <div className="min-h-screen bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col selection:bg-primary-fixed selection:text-primary">
+            <div className="h-full min-h-full bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col selection:bg-primary-fixed selection:text-primary">
               {/* Universal Sticky Header (Hidden on /admin) */}
               <Header />
 
             {/* Main View Router */}
-            <main className="w-full flex-1">
+            <main className="w-full flex-1 flex flex-col min-h-0">
               <Routes>
                 {/* ========================================= */}
                 {/* ADMIN CONSOLE ROUTES (/admin/*)           */}

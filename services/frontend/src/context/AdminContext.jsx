@@ -173,11 +173,11 @@ export function AdminProvider({ children }) {
           });
           setMatchingTables(formattedTables);
 
-          // Populate chatRooms ONLY for tables that reached Step 4 (CONFIRMED)
-          const confirmedTables = formattedTables.filter(
-            (t) => t.status === 'CONFIRMED' && t.chatRoomId
+          // 관리자 채팅 관제: chatRoomId가 있거나 확정된 테이블의 채팅방 목록 구성
+          const openTables = formattedTables.filter(
+            (t) => t.chatRoomId || t.status === 'CONFIRMED'
           );
-          const rooms = confirmedTables.map((t, tIdx) => ({
+          const rooms = openTables.map((t, tIdx) => ({
             id: t.chatRoomId || t.id || `room-${tIdx + 1}`,
             roomName: `${t.tableNo} 단체방`,
             venueName: (t.reservationStatus === 'RESERVED' && t.venue?.name) ? t.venue.name : '예약 전',

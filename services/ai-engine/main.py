@@ -93,16 +93,21 @@ def match_candidates(req: MatchRequest):
         females = sum(1 for c in group if c.gender == 'F')
         ratio_score = 30.0 if (males == 2 and females == 2) else 15.0
 
-        # 공통 관심사 점수 (25점 만점)
+        # 공통 관심사 점수 (20점 만점)
         all_interests = [set(c.interests) for c in group]
         common = set.intersection(*all_interests) if all_interests else set()
         common_interests = list(common)
-        interest_score = min(25.0, len(common_interests) * 8.0 + 10.0)
+        interest_score = min(20.0, len(common_interests) * 6.0 + 8.0)
 
-        # 성향 및 소통 스타일 점수 (20점 만점)
-        tendency_score = 15.0
+        # 예산대 일치 점수 (15점 만점: 공통 예산 구간이 존재할수록 가점)
+        all_budgets = [set(c.budgetRanges or []) for c in group]
+        common_budgets = set.intersection(*all_budgets) if all_budgets else set()
+        budget_score = 15.0 if common_budgets else 8.0
 
-        total_score = round(age_score + ratio_score + interest_score + tendency_score, 1)
+        # 성향 및 소통 스타일 점수 (10점 만점)
+        tendency_score = 10.0
+
+        total_score = round(age_score + ratio_score + interest_score + budget_score + tendency_score, 1)
         return total_score, common_interests
 
     # 3. 그리디 및 조합 탐색으로 최적 테이블 구성

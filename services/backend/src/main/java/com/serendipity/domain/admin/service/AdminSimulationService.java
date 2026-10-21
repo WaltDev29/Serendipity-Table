@@ -176,17 +176,12 @@ public class AdminSimulationService {
                 continue;
             }
 
-            // 티켓 확인 (없으면 시뮬레이션용 1회권 자동 부여)
-            UserTicket ticket = userTicketRepository.findFirstByUserAndRemainingCountGreaterThanOrderByCreatedAtAsc(user, 0)
-                    .orElseGet(() -> {
-                        UserTicket t = UserTicket.builder()
-                                .user(user)
-                                .ticketType("1_TICKET")
-                                .totalCount(1)
-                                .remainingCount(1)
-                                .build();
-                        return userTicketRepository.save(t);
-                    });
+            // 티켓 확인 (참여권이 있는 회원만 신청 가능, 없으면 스킵)
+            var ticketOpt = userTicketRepository.findFirstByUserAndRemainingCountGreaterThanOrderByCreatedAtAsc(user, 0);
+            if (ticketOpt.isEmpty()) {
+                continue;
+            }
+            UserTicket ticket = ticketOpt.get();
 
             ticket.deduct();
             userTicketRepository.save(ticket);

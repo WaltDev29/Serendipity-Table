@@ -714,11 +714,15 @@ public class MatchingLifecycleService {
 
     private EventSlot resolveSlot(Long slotId) {
         if (slotId != null) {
-            return eventSlotRepository.findById(slotId)
-                    .orElseThrow(() -> new IllegalArgumentException("해당 슬롯을 찾을 수 없습니다: " + slotId));
+            var opt = eventSlotRepository.findById(slotId);
+            if (opt.isPresent()) {
+                return opt.get();
+            }
+            log.warn("[매칭 라이프사이클] 요청된 슬롯 #{} 가 존재하지 않아 가장 가까운 활성 슬롯으로 대체합니다.", slotId);
         }
-        return eventSlotRepository.findAll().stream()
+        return eventSlotRepository.findByEventDateGreaterThanEqualOrderByEventDateAsc(java.time.LocalDate.now()).stream()
                 .findFirst()
+                .or(() -> eventSlotRepository.findAll().stream().findFirst())
                 .orElseThrow(() -> new IllegalStateException("등록된 슬롯이 없습니다."));
     }
 
@@ -744,10 +748,10 @@ public class MatchingLifecycleService {
                 p.put("birthYear", u.getBirthYear() != null ? u.getBirthYear() : 1995);
                 p.put("gender", u.getGender() != null ? u.getGender() : "F");
                 p.put("mbti", u.getMbti() != null ? u.getMbti() : "ENFP");
-                p.put("interests", u.getInterests() != null ? u.getInterests() : List.of("맛집·카페 탐방"));
-                p.put("myTendencies", u.getMyTendencies() != null ? u.getMyTendencies() : List.of("깊은 대화"));
-                p.put("preferredTendencies", u.getPreferredTendencies() != null ? u.getPreferredTendencies() : List.of("경청"));
-                p.put("budgetRanges", List.of("20000-30000"));
+                p.put("interests", u.getInterests() != null && !u.getInterests().isEmpty() ? u.getInterests() : List.of("맛집·카페 탐방"));
+                p.put("myTendencies", u.getMyTendencies() != null && !u.getMyTendencies().isEmpty() ? u.getMyTendencies() : List.of("깊은 대화"));
+                p.put("preferredTendencies", u.getPreferredTendencies() != null && !u.getPreferredTendencies().isEmpty() ? u.getPreferredTendencies() : List.of("경청"));
+                p.put("budgetRanges", u.getBudgetRanges() != null && !u.getBudgetRanges().isEmpty() ? u.getBudgetRanges() : List.of("20,000~30,000원"));
                 p.put("avoidUserIds", avoidIds);
                 candidatePayloads.add(p);
             }

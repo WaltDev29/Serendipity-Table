@@ -55,8 +55,8 @@ export default function AdminLayout() {
           icon: 'query_stats',
           label: '피드백',
           subItems: [
-            { to: '/admin/analytics/preferences', icon: 'thumb_up_down', label: '선호&비선호 평가' },
-            { to: '/admin/analytics/reviews', icon: 'rate_review', label: '리뷰' }
+            { to: '/admin/analytics/preferences', label: '선호&비선호 평가' },
+            { to: '/admin/analytics/reviews', label: '리뷰' }
           ]
         },
         { to: '/admin/exceptions', icon: 'download', label: '예외 큐' },
@@ -151,14 +151,14 @@ export default function AdminLayout() {
                               key={sub.to}
                               to={sub.to}
                               className={({ isActive }) =>
-                                `group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium ${
+                                `group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium ${
                                   isActive
                                     ? 'bg-primary/20 text-primary-container font-bold border-l-2 border-primary -ml-[2px]'
                                     : 'text-surface-variant/80 hover:bg-inverse-surface/60 hover:text-surface'
                                 }`
                               }
                             >
-                              <span className="material-symbols-outlined text-[15px]">{sub.icon}</span>
+                              <span className="text-[10px] text-surface-variant/50 leading-none">•</span>
                               <span className="truncate">{sub.label}</span>
                             </NavLink>
                           ))}

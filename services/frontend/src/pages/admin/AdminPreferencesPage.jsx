@@ -77,7 +77,7 @@ export default function AdminPreferencesPage() {
             <p className="text-2xl font-bold text-on-surface mt-0.5">{evaluations.length}건</p>
           </div>
           <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-[20px]">thumb_up_down</span>
+            <span className="material-symbols-outlined text-[20px]">checklist</span>
           </div>
         </div>
 

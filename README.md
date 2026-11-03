@@ -20,6 +20,7 @@
 7. [AI 매칭 엔진 알고리즘 (Matching Algorithm)](#-7-ai-매칭-엔진-알고리즘-matching-algorithm)
 8. [실시간 단체 채팅 및 공지 아키텍처](#-8-실시간-단체-채팅-및-공지-아키텍처)
 9. [관리자 운영 콘솔 상세 (Admin Console)](#-9-관리자-운영-콘솔-상세-admin-console)
+10. [로컬 실행 및 환경 변수 설정 (Getting Started)](#-10-로컬-실행-및-환경-변수-설정-getting-started)
 
 ---
 
@@ -245,6 +246,39 @@ $$\text{Total Score} = S_{\text{age}} + S_{\text{ratio}} + S_{\text{interest}} +
   - 권역별 또는 전체 단체방 대상 긴급 운영자 공지 주입 브로드캐스트
 - **1:1 CS 고객센터 및 예외 큐 (`/admin/cs`, `/admin/exceptions`)**:
   - 식당 미배정, 인원 미달 등 시스템 이상 징후 자동 감지 및 관리자 수동 개입 지원
+
+---
+
+## 🚀 10. 로컬 실행 및 환경 변수 설정 (Getting Started)
+
+### 10.1 환경 변수 템플릿 복사 (`.env.example` -> `.env`)
+보안을 위해 실제 환경변수 파일(`.env`)은 Git 추적에서 제외되어 있습니다. 프로젝트 실행 전 각 템플릿 파일을 복사하여 환경 변수를 설정합니다.
+
+```bash
+# 1. Docker Compose 환경 변수 설정
+cp docker/compose/.env.example docker/compose/.env
+
+# 2. 각 서비스별 환경 변수 설정
+cp docker/.env/backend.env.example docker/.env/backend.env
+cp docker/.env/frontend.env.example docker/.env/frontend.env
+cp docker/.env/ai-engine.env.example docker/.env/ai-engine.env
+cp docker/.env/postgres.env.example docker/.env/postgres.env
+cp docker/.env/redis.env.example docker/.env/redis.env
+```
+
+> **Note**: `backend.env`, `postgres.env`, `ai-engine.env` 내부의 `POSTGRES_PASSWORD`와 `JWT_SECRET`을 실제 환경에 맞게 안전한 시크릿 값으로 설정해 주세요.
+
+### 10.2 Docker Compose 서비스 실행
+```bash
+# docker/compose 디렉토리 이동 후 전체 서비스 빌드 및 실행
+cd docker/compose
+docker compose up -d --build
+```
+
+### 10.3 서비스 접속 확인
+- **웹 서비스 (사용자 / 관리자)**: `http://localhost:81` (Nginx 프록시) 또는 `http://localhost:3000`
+- **백엔드 API**: `http://localhost:81/api` 또는 `http://localhost:8080`
+- **AI 매칭 엔진 API**: `http://localhost:8000/docs` (Swagger UI)
 
 ---
 
